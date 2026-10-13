@@ -1,0 +1,44 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: test (linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace --locked
+      - run: cargo clippy --workspace -- -D warnings
+
+  windows:
+    name: build windows x64 exes
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build release
+        run: cargo build --release --workspace --locked
+      - name: Collect binaries
+        shell: bash
+        run: |
+          mkdir dist
+          cp target/release/ananasar.exe dist/
+          cp target/release/ananasar-gui.exe dist/
+          ls -la dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ananasar-windows-x64
+          path: dist/*.exe
+          if-no-files-found: error
