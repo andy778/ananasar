@@ -9,7 +9,11 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/andy778/ananasar?logo=github&cacheSeconds=3600)](https://github.com/andy778/ananasar/releases/latest)
 [![License](https://img.shields.io/github/license/andy778/ananasar)](LICENSE)
 
-A Rust reimplementation of **Ananas**, a Modbus/TCP client–server test tool.
+A Rust reimplementation of **Ananas**, a public-domain Modbus/TCP client–server
+test tool.
+
+Built as a hands-on exploration of what AI-assisted development can do today —
+using [REA](https://rea.tools/) to understand the original and guide the rewrite.
 
 ## Layout
 

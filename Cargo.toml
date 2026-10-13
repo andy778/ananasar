@@ -1,6 +1,9 @@
 [workspace]
 resolver = "2"
 members = ["crates/ananasar-core", "crates/ananasar-cli", "crates/ananasar-gui"]
+# The fuzz crate needs a nightly toolchain + libFuzzer, so it is not part of the
+# normal workspace build.
+exclude = ["fuzz"]
 
 [workspace.package]
 version = "0.1.0"

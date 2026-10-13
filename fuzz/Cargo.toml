@@ -1,0 +1,30 @@
+[package]
+name = "ananasar-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+ananasar-core = { path = "../crates/ananasar-core" }
+
+[[bin]]
+name = "frame"
+path = "fuzz_targets/frame.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "server_process"
+path = "fuzz_targets/server_process.rs"
+test = false
+doc = false
+bench = false
+
+# Build-std-ish profile tweaks keep the fuzzers debuggable.
+[profile.release]
+debug = 1

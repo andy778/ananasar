@@ -27,17 +27,17 @@ pending review. Checks are grouped by what was done.
 
 ## Open tickets — additional CI hardening (code, deferred)
 
-- **T8 — SAST (0).** No SAST tool detected. Add a CodeQL workflow (CodeQL now
-  has Rust support, currently beta) and/or a scheduled `cargo audit` /
-  `cargo deny` job. Deferred because CodeQL-for-Rust may need a specific
-  CodeQL CLI version on the runner; validate before enabling so CI stays green.
-- **T9 — Signed-Releases (-1).** "no releases found" (the first release is in
-  flight). After the first release exists, add SLSA provenance / artifact
-  signing to the release job (e.g. `slsa-framework/slsa-github-generator` or
-  cosign) so release assets are verifiable.
-- **T10 — Fuzzing (0).** Not fuzzed. Good fit here: add `cargo-fuzz` targets
-  for `ananasar_core::protocol::frame` and `server::process` (the untrusted
-  request parsers). High value given this is a network service.
+- **T8 — SAST (0).** Partially addressed: a `cargo-deny` job (advisories, bans,
+  sources — `deny.toml`) now runs in CI as a supply-chain gate. Full SAST
+  (CodeQL) still deferred: CodeQL's Rust support is newer and needs validation
+  so CI stays green; best enabled once the repo is public (free code scanning).
+- **T9 — Signed-Releases (-1).** After a release exists, add SLSA provenance /
+  artifact signing to the release job (e.g. `slsa-framework/slsa-github-generator`
+  or cosign) so release assets are verifiable. Best done public. Deferred.
+- **T10 — Fuzzing (0). DONE.** Added `cargo-fuzz` targets `frame` and
+  `server_process` (fuzz/) for the untrusted request parsers, plus a scheduled
+  `fuzz` CI workflow. Local smoke: 52.6M execs (frame) and 39.0M execs
+  (server_process) with zero crashes.
 
 ## Open tickets — informational / time-based (low or no action)
 

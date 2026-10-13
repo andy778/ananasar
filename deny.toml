@@ -1,0 +1,18 @@
+# cargo-deny configuration. CI runs: cargo deny check advisories bans sources
+[advisories]
+version = 2
+ignore = [
+  # ttf-parser is unmaintained (informational, no exploit, no patched version).
+  # Transitive only, via the eframe GUI font stack on Linux. Tracked upstream.
+  "RUSTSEC-2026-0192",
+]
+
+[bans]
+# Duplicate transitive versions are common in large GUI trees; warn, don't fail.
+multiple-versions = "warn"
+wildcards = "allow"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
