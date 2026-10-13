@@ -4,7 +4,7 @@
 
 # Ananasar (Rust port of Ananas)
 
-[![Build](https://img.shields.io/github/actions/workflow/status/andy778/ananasar/build.yml?branch=main&logo=github&cacheSeconds=3600)](https://github.com/andy778/ananasar/actions/workflows/build.yml)
+[![Build](https://github.com/andy778/ananasar/actions/workflows/build.yml/badge.svg)](https://github.com/andy778/ananasar/actions/workflows/build.yml)
 [![GitHub all releases](https://img.shields.io/github/downloads/andy778/ananasar/total?logo=github&cacheSeconds=3600)](https://github.com/andy778/ananasar/releases)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/andy778/ananasar?logo=github&cacheSeconds=3600)](https://github.com/andy778/ananasar/releases/latest)
 [![License](https://img.shields.io/github/license/andy778/ananasar)](LICENSE)
