@@ -41,6 +41,20 @@ sudo pacman -S mingw-w64-gcc
 cargo build --release --target x86_64-pc-windows-gnu
 ```
 
+### Prebuilt binaries
+
+Each tagged release has Windows `.exe`s and a macOS universal (arm64 + x86_64)
+`ananasar-macos-universal.tar.gz`, built by CI.
+
+The macOS binaries are **unsigned**, so Gatekeeper blocks them on first run.
+After extracting, clear the quarantine flag:
+
+```bash
+tar xzf ananasar-macos-universal.tar.gz
+xattr -dr com.apple.quarantine ananasar ananasar-gui
+./ananasar-gui
+```
+
 ## Run (headless)
 
 ```bash
