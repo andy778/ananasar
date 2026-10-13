@@ -27,6 +27,8 @@ jobs:
         with:
           tool: cargo-fuzz
       - name: Smoke-fuzz the untrusted parsers
+        # Pin the fuzz target to gnu: the prebuilt cargo-fuzz is musl-static and
+        # would otherwise default to a musl target, which the sanitizer rejects.
         run: |
-          cargo +nightly fuzz run frame -- -max_total_time=60 -rss_limit_mb=4096
-          cargo +nightly fuzz run server_process -- -max_total_time=60 -rss_limit_mb=4096
+          cargo +nightly fuzz run frame --target x86_64-unknown-linux-gnu -- -max_total_time=60 -rss_limit_mb=4096
+          cargo +nightly fuzz run server_process --target x86_64-unknown-linux-gnu -- -max_total_time=60 -rss_limit_mb=4096
