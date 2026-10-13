@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 400" width="540" height="400">
+  <title>ananasar — two pineapples</title>
+  <defs>
+    <!-- one pineapple, drawn around origin; body centred near (0,40) -->
+    <clipPath id="bodyClip">
+      <ellipse cx="0" cy="48" rx="74" ry="90"/>
+    </clipPath>
+    <g id="pine">
+      <!-- fronds -->
+      <g fill="#2a9d34" stroke="#111" stroke-width="7" stroke-linejoin="round">
+        <path transform="rotate(-38 0 -42)" d="M0,-42 C-16,-96 -12,-150 0,-186 C12,-150 16,-96 0,-42 Z"/>
+        <path transform="rotate(-18 0 -42)" d="M0,-42 C-16,-100 -12,-160 0,-198 C12,-160 16,-100 0,-42 Z"/>
+        <path transform="rotate(2 0 -42)"   d="M0,-42 C-15,-104 -11,-166 0,-206 C11,-166 15,-104 0,-42 Z"/>
+        <path transform="rotate(22 0 -42)"  d="M0,-42 C-16,-100 -12,-160 0,-198 C12,-160 16,-100 0,-42 Z"/>
+        <path transform="rotate(42 0 -42)"  d="M0,-42 C-16,-96 -12,-150 0,-186 C12,-150 16,-96 0,-42 Z"/>
+      </g>
+      <!-- body -->
+      <ellipse cx="0" cy="48" rx="74" ry="90" fill="#e87b2e" stroke="#111" stroke-width="8"/>
+      <!-- cross-hatch scales, clipped to the body -->
+      <g clip-path="url(#bodyClip)" stroke="#111" stroke-width="3.2" stroke-linecap="round">
+        <g transform="rotate(45 0 48)">
+          <path d="M-170,-120 H170 M-170,-96 H170 M-170,-72 H170 M-170,-48 H170 M-170,-24 H170 M-170,0 H170 M-170,24 H170 M-170,48 H170 M-170,72 H170 M-170,96 H170 M-170,120 H170 M-170,144 H170 M-170,168 H170 M-170,192 H170 M-170,216 H170"/>
+        </g>
+        <g transform="rotate(-45 0 48)">
+          <path d="M-170,-120 H170 M-170,-96 H170 M-170,-72 H170 M-170,-48 H170 M-170,-24 H170 M-170,0 H170 M-170,24 H170 M-170,48 H170 M-170,72 H170 M-170,96 H170 M-170,120 H170 M-170,144 H170 M-170,168 H170 M-170,192 H170 M-170,216 H170"/>
+        </g>
+      </g>
+    </g>
+  </defs>
+
+  <!-- back pineapple (smaller, tilted) -->
+  <use href="#pine" transform="translate(185,215) scale(0.74) rotate(-9)"/>
+  <!-- front pineapple -->
+  <use href="#pine" transform="translate(345,180) scale(1.0) rotate(4)"/>
+</svg>

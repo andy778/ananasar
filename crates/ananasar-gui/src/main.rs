@@ -43,10 +43,12 @@ fn main() -> eframe::Result<()> {
         setval: SetValView::default(),
     };
 
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([560.0, 700.0]),
-        ..Default::default()
-    };
+    let mut viewport = egui::ViewportBuilder::default().with_inner_size([560.0, 700.0]);
+    // Window/taskbar icon — the two-pineapple logo (assets/icon.png).
+    if let Ok(icon) = eframe::icon_data::from_png_bytes(include_bytes!("../../../assets/icon.png")) {
+        viewport = viewport.with_icon(std::sync::Arc::new(icon));
+    }
+    let options = eframe::NativeOptions { viewport, ..Default::default() };
     eframe::run_native("Ananasar — Modbus/TCP", options, Box::new(|_cc| Ok(Box::new(app))))
 }
 

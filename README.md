@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.svg" width="320" alt="ananasar — two pineapples">
+</p>
+
 # Ananasar (Rust port of Ananas)
 
 [![Build](https://img.shields.io/github/actions/workflow/status/andy778/ananasar/build.yml?branch=main&logo=github&cacheSeconds=3600)](https://github.com/andy778/ananasar/actions/workflows/build.yml)
