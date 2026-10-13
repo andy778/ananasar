@@ -17,40 +17,67 @@ use std::time::Duration;
 
 const MAX_CLIENTS: usize = 2;
 
+use clap::{Args, Parser, Subcommand};
+
+/// Modbus/TCP client and server (headless).
+#[derive(Parser)]
+#[command(name = "ananasar", version, about)]
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    /// Run a Modbus/TCP server backed by an in-memory register file
+    Server(ServerArgs),
+    /// Poll a Modbus/TCP server and print the responses
+    Client(ClientArgs),
+}
+
+#[derive(Args)]
+struct ServerArgs {
+    /// TCP port to listen on (port 502 usually needs root)
+    #[arg(short, long, default_value_t = DEFAULT_PORT)]
+    port: u16,
+    /// Accepted unit id; 0 accepts any
+    #[arg(short, long, default_value_t = 0)]
+    uid: u8,
+}
+
+#[derive(Args)]
+struct ClientArgs {
+    /// Server address as host:port
+    target: String,
+    /// Unit id to address
+    #[arg(short, long, default_value_t = 1)]
+    uid: u8,
+    /// Holding registers to read (FC3), comma-separated
+    #[arg(long, value_delimiter = ',', value_name = "ADDR,...")]
+    read_holding: Vec<u16>,
+    /// Input registers to read (FC4), comma-separated
+    #[arg(long, value_delimiter = ',', value_name = "ADDR,...")]
+    read_input: Vec<u16>,
+    /// Holding registers to write (FC16), comma-separated
+    #[arg(long, value_delimiter = ',', value_name = "ADDR,...")]
+    write: Vec<u16>,
+    /// Number of polls to send
+    #[arg(short = 'n', long, default_value_t = 5)]
+    count: usize,
+    /// Delay between polls in milliseconds
+    #[arg(long, default_value_t = 1000)]
+    interval_ms: u64,
+}
+
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    let code = match args.get(1).map(String::as_str) {
-        Some("server") => run_server(&args[2..]),
-        Some("client") => run_client(&args[2..]),
-        _ => {
-            usage();
-            2
-        }
+    let code = match Cli::parse().command {
+        Command::Server(a) => run_server(a.port, a.uid),
+        Command::Client(a) => run_client(a),
     };
     std::process::exit(code);
 }
 
-fn usage() {
-    eprintln!(
-        "ananas — Modbus/TCP client/server (headless)\n\n\
-         USAGE:\n  \
-         ananasar server [--port N] [--uid N]\n  \
-         ananasar client <host:port> [--uid N] [--read-holding a,b,..] \\\n                \
-         [--read-input a,b,..] [--write a,b,..] [--count N] [--interval-ms N]\n"
-    );
-}
-
-fn parse_opt<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
-    args.iter().position(|a| a == name).and_then(|i| args.get(i + 1)).map(String::as_str)
-}
-
-fn parse_list(s: &str) -> Vec<u16> {
-    s.split(',').filter_map(|t| t.trim().parse().ok()).collect()
-}
-
-fn run_server(args: &[String]) -> i32 {
-    let port: u16 = parse_opt(args, "--port").and_then(|s| s.parse().ok()).unwrap_or(DEFAULT_PORT);
-    let uid: u8 = parse_opt(args, "--uid").and_then(|s| s.parse().ok()).unwrap_or(0);
+fn run_server(port: u16, uid: u8) -> i32 {
 
     let cfg = Arc::new(ServerConfig { unit_id: uid, ..Default::default() });
     let regs = Arc::new(Mutex::new(RegisterFile::new()));
@@ -124,34 +151,20 @@ fn read_exact_or_eof(stream: &mut TcpStream, buf: &mut [u8]) -> Option<()> {
     Some(())
 }
 
-fn run_client(args: &[String]) -> i32 {
-    let Some(target) = args.first() else {
-        usage();
-        return 2;
-    };
-    let uid: u8 = parse_opt(args, "--uid").and_then(|s| s.parse().ok()).unwrap_or(1);
-    let interval = Duration::from_millis(
-        parse_opt(args, "--interval-ms").and_then(|s| s.parse().ok()).unwrap_or(1000),
-    );
-    let polls: usize = parse_opt(args, "--count").and_then(|s| s.parse().ok()).unwrap_or(5);
-
+fn run_client(args: ClientArgs) -> i32 {
+    let ClientArgs { target, uid, read_holding, read_input, write, count: polls, interval_ms } = args;
+    let interval = Duration::from_millis(interval_ms);
     let regs = RegisterFile::new();
     let mut eng = PollEngine::new(uid);
-    if let Some(s) = parse_opt(args, "--read-holding") {
-        eng.read_holding = PollList::new(parse_list(s));
-    }
-    if let Some(s) = parse_opt(args, "--read-input") {
-        eng.read_input = PollList::new(parse_list(s));
-    }
-    if let Some(s) = parse_opt(args, "--write") {
-        eng.write = PollList::new(parse_list(s));
-    }
+    eng.read_holding = PollList::new(read_holding);
+    eng.read_input = PollList::new(read_input);
+    eng.write = PollList::new(write);
     if eng.is_idle() {
         eprintln!("nothing to poll: give --read-holding / --read-input / --write");
         return 2;
     }
 
-    let mut stream = match TcpStream::connect(target) {
+    let mut stream = match TcpStream::connect(&target) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("connect to {target} failed: {e}");
