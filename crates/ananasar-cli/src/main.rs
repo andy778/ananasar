@@ -105,11 +105,10 @@ fn serve_connection(mut stream: TcpStream, cfg: &ServerConfig, regs: &Mutex<Regi
             let mut regs = regs.lock().unwrap();
             process(cfg, &mut regs, &buf[..total])
         };
-        if let Outcome::Reply(r) = outcome {
-            if stream.write_all(&r).is_err() {
+        if let Outcome::Reply(r) = outcome
+            && stream.write_all(&r).is_err() {
                 return;
             }
-        }
     }
 }
 

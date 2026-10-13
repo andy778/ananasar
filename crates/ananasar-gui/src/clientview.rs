@@ -164,15 +164,12 @@ impl ClientView {
             ui.label("Addr:");
             ui.add(egui::TextEdit::singleline(&mut self.addr_input).desired_width(60.0));
             let a = self.addr_input.trim().parse::<u16>().ok();
-            if ui.button("+Read H").clicked() {
-                if let Some(a) = a { add_sorted(&mut self.read_holding, a); self.push_lists(); }
-            }
-            if ui.button("+Read I").clicked() {
-                if let Some(a) = a { add_sorted(&mut self.read_input, a); self.push_lists(); }
-            }
-            if ui.button("+Write").clicked() {
-                if let Some(a) = a { add_sorted(&mut self.write, a); self.push_lists(); }
-            }
+            if ui.button("+Read H").clicked()
+                && let Some(a) = a { add_sorted(&mut self.read_holding, a); self.push_lists(); }
+            if ui.button("+Read I").clicked()
+                && let Some(a) = a { add_sorted(&mut self.read_input, a); self.push_lists(); }
+            if ui.button("+Write").clicked()
+                && let Some(a) = a { add_sorted(&mut self.write, a); self.push_lists(); }
         });
         ui.horizontal(|ui| {
             let mut changed = false;
@@ -189,11 +186,10 @@ impl ClientView {
             ui.add(egui::TextEdit::singleline(&mut self.man_value).desired_width(50.0));
             let addr = self.man_addr.trim().parse::<u16>().ok();
             let val = u16::from_str_radix(self.man_value.trim(), 16).ok();
-            if ui.add_enabled(connected, egui::Button::new("FC6")).clicked() {
-                if let (Some(a), Some(v)) = (addr, val) {
+            if ui.add_enabled(connected, egui::Button::new("FC6")).clicked()
+                && let (Some(a), Some(v)) = (addr, val) {
                     let _ = self.tx.send(Cmd::Manual(ManualCommand::WriteSingle { addr: a, value: v }));
                 }
-            }
             if ui.add_enabled(connected, egui::Button::new("FC7")).clicked() {
                 let _ = self.tx.send(Cmd::Manual(ManualCommand::ReadExceptionStatus));
             }
@@ -203,11 +199,10 @@ impl ClientView {
             ui.add(egui::TextEdit::singleline(&mut self.man_and).desired_width(50.0));
             ui.label("OR:");
             ui.add(egui::TextEdit::singleline(&mut self.man_or).desired_width(50.0));
-            if ui.add_enabled(connected, egui::Button::new("FC22")).clicked() {
-                if let (Some(a), Some(am), Some(om)) = (addr, and, or) {
+            if ui.add_enabled(connected, egui::Button::new("FC22")).clicked()
+                && let (Some(a), Some(am), Some(om)) = (addr, and, or) {
                     let _ = self.tx.send(Cmd::Manual(ManualCommand::MaskWrite { addr: a, and_mask: am, or_mask: om }));
                 }
-            }
         });
 
         ui.separator();
@@ -293,11 +288,10 @@ fn spawn_worker(shared: Arc<Shared>, rx: Receiver<Cmd>) {
                         Cmd::Manual(cmd) => {
                             if let Some(s) = stream.as_mut() {
                                 let frame = engine.build_manual(cmd);
-                                if s.write_all(&frame).is_ok() {
-                                    if let Ok(resp) = read_frame(s) {
+                                if s.write_all(&frame).is_ok()
+                                    && let Ok(resp) = read_frame(s) {
                                         log_resp(&shared, &resp);
                                     }
-                                }
                             }
                         }
                     },

@@ -1,5 +1,5 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members = ["crates/ananasar-core", "crates/ananasar-cli", "crates/ananasar-gui"]
 # The fuzz crate needs a nightly toolchain + libFuzzer, so it is not part of the
 # normal workspace build.
@@ -7,8 +7,8 @@ exclude = ["fuzz"]
 
 [workspace.package]
 version = "0.1.0"
-edition = "2021"
-rust-version = "1.75"
+edition = "2024"
+rust-version = "1.92"
 license = "MIT"
 
 [profile.release]

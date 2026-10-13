@@ -102,11 +102,10 @@ impl SetValView {
             ui.horizontal(|ui| {
                 ui.strong("Edit value:");
                 let resp = ui.add(egui::TextEdit::singleline(&mut self.value_text).desired_width(80.0));
-                if resp.changed() {
-                    if let Some(v) = self.parse_value(&self.value_text.clone()) {
+                if resp.changed()
+                    && let Some(v) = self.parse_value(&self.value_text.clone()) {
                         self.pending = v;
                     }
-                }
                 ui.checkbox(&mut self.hex, "hex");
                 if ui.button("⟵ load current").clicked() {
                     self.set_pending(current);
