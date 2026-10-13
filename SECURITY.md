@@ -1,16 +1,14 @@
 # Security Policy
 
-## Supported versions
-
-This project is pre-1.0; only the latest `main` and the most recent tagged
-release receive fixes.
+This is a personal hobby project, provided **as is** with no warranty and no
+guaranteed support, maintenance, or response. See the [LICENSE](LICENSE).
 
 ## Reporting a vulnerability
 
-Please report security issues privately via GitHub's
-[private vulnerability reporting](https://github.com/andy778/ananasar/security/advisories/new)
-rather than opening a public issue. You can expect an initial response within
-a few days.
+Found a security issue? Just open a public
+[issue](https://github.com/andy778/ananasar/issues). There is no private
+disclosure process and no commitment to triage, respond, or fix within any
+timeframe. Fixes, if any, land on `main`.
 
 ## Scope and notes
 
