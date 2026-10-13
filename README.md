@@ -63,11 +63,11 @@ xattr -dr com.apple.quarantine ananasar ananasar-gui
 
 ```bash
 # server (port 502 needs root; use a high port otherwise)
-ananas server --port 15020 --uid 0
+ananasar server --port 15020 --uid 0
 
 # client: poll holding registers, write a block, etc.
-ananas client 127.0.0.1:15020 --read-holding 10,11,12,100 --count 4
-ananas client 127.0.0.1:15020 --write 42,43,44 --count 1
+ananasar client 127.0.0.1:15020 --read-holding 10,11,12,100 --count 4
+ananasar client 127.0.0.1:15020 --write 42,43,44 --count 1
 ```
 
 ## Fidelity notes
