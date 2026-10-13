@@ -7,7 +7,7 @@
 [![Build](https://github.com/andy778/ananasar/actions/workflows/build.yml/badge.svg)](https://github.com/andy778/ananasar/actions/workflows/build.yml)
 [![GitHub all releases](https://img.shields.io/github/downloads/andy778/ananasar/total?logo=github&cacheSeconds=300)](https://github.com/andy778/ananasar/releases)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/andy778/ananasar?logo=github&cacheSeconds=300)](https://github.com/andy778/ananasar/releases/latest)
-[![License](https://img.shields.io/github/license/andy778/ananasar)](LICENSE)
+[![License](https://img.shields.io/github/license/andy778/ananasar?cacheSeconds=300)](LICENSE)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/andy778/ananasar/badge)](https://securityscorecards.dev/viewer/?uri=github.com/andy778/ananasar)
 
 A Rust reimplementation of **Ananas**, a public-domain Modbus/TCP client–server
