@@ -1,0 +1,12 @@
+[package]
+name = "ananasar-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "ananasar"
+path = "src/main.rs"
+
+[dependencies]
+ananasar-core = { path = "../ananasar-core" }

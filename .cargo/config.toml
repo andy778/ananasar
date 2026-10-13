@@ -1,0 +1,5 @@
+# Cross-compilation to Windows (x86_64-pc-windows-gnu) uses the mingw-w64 linker.
+# Install it with:  sudo pacman -S --needed mingw-w64-gcc
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
+ar = "x86_64-w64-mingw32-ar"

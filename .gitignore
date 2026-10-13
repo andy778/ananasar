@@ -1,0 +1,6 @@
+/target
+
+# Reverse-engineering source material (proprietary / confidential) — not part of
+# the port and intentionally kept out of the repository.
+*.exe
+*.pdf
