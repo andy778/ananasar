@@ -1,7 +1,6 @@
 //! Ananasar — a menu-driven Modbus/TCP client/server, consolidating the server
 //! (Values list), client and Set-value views into one app around a single
-//! in-process register model and embedded server. Reconstructed from
-//! `ananas64.exe`; the GUI is egui/eframe.
+//! in-process register model and embedded server. The GUI is egui/eframe.
 
 mod clientview;
 mod embed;

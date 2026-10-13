@@ -1,10 +1,8 @@
 //! The shared register model.
 //!
-//! The original keeps two flat arrays of 65536 u16 registers each — holding at
-//! `*PTR_DAT_006c8b00 + 0xbc0` and input at `+0x20bc0` — and both the server and
-//! the client read/write the same tables (manual §2.2: "server and client are
-//! sharing registers"). We mirror that: one [`RegisterFile`] is shared by both
-//! roles.
+//! Two flat arrays of 65536 u16 registers each (holding + input); both the
+//! server and the client read/write the same tables (manual §2.2: "server and
+//! client are sharing registers"). One [`RegisterFile`] is shared by both roles.
 
 /// Number of addressable registers in each bank (addresses `0..=65535`).
 pub const BANK_LEN: usize = 65536;

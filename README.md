@@ -9,20 +9,17 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/andy778/ananasar?logo=github&cacheSeconds=3600)](https://github.com/andy778/ananasar/releases/latest)
 [![License](https://img.shields.io/github/license/andy778/ananasar)](LICENSE)
 
-A Rust reimplementation of **Ananas**, the Modbus/TCP client–server tool
-originally shipped as `ananas64.exe` (Borland Delphi 2006). The protocol engine
-is reverse-engineered from that binary; this repo is the clean-room-ish rewrite.
+A Rust reimplementation of **Ananas**, a Modbus/TCP client–server test tool.
 
 ## Layout
 
 - `crates/ananasar-core` — `std`-only, platform-agnostic protocol engine:
   - `protocol` — MBAP framing, function & exception codes.
   - `registers` — the shared register model (two 65536×u16 banks, holding + input).
-  - `server` — request validation + dispatch (FC 3/4/6/16/22/23, +7/8), from `FUN_00686ef0`.
+  - `server` — request validation + dispatch (FC 3/4/6/16/22/23, +7/8).
   - `client` — the poll engine: sorted address lists, the consecutive-run
-    optimizer, round-robin scheduler and query builders, from `FUN_006647a0`,
-    `FUN_00665640`, `FUN_006652b0`, `FUN_00665150`.
-- `crates/ananasar-cli` — headless `ananas` binary (server + client over TCP).
+    optimizer, round-robin scheduler and query builders.
+- `crates/ananasar-cli` — headless `ananasar` binary (server + client over TCP).
 
 ## Build & test
 

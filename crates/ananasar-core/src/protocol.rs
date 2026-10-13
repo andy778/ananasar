@@ -1,7 +1,6 @@
 //! Modbus/TCP wire protocol: the MBAP header and PDU encoding.
 //!
-//! Field layout matches the outbound buffer the original builds at `DAT_006d41f9`
-//! and the server parse in `FUN_00686ef0`:
+//! Field layout of a Modbus/TCP frame:
 //!
 //! ```text
 //! offset  field

@@ -1,6 +1,6 @@
 //! `ananas-core` — the Modbus/TCP protocol engine for the Ananas reimplementation.
 //!
-//! Reverse-engineered from `ananas64.exe` (Borland Delphi 2006 build). The crate
+//! A from-scratch reimplementation of the Ananas Modbus/TCP tool. The crate
 //! is `std`-only and platform-agnostic so the same core drives the Linux and
 //! Windows builds; OS-specific features (DDE, adapter IP config) live in the
 //! binary crates, not here.

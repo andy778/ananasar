@@ -1,4 +1,4 @@
-//! Server-side request handling, reconstructed from `FUN_00686ef0`.
+//! Server-side request handling.
 //!
 //! Validation order follows the original: header (protocol id / length, done in
 //! [`crate::protocol::frame`]), then UID, then function, then data address.

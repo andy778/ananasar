@@ -1,6 +1,5 @@
-//! Client poll engine, reconstructed from `FUN_006647a0` (dispatch),
-//! `FUN_00665640` (read builder / optimizer), `FUN_006652b0` (write-multi) and
-//! `FUN_00665150` (manual commands).
+//! Client poll engine: query dispatch, the read builder / optimizer, the
+//! write-multiple builder, and one-off manual commands.
 //!
 //! Each register category is a sorted address list with a cursor. On every
 //! poll the engine round-robins read-holding → read-input → write, and for the
@@ -12,7 +11,7 @@
 use crate::protocol::{build, Function};
 use crate::registers::{Bank, RegisterFile};
 
-/// Address numbering offset applied on the wire (`- _DAT_006d4450`).
+/// Address numbering offset applied on the wire.
 /// `One` subtracts 1 so a user-facing 1-based address maps to a 0-based bus address.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AddressBase {
@@ -148,7 +147,7 @@ impl PollEngine {
         None
     }
 
-    /// FC3/FC4 read query (`FUN_00665640`).
+    /// FC3/FC4 read query.
     fn build_read(&mut self, bank: Bank) -> Vec<u8> {
         let (func, list) = match bank {
             Bank::Holding => (Function::ReadHolding, &mut self.read_holding),
@@ -163,7 +162,7 @@ impl PollEngine {
         build(txn, self.unit_id, func as u8, &data)
     }
 
-    /// FC16 write-multiple query (`FUN_006652b0`). Values come from the shared
+    /// FC16 write-multiple query. Values come from the shared
     /// holding bank at the listed addresses.
     fn build_write(&mut self, regs: &RegisterFile) -> Vec<u8> {
         let (start, count) = self.write.next_run(self.max_write).unwrap();
@@ -180,7 +179,7 @@ impl PollEngine {
         build(txn, self.unit_id, Function::WriteMultiple as u8, &data)
     }
 
-    /// Build a one-off manual command frame (`FUN_00665150`).
+    /// Build a one-off manual command frame.
     pub fn build_manual(&mut self, cmd: ManualCommand) -> Vec<u8> {
         let txn = self.next_txn();
         match cmd {

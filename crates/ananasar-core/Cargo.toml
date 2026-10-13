@@ -3,6 +3,6 @@ name = "ananasar-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Modbus/TCP protocol core for the Ananas reimplementation (reverse-engineered from ananas64.exe)."
+description = "Modbus/TCP protocol core for the Ananas reimplementation."
 
 [lib]
