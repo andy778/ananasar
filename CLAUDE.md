@@ -10,8 +10,9 @@ Rust port of the public-domain Ananas Modbus/TCP tool. Crates: `ananasar-core` (
 - Commit messages use Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `ci:`, `chore:`), with a `!` or a `BREAKING CHANGE:` footer for breaking changes.
 
 ## Releases
-- We want [semantic-release](https://github.com/semantic-release/semantic-release) to compute versions and changelogs from the Conventional Commits. **Not set up yet.** Today releases are cut by pushing a `v*` tag, which runs the `release` job in `build.yml`.
-- When adding it, keep the existing build, cosign signing and asset upload steps and trigger them from the release it creates. Keep the crate versions in `Cargo.toml` in sync with the tag.
+- Releases are automated with semantic-release from the Conventional Commits on `main` (see `docs/releasing.md`). Do not create `v*` tags by hand.
+- Merge PRs with "Rebase and merge" so each commit keeps its type. Choose commit types deliberately: they decide the version bump.
+- The tag build in `build.yml` stamps the version from the tag, builds, signs with cosign and attaches the binaries. semantic-release writes the release notes.
 
 ## Never
 - Commit the original `ananas64.exe`, the manual PDF or any zip of them (they are gitignored on purpose).
