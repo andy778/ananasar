@@ -7,6 +7,7 @@
 //! crate is I/O-free and would not change.
 
 pub use log::LogSink;
+pub use stats::{ConnStats, Stats};
 
 use ananasar_core::log::Response;
 use ananasar_core::protocol::{self, MBAP_PREFIX};
@@ -17,9 +18,10 @@ use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 mod log;
+mod stats;
 
 /// Maximum simultaneous clients, as in the original.
 pub const MAX_CLIENTS: usize = 2;
@@ -67,7 +69,7 @@ pub struct Server {
     /// The register file served to clients.
     pub regs: Arc<Mutex<RegisterFile>>,
     /// Unit-id filtering and limits.
-    pub cfg: Arc<ServerConfig>,
+    pub cfg: Arc<Mutex<ServerConfig>>,
     /// Number of connected clients (readable by the host for display).
     pub clients: Arc<AtomicUsize>,
     /// Set to take the port down; the accept loop then returns.
@@ -76,6 +78,8 @@ pub struct Server {
     pub notify: Arc<dyn Fn(Event) + Send + Sync>,
     /// Data log; `None` disables logging.
     pub log: Option<Arc<LogSink>>,
+    /// Live statistics for a status display.
+    pub stats: Arc<Mutex<Stats>>,
 }
 
 /// Decrements the client count when a connection thread ends, even by panic.
@@ -111,34 +115,52 @@ impl Server {
         std::thread::spawn(move || {
             let _slot = slot;
             let peer = stream.peer_addr().map(|a| a.to_string()).unwrap_or_default();
+            let nagle = !stream.nodelay().unwrap_or(false);
+            let ip = stream.peer_addr().map(|a| a.ip().to_string()).unwrap_or_default();
+            let stats_slot = lock(&server.stats).connect(&ip, nagle);
             (server.notify)(Event::Connected(peer.clone()));
             let conn = server.log.as_ref().map_or(0, |l| l.open_connection());
-            server.serve_connection(stream, conn);
+            server.serve_connection(stream, conn, stats_slot);
             if let Some(l) = &server.log {
                 l.close_connection(conn);
+            }
+            if let Some(slot) = stats_slot {
+                lock(&server.stats).disconnect(slot);
             }
             (server.notify)(Event::Disconnected(peer));
         });
     }
 
-    fn serve_connection(&self, mut stream: TcpStream, conn: u8) {
+    fn serve_connection(&self, mut stream: TcpStream, conn: u8, stats_slot: Option<usize>) {
         stream.set_read_timeout(Some(IDLE_TIMEOUT)).ok();
         stream.set_write_timeout(Some(IDLE_TIMEOUT)).ok();
+        let mut last_request: Option<Instant> = None;
         loop {
             let request = match read_frame_max(&mut stream, MAX_REQUEST) {
                 Ok(r) => r,
                 Err(e) => {
                     // A bad length field is a detected error; a closed or
                     // idle connection is not.
-                    if e.kind() == io::ErrorKind::InvalidData
-                        && let Some(log) = &self.log
-                    {
-                        log.record(conn, &[], Response::Error("invalid frame length, connection closed"));
+                    if e.kind() == io::ErrorKind::InvalidData {
+                        lock(&self.stats).out_of_sync = true;
+                        (self.notify)(Event::Activity);
+                        if let Some(log) = &self.log {
+                            log.record(conn, &[], Response::Error("invalid frame length, connection closed"));
+                        }
                     }
                     return;
                 }
             };
-            let outcome = process(&self.cfg, &mut lock(&self.regs), &request);
+            let now = Instant::now();
+            let interval_ms = last_request.map(|prev| u64::try_from(now.duration_since(prev).as_millis()).unwrap_or(u64::MAX));
+            last_request = Some(now);
+            if let Some(slot) = stats_slot {
+                lock(&self.stats).record_request(slot, &request, interval_ms);
+            }
+            let outcome = process(&lock(&self.cfg), &mut lock(&self.regs), &request);
+            if let (Some(slot), Outcome::Reply(reply)) = (stats_slot, &outcome) {
+                lock(&self.stats).record_reply(slot, reply);
+            }
             if let Some(log) = &self.log {
                 match &outcome {
                     Outcome::Reply(reply) => log.record(conn, &request, Response::Reply(reply)),
