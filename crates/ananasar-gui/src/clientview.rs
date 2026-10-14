@@ -4,18 +4,18 @@
 //! holds the values read back from the remote server it is pointed at).
 
 use ananasar_net::read_frame;
-use ananasar_core::sync::lock;
 use ananasar_core::client::{AddressBase, ManualCommand, PollEngine, PollList};
 use ananasar_core::protocol::{self, Function};
 use ananasar_core::registers::RegisterFile;
+use ananasar_core::sync::lock;
 use eframe::egui;
 use std::collections::VecDeque;
 use std::io::Write;
 use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Mode {
@@ -43,15 +43,25 @@ struct Shared {
     regs: Mutex<RegisterFile>,
     connected: AtomicBool,
     status: Mutex<String>,
+    /// Wakes the UI when the worker changes anything it shows.
+    ctx: egui::Context,
 }
 
 impl Shared {
+    fn set_status(&self, s: impl Into<String>) {
+        *lock(&self.status) = s.into();
+        self.ctx.request_repaint();
+    }
+
     fn log_line(&self, s: impl Into<String>) {
-        let mut log = lock(&self.log);
-        log.push_back(s.into());
-        while log.len() > 500 {
-            log.pop_front();
+        {
+            let mut log = lock(&self.log);
+            log.push_back(s.into());
+            while log.len() > 500 {
+                log.pop_front();
+            }
         }
+        self.ctx.request_repaint();
     }
 }
 
@@ -75,12 +85,13 @@ pub struct ClientView {
 }
 
 impl ClientView {
-    pub fn new(default_host: String) -> Self {
+    pub fn new(default_host: String, ctx: egui::Context) -> Self {
         let shared = Arc::new(Shared {
             log: Mutex::new(VecDeque::new()),
             regs: Mutex::new(RegisterFile::new()),
             connected: AtomicBool::new(false),
             status: Mutex::new("IP: --  Port: --".into()),
+            ctx,
         });
         let (tx, rx) = mpsc::channel();
         spawn_worker(shared.clone(), rx);
@@ -252,74 +263,95 @@ fn spawn_worker(shared: Arc<Shared>, rx: Receiver<Cmd>) {
         let mut engine = PollEngine::new(1);
         let mut mode = Mode::Pause;
         let mut interval = Duration::from_millis(1000);
+        let mut next_poll = Instant::now();
         loop {
-            loop {
-                match rx.try_recv() {
-                    Ok(cmd) => match cmd {
-                        Cmd::Quit => return,
-                        Cmd::Connect { addr, uid } => {
-                            engine = PollEngine::new(uid);
-                            match TcpStream::connect(&addr) {
-                                Ok(s) => {
-                                    s.set_read_timeout(Some(Duration::from_secs(3))).ok();
-                                    let peer = s.peer_addr().map(|a| a.to_string()).unwrap_or(addr.clone());
-                                    stream = Some(s);
-                                    shared.connected.store(true, Ordering::SeqCst);
-                                    *lock(&shared.status) = format!("Connected: {peer}");
-                                    shared.log_line(format!("connected to {peer}"));
-                                }
-                                Err(e) => shared.log_line(format!("connect failed: {e}")),
-                            }
-                        }
-                        Cmd::Disconnect => {
-                            stream = None;
-                            shared.connected.store(false, Ordering::SeqCst);
-                            *lock(&shared.status) = "IP: --  Port: --".into();
-                            shared.log_line("disconnected");
-                        }
-                        Cmd::SetMode(m) => { mode = m; shared.log_line(format!("mode: {m:?}")); }
-                        Cmd::SetLists { rh, ri, w } => {
-                            engine.read_holding = PollList::new(rh);
-                            engine.read_input = PollList::new(ri);
-                            engine.write = PollList::new(w);
-                        }
-                        Cmd::SetMax(m) => { engine.max_read = m.min(125); engine.max_write = m.min(123); }
-                        Cmd::SetInterval(ms) => interval = Duration::from_millis(ms),
-                        Cmd::SetBase(b) => engine.base = b,
-                        Cmd::Manual(cmd) => {
-                            if let Some(s) = stream.as_mut() {
-                                let frame = engine.build_manual(cmd);
-                                if s.write_all(&frame).is_ok()
-                                    && let Ok(resp) = read_frame(s) {
-                                        log_resp(&shared, &resp);
-                                    }
-                            }
-                        }
-                    },
-                    Err(TryRecvError::Empty) => break,
-                    Err(TryRecvError::Disconnected) => return,
-                }
-            }
-
-            let active = matches!(mode, Mode::Cycle | Mode::WaitAfter | Mode::Immediate);
-            if active && stream.is_some() && !engine.is_idle() {
-                let query = { let regs = lock(&shared.regs); engine.next_query(&regs) };
-                if let Some(q) = query {
-                    let s = stream.as_mut().unwrap();
-                    if poll_once(s, &q, &shared).is_err() {
-                        stream = None;
-                        shared.connected.store(false, Ordering::SeqCst);
-                        *lock(&shared.status) = "IP: --  Port: --".into();
-                        shared.log_line("connection lost");
-                    }
-                }
-                match mode {
-                    Mode::Immediate => std::thread::sleep(Duration::from_millis(1)),
-                    _ => std::thread::sleep(interval),
+            let active = matches!(mode, Mode::Cycle | Mode::WaitAfter | Mode::Immediate)
+                && stream.is_some()
+                && !engine.is_idle();
+            // Sleep until a command arrives or, while polling, until the next
+            // poll is due. An idle worker blocks here and uses no CPU.
+            let received = if active {
+                match rx.recv_timeout(next_poll.saturating_duration_since(Instant::now())) {
+                    Ok(cmd) => Some(cmd),
+                    Err(RecvTimeoutError::Timeout) => None,
+                    Err(RecvTimeoutError::Disconnected) => return,
                 }
             } else {
-                std::thread::sleep(Duration::from_millis(100));
+                match rx.recv() {
+                    Ok(cmd) => Some(cmd),
+                    Err(_) => return,
+                }
+            };
+
+            if let Some(cmd) = received {
+                match cmd {
+                    Cmd::Quit => return,
+                    Cmd::Connect { addr, uid } => {
+                        engine = PollEngine::new(uid);
+                        match TcpStream::connect(&addr) {
+                            Ok(s) => {
+                                s.set_read_timeout(Some(Duration::from_secs(3))).ok();
+                                let peer = s.peer_addr().map(|a| a.to_string()).unwrap_or(addr.clone());
+                                stream = Some(s);
+                                shared.connected.store(true, Ordering::SeqCst);
+                                shared.set_status(format!("Connected: {peer}"));
+                                shared.log_line(format!("connected to {peer}"));
+                                next_poll = Instant::now();
+                            }
+                            Err(e) => shared.log_line(format!("connect failed: {e}")),
+                        }
+                    }
+                    Cmd::Disconnect => {
+                        stream = None;
+                        shared.connected.store(false, Ordering::SeqCst);
+                        shared.set_status("IP: --  Port: --");
+                        shared.log_line("disconnected");
+                    }
+                    Cmd::SetMode(m) => {
+                        mode = m;
+                        next_poll = Instant::now();
+                        shared.log_line(format!("mode: {m:?}"));
+                    }
+                    Cmd::SetLists { rh, ri, w } => {
+                        engine.read_holding = PollList::new(rh);
+                        engine.read_input = PollList::new(ri);
+                        engine.write = PollList::new(w);
+                    }
+                    Cmd::SetMax(m) => {
+                        engine.max_read = m.min(125);
+                        engine.max_write = m.min(123);
+                    }
+                    Cmd::SetInterval(ms) => interval = Duration::from_millis(ms),
+                    Cmd::SetBase(b) => engine.base = b,
+                    Cmd::Manual(cmd) => {
+                        if let Some(s) = stream.as_mut() {
+                            let frame = engine.build_manual(cmd);
+                            if s.write_all(&frame).is_ok()
+                                && let Ok(resp) = read_frame(s)
+                            {
+                                log_resp(&shared, &resp);
+                            }
+                        }
+                    }
+                }
+                continue;
             }
+
+            // The wait ran out: a poll is due.
+            let query = engine.next_query(&lock(&shared.regs));
+            if let (Some(q), Some(s)) = (query, stream.as_mut())
+                && poll_once(s, &q, &shared).is_err()
+            {
+                stream = None;
+                shared.connected.store(false, Ordering::SeqCst);
+                shared.set_status("IP: --  Port: --");
+                shared.log_line("connection lost");
+            }
+            let wait = match mode {
+                Mode::Immediate => Duration::from_millis(1),
+                _ => interval,
+            };
+            next_poll = Instant::now() + wait;
         }
     });
 }
