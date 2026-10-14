@@ -34,6 +34,7 @@ enum Cmd {
     SetMax(u16),
     SetInterval(u64),
     SetBase(AddressBase),
+    SetZeroTi(bool),
     Manual(ManualCommand),
     Quit,
 }
@@ -78,6 +79,7 @@ pub struct ClientView {
     max_per_query: u16,
     interval_ms: u64,
     base_one: bool,
+    zero_ti: bool,
     man_addr: String,
     man_value: String,
     man_and: String,
@@ -125,6 +127,7 @@ impl ClientView {
             max_per_query: 125,
             interval_ms: 1000,
             base_one: false,
+            zero_ti: false,
             man_addr: "0".into(),
             man_value: "0".into(),
             man_and: "FFFF".into(),
@@ -229,6 +232,9 @@ impl ClientView {
                 });
                 if ui.checkbox(&mut self.base_one, "1-based").changed() {
                     let _ = self.tx.send(Cmd::SetBase(if self.base_one { AddressBase::One } else { AddressBase::Zero }));
+                }
+                if ui.checkbox(&mut self.zero_ti, "TI always 00 00").changed() {
+                    let _ = self.tx.send(Cmd::SetZeroTi(self.zero_ti));
                 }
             });
         });
@@ -380,7 +386,9 @@ fn spawn_worker(shared: Arc<Shared>, rx: Receiver<Cmd>) {
                 match cmd {
                     Cmd::Quit => return,
                     Cmd::Connect { addr, uid } => {
+                        let zero_ti = engine.force_zero_txn;
                         engine = PollEngine::new(uid);
+                        engine.force_zero_txn = zero_ti;
                         match TcpStream::connect(&addr) {
                             Ok(s) => {
                                 s.set_read_timeout(Some(Duration::from_secs(3))).ok();
@@ -416,6 +424,7 @@ fn spawn_worker(shared: Arc<Shared>, rx: Receiver<Cmd>) {
                     }
                     Cmd::SetInterval(ms) => interval = Duration::from_millis(ms),
                     Cmd::SetBase(b) => engine.base = b,
+                    Cmd::SetZeroTi(z) => engine.force_zero_txn = z,
                     Cmd::Manual(cmd) => {
                         if let Some(s) = stream.as_mut() {
                             let frame = engine.build_manual(cmd);
