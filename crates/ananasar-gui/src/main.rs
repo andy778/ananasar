@@ -6,9 +6,9 @@ mod clientview;
 mod embed;
 mod setvalview;
 
-use ananasar_core::sync::lock;
 use ananasar_core::registers::{Bank, InitMode, RegisterFile};
 use ananasar_core::server::ServerConfig;
+use ananasar_core::sync::lock;
 use clientview::ClientView;
 use eframe::egui;
 use egui_extras::{Column, TableBuilder};
@@ -21,27 +21,6 @@ const VISIBLE_ROWS: u16 = 25;
 const DEFAULT_PORT: u16 = 15020;
 
 fn main() -> eframe::Result<()> {
-    let regs: SharedRegs = Arc::new(Mutex::new(RegisterFile::new()));
-    let server = ServerHandle::new();
-    let stop = Arc::new(AtomicBool::new(false));
-    embed::start(regs.clone(), server.clone(), ServerConfig::default(), DEFAULT_PORT, stop.clone());
-
-    let app = App {
-        regs,
-        server,
-        server_stop: stop,
-        server_port: DEFAULT_PORT,
-        bank: Bank::Holding,
-        start_address: 0,
-        hex: false,
-        editing: None,
-        edit_buf: String::new(),
-        show_client: false,
-        show_setval: false,
-        client: ClientView::new(format!("127.0.0.1:{DEFAULT_PORT}")),
-        setval: SetValView::default(),
-    };
-
     let mut viewport = egui::ViewportBuilder::default().with_inner_size([560.0, 700.0]);
     // Window/taskbar icon — the two-pineapple logo (assets/icon.png).
     if let Ok(icon) = eframe::icon_data::from_png_bytes(include_bytes!("../../../assets/icon.png")) {
@@ -51,7 +30,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native("Ananasar — Modbus/TCP", options, Box::new(|cc| {
         // Light by default, like the original; View → Theme can switch it.
         cc.egui_ctx.set_theme(egui::ThemePreference::Light);
-        Ok(Box::new(app))
+        Ok(Box::new(App::new(&cc.egui_ctx)))
     }))
 }
 
@@ -72,6 +51,30 @@ struct App {
 }
 
 impl App {
+    /// Build the app and start its embedded server. Worker threads keep a
+    /// clone of `ctx` and repaint only when something changes.
+    fn new(ctx: &egui::Context) -> Self {
+        let regs: SharedRegs = Arc::new(Mutex::new(RegisterFile::new()));
+        let server = ServerHandle::new();
+        let stop = Arc::new(AtomicBool::new(false));
+        embed::start(ctx.clone(), regs.clone(), server.clone(), ServerConfig::default(), DEFAULT_PORT, stop.clone());
+        Self {
+            regs,
+            server,
+            server_stop: stop,
+            server_port: DEFAULT_PORT,
+            bank: Bank::Holding,
+            start_address: 0,
+            hex: false,
+            editing: None,
+            edit_buf: String::new(),
+            show_client: false,
+            show_setval: false,
+            client: ClientView::new(format!("127.0.0.1:{DEFAULT_PORT}"), ctx.clone()),
+            setval: SetValView::default(),
+        }
+    }
+
     fn fmt(&self, v: u16) -> String {
         if self.hex { format!("{v:04X}") } else { v.to_string() }
     }
@@ -88,7 +91,6 @@ impl App {
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
-        ctx.request_repaint_after(std::time::Duration::from_millis(100));
 
         // ---- menu bar (manual §2.7) ----
         egui::Panel::top("menubar").show(ui, |ui| {
@@ -132,7 +134,7 @@ impl eframe::App for App {
                         }
                     } else if ui.button("Start listening").clicked() {
                         self.server_stop.store(false, Ordering::SeqCst);
-                        embed::start(self.regs.clone(), self.server.clone(), ServerConfig::default(), self.server_port, self.server_stop.clone());
+                        embed::start(ctx.clone(), self.regs.clone(), self.server.clone(), ServerConfig::default(), self.server_port, self.server_stop.clone());
                         ui.close();
                     }
                 });
