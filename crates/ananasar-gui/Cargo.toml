@@ -15,3 +15,6 @@ ananasar-core = { path = "../ananasar-core" }
 ananasar-net = { path = "../ananasar-net" }
 eframe = "0.36"
 egui_extras = "0.36"
+
+[lints]
+workspace = true
