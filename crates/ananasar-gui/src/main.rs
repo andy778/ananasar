@@ -27,6 +27,42 @@ use std::sync::{Arc, Mutex};
 const VISIBLE_ROWS: u16 = 26;
 const DEFAULT_PORT: u16 = 15020;
 
+/// The port from `--port N` / `-p N` on the command line, else the default.
+/// An unusable value exits with a message rather than silently using the default.
+fn cli_port() -> u16 {
+    let mut args = std::env::args().skip(1);
+    while let Some(a) = args.next() {
+        if a == "--port" || a == "-p" {
+            match args.next().as_deref().map(parse_port) {
+                Some(Ok(p)) => return p,
+                Some(Err(e)) => {
+                    eprintln!("{a}: {e}");
+                    std::process::exit(2);
+                }
+                None => {
+                    eprintln!("{a} needs a port number");
+                    std::process::exit(2);
+                }
+            }
+        }
+    }
+    DEFAULT_PORT
+}
+
+/// Parse a TCP port number (1-65535).
+fn parse_port(s: &str) -> Result<u16, String> {
+    match s.trim().parse::<u16>() {
+        Ok(0) | Err(_) => Err("port must be a number between 1 and 65535".into()),
+        Ok(p) => Ok(p),
+    }
+}
+
+/// State of the Options → Port… dialog.
+struct PortDialog {
+    input: String,
+    error: String,
+}
+
 fn main() -> eframe::Result<()> {
     let mut viewport = egui::ViewportBuilder::default().with_inner_size([820.0, 700.0]);
     // Window/taskbar icon — the two-pineapple logo (assets/icon.png).
@@ -46,6 +82,7 @@ struct App {
     server: Arc<ServerHandle>,
     server_stop: Arc<AtomicBool>,
     server_port: u16,
+    port_dialog: Option<PortDialog>,
     bank: Bank,
     start_address: u16,
     hex: bool,
@@ -69,12 +106,16 @@ impl App {
         let regs: SharedRegs = Arc::new(Mutex::new(RegisterFile::new()));
         let server = ServerHandle::new();
         let stop = Arc::new(AtomicBool::new(false));
-        embed::start(ctx.clone(), regs.clone(), server.clone(), DEFAULT_PORT, stop.clone());
+        let port = cli_port();
+        if let Err(e) = embed::start(ctx.clone(), regs.clone(), server.clone(), port, stop.clone()) {
+            *lock(&server.status) = format!("bind :{port} failed: {e}");
+        }
         Self {
             regs,
             server,
             server_stop: stop,
-            server_port: DEFAULT_PORT,
+            server_port: port,
+            port_dialog: None,
             bank: Bank::Holding,
             start_address: 0,
             hex: false,
@@ -85,11 +126,59 @@ impl App {
             show_scanner: false,
             log_interpretive: false,
             status_note: String::new(),
-            client: ClientView::new(format!("127.0.0.1:{DEFAULT_PORT}"), ctx.clone()),
+            client: ClientView::new(format!("127.0.0.1:{port}"), ctx.clone()),
             setval: SetValView::default(),
-            scanner: ScannerView::new(format!("127.0.0.1:{DEFAULT_PORT}"), ctx.clone()),
+            scanner: ScannerView::new(format!("127.0.0.1:{port}"), ctx.clone()),
             file: FileWindow::default(),
         }
+    }
+
+    /// Move the running server to `port`. The new port is bound first, so on
+    /// failure the old server keeps running and the error is returned.
+    fn change_port(&mut self, ctx: &egui::Context, port: u16) -> Result<(), String> {
+        if port == self.server_port && self.server.listening.load(Ordering::SeqCst) {
+            return Ok(());
+        }
+        let stop = Arc::new(AtomicBool::new(false));
+        embed::start(ctx.clone(), self.regs.clone(), self.server.clone(), port, stop.clone())
+            .map_err(|e| format!("Cannot listen on port {port}: {e}"))?;
+        self.server_stop.store(true, Ordering::SeqCst);
+        self.server_stop = stop;
+        self.server_port = port;
+        self.status_note.clear();
+        Ok(())
+    }
+
+    fn port_dialog_ui(&mut self, ctx: &egui::Context) {
+        let Some(mut dlg) = self.port_dialog.take() else { return };
+        let (mut ok, mut cancel) = (false, false);
+        egui::Window::new("Port").collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+            ui.label(format!("Current port: {}", self.server_port));
+            ui.horizontal(|ui| {
+                ui.label("New port:");
+                let r = ui.text_edit_singleline(&mut dlg.input);
+                if r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                    ok = true;
+                }
+            });
+            if !dlg.error.is_empty() {
+                ui.colored_label(ui.visuals().error_fg_color, &dlg.error);
+            }
+            ui.horizontal(|ui| {
+                ok |= ui.button("OK").clicked();
+                cancel = ui.button("Cancel").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape));
+            });
+        });
+        if cancel {
+            return;
+        }
+        if ok {
+            match parse_port(&dlg.input).and_then(|p| self.change_port(ctx, p)) {
+                Ok(()) => return,
+                Err(e) => dlg.error = e,
+            }
+        }
+        self.port_dialog = Some(dlg);
     }
 
     fn fmt(&self, v: u16) -> String {
@@ -154,6 +243,10 @@ impl eframe::App for App {
                 ui.menu_button("Options", |ui| {
                     let listening = self.server.listening.load(Ordering::SeqCst);
                     ui.label(format!("Port {}", self.server_port));
+                    if ui.button("Port…").clicked() {
+                        self.port_dialog = Some(PortDialog { input: self.server_port.to_string(), error: String::new() });
+                        ui.close();
+                    }
                     if listening {
                         if ui.button("Stop listening").clicked() {
                             self.server_stop.store(true, Ordering::SeqCst);
@@ -161,12 +254,17 @@ impl eframe::App for App {
                         }
                     } else if ui.button("Start listening").clicked() {
                         self.server_stop.store(false, Ordering::SeqCst);
-                        embed::start(ctx.clone(), self.regs.clone(), self.server.clone(), self.server_port, self.server_stop.clone());
+                        self.status_note = match embed::start(ctx.clone(), self.regs.clone(), self.server.clone(), self.server_port, self.server_stop.clone()) {
+                            Ok(()) => String::new(),
+                            Err(e) => format!("Cannot listen on port {}: {e}", self.server_port),
+                        };
                         ui.close();
                     }
                 });
             });
         });
+
+        self.port_dialog_ui(&ctx);
 
         // ---- status bar ----
         egui::Panel::bottom("statusbar").show(ui, |ui| {
@@ -376,4 +474,19 @@ fn hex16(v: u16) -> String {
 
 fn hex8(v: u8) -> String {
     format!("{v:02X}  ({v})")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_port;
+
+    #[test]
+    fn port_must_be_1_to_65535() {
+        assert_eq!(parse_port(" 502 "), Ok(502));
+        assert_eq!(parse_port("65535"), Ok(65535));
+        assert!(parse_port("0").is_err());
+        assert!(parse_port("65536").is_err());
+        assert!(parse_port("abc").is_err());
+        assert!(parse_port("").is_err());
+    }
 }

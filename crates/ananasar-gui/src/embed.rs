@@ -18,6 +18,8 @@ pub struct ServerHandle {
     pub listening: AtomicBool,
     pub clients: Arc<AtomicUsize>,
     pub port: AtomicUsize,
+    /// Bumped on every start, so a server that was replaced leaves its successor's state alone.
+    generation: AtomicUsize,
     /// Data log shared with the running server; idle until the user starts it.
     pub log: Arc<LogSink>,
     /// Live statistics for the status panel.
@@ -33,6 +35,7 @@ impl ServerHandle {
             listening: AtomicBool::new(false),
             clients: Arc::new(AtomicUsize::new(0)),
             port: AtomicUsize::new(0),
+            generation: AtomicUsize::new(0),
             log: Arc::new(LogSink::idle()),
             stats: Arc::default(),
             cfg: Arc::default(),
@@ -40,31 +43,27 @@ impl ServerHandle {
     }
 }
 
-/// Start listening on `port`. A `stop` flag lets the UI take the port down
-/// (the original's "Monitor port" option); the accept loop exits when it is set.
-/// The UI is repainted whenever a client connects, disconnects or sends a
-/// request, so it can stay idle in between.
+/// Start listening on `port`. The port is bound before this returns, so a
+/// caller can report a bind error and keep the previous server running. A
+/// `stop` flag lets the UI take the port down (the original's "Monitor port"
+/// option); the accept loop exits when it is set. The UI is repainted whenever
+/// a client connects, disconnects or sends a request, so it can stay idle in
+/// between.
 pub fn start(
     ctx: egui::Context,
     regs: SharedRegs,
     handle: Arc<ServerHandle>,
     port: u16,
     stop: Arc<AtomicBool>,
-) {
-    std::thread::spawn(move || {
-        let listener = match TcpListener::bind(("0.0.0.0", port)) {
-            Ok(l) => l,
-            Err(e) => {
-                *lock(&handle.status) = format!("bind :{port} failed: {e}");
-                ctx.request_repaint();
-                return;
-            }
-        };
-        handle.listening.store(true, Ordering::SeqCst);
-        handle.port.store(usize::from(port), Ordering::SeqCst);
-        *lock(&handle.status) = "listening".into();
-        ctx.request_repaint();
+) -> std::io::Result<()> {
+    let listener = TcpListener::bind(("0.0.0.0", port))?;
+    let generation = handle.generation.fetch_add(1, Ordering::SeqCst) + 1;
+    handle.listening.store(true, Ordering::SeqCst);
+    handle.port.store(usize::from(port), Ordering::SeqCst);
+    *lock(&handle.status) = "listening".into();
+    ctx.request_repaint();
 
+    std::thread::spawn(move || {
         let (repaint, log) = (ctx.clone(), handle.log.clone());
         Server {
             regs,
@@ -77,8 +76,12 @@ pub fn start(
         }
         .run(&listener);
 
-        handle.listening.store(false, Ordering::SeqCst);
-        *lock(&handle.status) = "stopped".into();
+        // A replaced server must not mark its successor as stopped.
+        if handle.generation.load(Ordering::SeqCst) == generation {
+            handle.listening.store(false, Ordering::SeqCst);
+            *lock(&handle.status) = "stopped".into();
+        }
         ctx.request_repaint();
     });
+    Ok(())
 }
