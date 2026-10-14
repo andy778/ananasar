@@ -161,6 +161,7 @@ name = "ananasar-cli"
 version = "0.1.0"
 dependencies = [
  "ananasar-core",
+ "ananasar-net",
  "clap",
 ]
 
@@ -173,8 +174,16 @@ name = "ananasar-gui"
 version = "0.1.0"
 dependencies = [
  "ananasar-core",
+ "ananasar-net",
  "eframe",
  "egui_extras",
+]
+
+[[package]]
+name = "ananasar-net"
+version = "0.1.0"
+dependencies = [
+ "ananasar-core",
 ]
 
 [[package]]

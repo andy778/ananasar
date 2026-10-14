@@ -1,28 +1,16 @@
-//! Headless Ananas: a Modbus/TCP server and client driven from the command line.
-//!
-//! This drives the `ananasar-core` protocol engine end to end without a GUI. The
-//! server uses blocking `std::net` sockets with a thread per connection and
-//! accepts at most two clients, matching the original's "limited multiport
-//! support" (manual §2.1). At that scale threads are simpler than an async
-//! runtime; if the client cap is ever lifted, or connections need timeouts and
-//! graceful shutdown, moving this binary to tokio would be the natural step
-//! (the core crate is I/O-free, so it would not change).
+//! Headless Ananasar: a Modbus/TCP server and client driven from the command
+//! line, built on the shared `ananasar-core` engine and `ananasar-net` server.
 
-use ananasar_core::sync::lock;
 use ananasar_core::client::{PollEngine, PollList};
 use ananasar_core::protocol::{self, DEFAULT_PORT};
 use ananasar_core::registers::RegisterFile;
-use ananasar_core::server::{process, Outcome, ServerConfig};
-use std::io::{Read, Write};
+use ananasar_core::server::ServerConfig;
+use ananasar_net::{Event, MAX_CLIENTS, Server, read_frame};
+use std::io::Write;
 use std::net::{TcpListener, TcpStream};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-
-const MAX_CLIENTS: usize = 2;
-/// A connection that sends nothing for this long is dropped, so idle clients
-/// cannot hold both slots forever.
-const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
 use clap::{Args, Parser, Subcommand};
 
@@ -85,10 +73,6 @@ fn main() {
 }
 
 fn run_server(port: u16, uid: u8) -> i32 {
-    let cfg = Arc::new(ServerConfig { unit_id: uid, ..Default::default() });
-    let regs = Arc::new(Mutex::new(RegisterFile::new()));
-    let clients = Arc::new(AtomicUsize::new(0));
-
     let listener = match TcpListener::bind(("0.0.0.0", port)) {
         Ok(l) => l,
         Err(e) => {
@@ -99,64 +83,19 @@ fn run_server(port: u16, uid: u8) -> i32 {
     };
     println!("Ananasar server listening on 0.0.0.0:{port} (uid {uid}, max {MAX_CLIENTS} clients)");
 
-    for stream in listener.incoming() {
-        let Ok(stream) = stream else { continue };
-        if clients.load(Ordering::SeqCst) >= MAX_CLIENTS {
-            // Over the two-client limit: refuse by dropping the connection.
-            drop(stream);
-            continue;
-        }
-        clients.fetch_add(1, Ordering::SeqCst);
-        let (cfg, regs, clients) = (cfg.clone(), regs.clone(), clients.clone());
-        std::thread::spawn(move || {
-            let peer = stream.peer_addr().map(|a| a.to_string()).unwrap_or_default();
-            println!("client connected: {peer}");
-            serve_connection(stream, &cfg, &regs);
-            clients.fetch_sub(1, Ordering::SeqCst);
-            println!("client disconnected: {peer}");
-        });
-    }
+    let server = Server {
+        regs: Arc::new(Mutex::new(RegisterFile::new())),
+        cfg: Arc::new(ServerConfig { unit_id: uid, ..Default::default() }),
+        clients: Arc::new(AtomicUsize::new(0)),
+        stop: Arc::new(AtomicBool::new(false)),
+        notify: Arc::new(|event| match event {
+            Event::Connected(peer) => println!("client connected: {peer}"),
+            Event::Disconnected(peer) => println!("client disconnected: {peer}"),
+            Event::Activity => {}
+        }),
+    };
+    server.run(&listener);
     0
-}
-
-fn serve_connection(mut stream: TcpStream, cfg: &ServerConfig, regs: &Mutex<RegisterFile>) {
-    stream.set_read_timeout(Some(IDLE_TIMEOUT)).ok();
-    stream.set_write_timeout(Some(IDLE_TIMEOUT)).ok();
-    let mut buf = [0u8; 600];
-    loop {
-        // Read the MBAP prefix + length, then the rest of the frame.
-        if read_exact_or_eof(&mut stream, &mut buf[..protocol::MBAP_PREFIX + 1]).is_none() {
-            return;
-        }
-        let declared = u16::from_be_bytes([buf[4], buf[5]]) as usize;
-        let total = 6 + declared;
-        if total > buf.len() || total < protocol::MBAP_PREFIX + 1 {
-            return; // malformed length
-        }
-        if read_exact_or_eof(&mut stream, &mut buf[protocol::MBAP_PREFIX + 1..total]).is_none() {
-            return;
-        }
-        let outcome = {
-            let mut regs = lock(&regs);
-            process(cfg, &mut regs, &buf[..total])
-        };
-        if let Outcome::Reply(r) = outcome
-            && stream.write_all(&r).is_err() {
-                return;
-            }
-    }
-}
-
-fn read_exact_or_eof(stream: &mut TcpStream, buf: &mut [u8]) -> Option<()> {
-    let mut filled = 0;
-    while filled < buf.len() {
-        match stream.read(&mut buf[filled..]) {
-            Ok(0) => return None,
-            Ok(n) => filled += n,
-            Err(_) => return None,
-        }
-    }
-    Some(())
 }
 
 fn run_client(args: ClientArgs) -> i32 {
@@ -188,27 +127,16 @@ fn run_client(args: ClientArgs) -> i32 {
             eprintln!("send failed");
             return 1;
         }
-        match read_response(&mut stream) {
-            Some(resp) => print_response(&resp),
-            None => {
-                eprintln!("no/invalid response");
+        match read_frame(&mut stream) {
+            Ok(resp) => print_response(&resp),
+            Err(e) => {
+                eprintln!("no/invalid response: {e}");
                 return 1;
             }
         }
         std::thread::sleep(interval);
     }
     0
-}
-
-fn read_response(stream: &mut TcpStream) -> Option<Vec<u8>> {
-    let mut head = [0u8; protocol::MBAP_PREFIX + 1];
-    read_exact_or_eof(stream, &mut head)?;
-    let declared = u16::from_be_bytes([head[4], head[5]]) as usize;
-    let total = 6 + declared;
-    let mut out = head.to_vec();
-    out.resize(total, 0);
-    read_exact_or_eof(stream, &mut out[protocol::MBAP_PREFIX + 1..])?;
-    Some(out)
 }
 
 fn print_response(resp: &[u8]) {

@@ -4,7 +4,6 @@
 
 mod clientview;
 mod embed;
-mod net;
 mod setvalview;
 
 use ananasar_core::sync::lock;

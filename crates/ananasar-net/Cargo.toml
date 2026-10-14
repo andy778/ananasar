@@ -1,0 +1,10 @@
+[package]
+name = "ananasar-net"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Blocking Modbus/TCP server and frame reader shared by the Ananasar CLI and GUI."
+
+[dependencies]
+ananasar-core = { path = "../ananasar-core" }
