@@ -31,7 +31,7 @@ pending review. Checks are grouped by what was done.
   sources — `deny.toml`) now runs in CI as a supply-chain gate. Full SAST
   (CodeQL) still deferred: CodeQL's Rust support is newer and needs validation
   so CI stays green; best enabled once the repo is public (free code scanning).
-- **T9 — Signed-Releases (-1).** After a release exists, add SLSA provenance /
+- **T9 — Signed-Releases. DONE in CI (verified on the next tag).** The release job now signs every asset keyless with cosign and attaches `*.sigstore.json` bundles. Original note:  After a release exists, add SLSA provenance /
   artifact signing to the release job (e.g. `slsa-framework/slsa-github-generator`
   or cosign) so release assets are verifiable. Best done public. Deferred.
 - **T10 — Fuzzing (0). DONE.** Added `cargo-fuzz` targets `frame` and

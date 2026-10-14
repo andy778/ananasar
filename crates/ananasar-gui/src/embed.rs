@@ -78,7 +78,12 @@ pub fn start(regs: SharedRegs, handle: Arc<ServerHandle>, cfg: ServerConfig, por
     });
 }
 
+/// Idle connections are dropped after this long, freeing the client slot.
+const IDLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+
 fn serve_conn(mut stream: TcpStream, cfg: &ServerConfig, regs: &Mutex<RegisterFile>) {
+    stream.set_read_timeout(Some(IDLE_TIMEOUT)).ok();
+    stream.set_write_timeout(Some(IDLE_TIMEOUT)).ok();
     let mut buf = [0u8; 600];
     loop {
         if read_exact(&mut stream, &mut buf[..protocol::MBAP_PREFIX + 1]).is_err() {
