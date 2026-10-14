@@ -1,0 +1,8 @@
+{
+  "name": "ananasar-release",
+  "private": true,
+  "description": "Release tooling only (semantic-release); Ananasar itself is a Rust project.",
+  "devDependencies": {
+    "semantic-release": "25.0.9"
+  }
+}
