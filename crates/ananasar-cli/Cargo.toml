@@ -13,6 +13,7 @@ path = "src/main.rs"
 ananasar-core = { path = "../ananasar-core" }
 ananasar-net = { path = "../ananasar-net" }
 clap = { version = "4.6.7", features = ["derive"] }
+clap_complete = "4"
 
 [lints]
 workspace = true
