@@ -82,7 +82,7 @@ impl PollList {
     }
 }
 
-/// A one-off manual command (manual §2.2: FC6/FC22 manual, plus FC7).
+/// A one-off manual command (FC6 and FC22, plus FC7).
 #[derive(Clone, Copy, Debug)]
 pub enum ManualCommand {
     /// FC6: write `value` to holding register `addr`.

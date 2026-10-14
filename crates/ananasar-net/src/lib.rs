@@ -21,7 +21,7 @@ use std::time::Duration;
 
 mod log;
 
-/// Maximum simultaneous clients ("limited multiport support", manual §2.1).
+/// Maximum simultaneous clients, as in the original.
 pub const MAX_CLIENTS: usize = 2;
 /// A connection silent for this long is dropped so idle clients cannot hold
 /// both slots forever.

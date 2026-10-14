@@ -5,7 +5,7 @@
 # Ananasar
 
 **A Modbus/TCP client and server, written in Rust.**<br>
-A port of the public-domain Ananas test tool, built with [REA](https://rea.tools/) as a hands-on look at what AI-assisted development can do today.
+A port of Ananas, the free Modbus/TCP test tool by Petri Tuomio, built with [REA](https://rea.tools/) as a hands-on look at what AI-assisted development can do today.
 
 [![Build](https://github.com/andy778/ananasar/actions/workflows/build.yml/badge.svg)](https://github.com/andy778/ananasar/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/andy778/ananasar?logo=github&cacheSeconds=300)](https://github.com/andy778/ananasar/releases/latest)
@@ -86,7 +86,7 @@ ananasar client 127.0.0.1:15020 --write 42,43,44 -n 1
 ananasar server --port 15020 --log-dir logs
 ```
 
-The log file is named `<address> & <port> & <UTC time>.log`; each entry is numbered and shows the elapsed milliseconds, the connection (1 or 2), the query and the reply.
+The log file is named `ananasar-<port>-<UTC time>.log`; each entry is numbered and shows the elapsed milliseconds, the connection (1 or 2), the query and the reply.
 
 Run `ananasar --help` or `ananasar client --help` for every option. Shell completions: `ananasar completions bash` (also zsh, fish, powershell, elvish).
 
@@ -115,7 +115,7 @@ The parsers that read network input are also fuzzed (`cargo +nightly fuzz run fr
 
 ## Design notes
 
-- The server and client share one register file, as the original does ("server and client are sharing registers", manual §2.2).
+- The server and client share one register file, as the original does.
 - The optimizer only merges addresses that are already consecutive in the sorted list, capped by the max-per-query setting, matching the original's greedy coalescing.
 - **Intentional fix:** the original validated only `start + count <= 65536` and built FC3/FC4 replies in a fixed 513-byte buffer, so quantities of 253–255 overflowed it. This port enforces the Modbus limits (125 read / 123 write) and returns `IllegalDataValue` instead.
 
