@@ -58,7 +58,7 @@ pub enum Mode {
 
 #[allow(dead_code)]
 enum Cmd {
-    Connect { addr: String, uid: u8 },
+    Connect { host: String, port: u16, uid: u8, keepalive: bool },
     Disconnect,
     SetMode(Mode),
     SetLists { rh: Vec<u16>, ri: Vec<u16>, w: Vec<u16> },
@@ -75,6 +75,8 @@ struct Shared {
     regs: Mutex<RegisterFile>,
     connected: AtomicBool,
     status: Mutex<String>,
+    /// Peer of the live connection, shown in the partner line.
+    partner: Mutex<Option<std::net::SocketAddr>>,
     /// Wakes the UI when the worker changes anything it shows.
     ctx: egui::Context,
 }
@@ -101,6 +103,8 @@ pub struct ClientView {
     shared: Arc<Shared>,
     tx: Sender<Cmd>,
     host: String,
+    port: String,
+    keepalive: bool,
     uid: String,
     read_holding: Vec<u16>,
     read_input: Vec<u16>,
@@ -142,15 +146,20 @@ impl ClientView {
             log: Mutex::new(VecDeque::new()),
             regs: Mutex::new(RegisterFile::new()),
             connected: AtomicBool::new(false),
-            status: Mutex::new("IP: --  Port: --".into()),
+            status: Mutex::new(String::new()),
+            partner: Mutex::new(None),
             ctx,
         });
         let (tx, rx) = mpsc::channel();
         spawn_worker(shared.clone(), rx);
+        let (host, port) = ananasar_net::split_host_port(&default_host);
+        let (host, port) = (host.to_string(), port.unwrap_or("502").to_string());
         Self {
             shared,
             tx,
-            host: default_host,
+            host,
+            port,
+            keepalive: false,
             uid: "1".into(),
             read_holding: vec![],
             read_input: vec![],
@@ -225,21 +234,36 @@ impl ClientView {
     pub fn ui(&mut self, ui: &mut egui::Ui) {
         let connected = self.shared.connected.load(Ordering::SeqCst);
         ui.horizontal(|ui| {
-            ui.label("Server:");
-            ui.add(egui::TextEdit::singleline(&mut self.host).desired_width(150.0));
+            ui.label("IP:");
+            ui.add_enabled(!connected, egui::TextEdit::singleline(&mut self.host).desired_width(130.0));
+            ui.label("Port:");
+            ui.add_enabled(!connected, egui::TextEdit::singleline(&mut self.port).desired_width(45.0));
             ui.label("UID:");
             ui.add(egui::TextEdit::singleline(&mut self.uid).desired_width(32.0));
             if !connected {
                 if ui.button("Connect").clicked() {
                     let uid = self.uid.trim().parse().unwrap_or(1);
-                    let _ = self.tx.send(Cmd::Connect { addr: self.host.clone(), uid });
-                    self.push_lists();
-                    let _ = self.tx.send(Cmd::SetMode(self.mode));
+                    match ananasar_net::parse_endpoint(&self.host, &self.port) {
+                        Ok((host, port)) => {
+                            let _ = self.tx.send(Cmd::Connect { host, port, uid, keepalive: self.keepalive });
+                            self.push_lists();
+                            let _ = self.tx.send(Cmd::SetMode(self.mode));
+                        }
+                        Err(e) => self.shared.set_status(format!("Cannot connect: {e}")),
+                    }
                 }
             } else if ui.button("Disconnect").clicked() {
                 let _ = self.tx.send(Cmd::Disconnect);
             }
-            ui.label(lock(&self.shared.status).clone());
+        });
+        ui.horizontal(|ui| {
+            ui.add_enabled(!connected, egui::Checkbox::new(&mut self.keepalive, "Send keepalives"));
+            ui.separator();
+            ui.label(partner_text(*lock(&self.shared.partner)));
+            let status = lock(&self.shared.status).clone();
+            if !status.is_empty() {
+                ui.label(status);
+            }
         });
 
         ui.horizontal(|ui| {
@@ -374,6 +398,14 @@ fn join_lines<S: AsRef<str>>(lines: impl IntoIterator<Item = S>) -> String {
     out
 }
 
+/// The connection partner line: its IP and port, or dashes when not connected.
+fn partner_text(peer: Option<std::net::SocketAddr>) -> String {
+    match peer {
+        Some(a) => format!("Partner IP: {}  Port: {}", a.ip(), a.port()),
+        None => "Partner IP: --  Port: --".into(),
+    }
+}
+
 fn add_sorted(v: &mut Vec<u16>, a: u16) {
     if !v.contains(&a) {
         v.push(a);
@@ -450,27 +482,32 @@ fn spawn_worker(shared: Arc<Shared>, rx: Receiver<Cmd>) {
             if let Some(cmd) = received {
                 match cmd {
                     Cmd::Quit => return,
-                    Cmd::Connect { addr, uid } => {
+                    Cmd::Connect { host, port, uid, keepalive } => {
                         let zero_ti = engine.force_zero_txn;
                         engine = PollEngine::new(uid);
                         engine.force_zero_txn = zero_ti;
-                        match TcpStream::connect(&addr) {
+                        match ananasar_net::connect(&host, port, keepalive) {
                             Ok(s) => {
                                 s.set_read_timeout(Some(Duration::from_secs(3))).ok();
-                                let peer = s.peer_addr().map(|a| a.to_string()).unwrap_or(addr.clone());
+                                let peer = s.peer_addr().ok();
+                                *lock(&shared.partner) = peer;
                                 stream = Some(s);
                                 shared.connected.store(true, Ordering::SeqCst);
-                                shared.set_status(format!("Connected: {peer}"));
-                                shared.log_line(format!("connected to {peer}"));
+                                shared.set_status("");
+                                shared.log_line(format!("connected to {}", partner_text(peer)));
                                 next_poll = Instant::now();
                             }
-                            Err(e) => shared.log_line(format!("connect failed: {e}")),
+                            Err(e) => {
+                                shared.set_status(format!("Connect failed: {e}"));
+                                shared.log_line(format!("connect failed: {e}"));
+                            }
                         }
                     }
                     Cmd::Disconnect => {
                         stream = None;
                         shared.connected.store(false, Ordering::SeqCst);
-                        shared.set_status("IP: --  Port: --");
+                        *lock(&shared.partner) = None;
+                        shared.set_status("");
                         shared.log_line("disconnected");
                     }
                     Cmd::SetMode(m) => {
@@ -511,7 +548,8 @@ fn spawn_worker(shared: Arc<Shared>, rx: Receiver<Cmd>) {
             {
                 stream = None;
                 shared.connected.store(false, Ordering::SeqCst);
-                shared.set_status("IP: --  Port: --");
+                *lock(&shared.partner) = None;
+                shared.set_status("");
                 shared.log_line("connection lost");
             }
             let wait = match mode {
@@ -635,5 +673,11 @@ mod limit_tests {
         assert!(READ_PRESETS.iter().all(|&p| p <= MAX_READ));
         assert!(WRITE_PRESETS.iter().all(|&p| p <= MAX_WRITE));
         assert_eq!(valid_presets(&[5, 125, 200, 0], MAX_WRITE).collect::<Vec<_>>(), [5]);
+    }
+
+    #[test]
+    fn partner_text_shows_ip_and_port() {
+        assert_eq!(partner_text(Some("192.168.1.7:1502".parse().unwrap())), "Partner IP: 192.168.1.7  Port: 1502");
+        assert_eq!(partner_text(None), "Partner IP: --  Port: --");
     }
 }
