@@ -23,17 +23,26 @@ pub const DEFAULT_PORT: u16 = 502;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum Function {
+    /// FC3: read holding registers.
     ReadHolding = 0x03,
+    /// FC4: read input registers.
     ReadInput = 0x04,
+    /// FC6: write a single register.
     WriteSingle = 0x06,
+    /// FC7: read exception status.
     ReadExceptionStatus = 0x07,
+    /// FC8: diagnostics.
     Diagnostics = 0x08,
+    /// FC16: write multiple registers.
     WriteMultiple = 0x10,
+    /// FC22: mask write register.
     MaskWrite = 0x16,
+    /// FC23: read and write multiple registers.
     ReadWriteMultiple = 0x17,
 }
 
 impl Function {
+    /// The function for a wire code, or `None` if unsupported.
     pub fn from_u8(v: u8) -> Option<Self> {
         Some(match v {
             0x03 => Self::ReadHolding,
@@ -54,28 +63,43 @@ impl Function {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Exception {
+    /// The function code is not supported.
     IllegalFunction = 0x01,
+    /// The address range is outside the register file.
     IllegalDataAddress = 0x02,
+    /// A value or quantity is invalid.
     IllegalDataValue = 0x03,
+    /// An unrecoverable device error.
     SlaveDeviceFailure = 0x04,
+    /// Request accepted, still processing.
     Acknowledge = 0x05,
+    /// The device is busy; retry later.
     SlaveDeviceBusy = 0x06,
+    /// The program function cannot be performed.
     NegativeAcknowledge = 0x07,
+    /// Extended memory parity error.
     MemoryParityError = 0x08,
+    /// Gateway path unavailable.
     GatewayPathUnavailable = 0x0A,
+    /// Gateway target failed to respond.
     GatewayTargetFailed = 0x0B,
 }
 
 /// A parsed MBAP header.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Mbap {
+    /// Transaction id echoed in the reply.
     pub transaction_id: u16,
+    /// Always 0 for Modbus.
     pub protocol_id: u16,
+    /// Bytes following: unit id, function and data.
     pub length: u16,
+    /// Target unit id.
     pub unit_id: u8,
 }
 
 impl Mbap {
+    /// Append the transaction id, protocol id and length to `out`.
     pub fn write_prefix(&self, out: &mut Vec<u8>) {
         out.extend_from_slice(&self.transaction_id.to_be_bytes());
         out.extend_from_slice(&self.protocol_id.to_be_bytes());

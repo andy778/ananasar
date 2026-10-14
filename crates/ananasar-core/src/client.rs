@@ -15,7 +15,9 @@ use crate::registers::{Bank, RegisterFile};
 /// `One` subtracts 1 so a user-facing 1-based address maps to a 0-based bus address.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AddressBase {
+    /// Addresses are used as given (0-based).
     Zero,
+    /// Addresses are 1-based; one is subtracted on the wire.
     One,
 }
 
@@ -36,16 +38,19 @@ pub struct PollList {
 }
 
 impl PollList {
+    /// Build a list from `addrs`, sorted and de-duplicated.
     pub fn new(mut addrs: Vec<u16>) -> Self {
         addrs.sort_unstable();
         addrs.dedup();
         Self { addrs, cursor: 0 }
     }
 
+    /// True when the list holds no addresses.
     pub fn is_empty(&self) -> bool {
         self.addrs.is_empty()
     }
 
+    /// Number of addresses in the list.
     pub fn len(&self) -> usize {
         self.addrs.len()
     }
@@ -80,26 +85,50 @@ impl PollList {
 /// A one-off manual command (manual §2.2: FC6/FC22 manual, plus FC7).
 #[derive(Clone, Copy, Debug)]
 pub enum ManualCommand {
-    WriteSingle { addr: u16, value: u16 },
-    MaskWrite { addr: u16, and_mask: u16, or_mask: u16 },
+    /// FC6: write `value` to holding register `addr`.
+    WriteSingle {
+        /// Register address.
+        addr: u16,
+        /// Value to write.
+        value: u16,
+    },
+    /// FC22: `(current & and_mask) | (or_mask & !and_mask)` into `addr`.
+    MaskWrite {
+        /// Register address.
+        addr: u16,
+        /// Bits kept from the current value.
+        and_mask: u16,
+        /// Bits set where `and_mask` is clear.
+        or_mask: u16,
+    },
+    /// FC7: read the exception status byte.
     ReadExceptionStatus,
 }
 
 /// The client poll engine state.
 #[derive(Clone, Debug)]
 pub struct PollEngine {
+    /// Unit id placed in every query.
     pub unit_id: u8,
+    /// Next transaction id; wraps from 0xFFFF to 0.
     pub txn: u16,
+    /// Most registers merged into one read query.
     pub max_read: u16,
+    /// Most registers merged into one write query.
     pub max_write: u16,
+    /// Address numbering applied on the wire.
     pub base: AddressBase,
+    /// Holding registers polled with FC3.
     pub read_holding: PollList,
+    /// Input registers polled with FC4.
     pub read_input: PollList,
+    /// Holding registers written with FC16.
     pub write: PollList,
     state: u8,
 }
 
 impl PollEngine {
+    /// A new engine for `unit_id` with empty lists and the Modbus limits.
     pub fn new(unit_id: u8) -> Self {
         Self {
             unit_id,
@@ -120,6 +149,7 @@ impl PollEngine {
         t
     }
 
+    /// True when there is nothing to poll.
     pub fn is_idle(&self) -> bool {
         self.read_holding.is_empty() && self.read_input.is_empty() && self.write.is_empty()
     }

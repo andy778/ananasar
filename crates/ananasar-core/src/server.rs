@@ -16,7 +16,9 @@ use crate::protocol::{build, Exception, Function};
 use crate::registers::{Bank, RegisterFile};
 use std::collections::BTreeSet;
 
+/// Most registers one read request may ask for.
 pub const MAX_READ: u16 = 125;
+/// Most registers one write request may carry.
 pub const MAX_WRITE: u16 = 123;
 
 /// What the server decided to do with a request.
@@ -54,10 +56,9 @@ impl ServerConfig {
 
 /// Process one framed request against the shared register file.
 pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome {
-    let (hdr, func_byte, pdu) = match crate::protocol::frame(buf) {
-        Ok(v) => v,
-        // Malformed header/length: the original logs and does not reply.
-        Err(_) => return Outcome::Drop,
+    // Malformed header/length: the original logs and does not reply.
+    let Ok((hdr, func_byte, pdu)) = crate::protocol::frame(buf) else {
+        return Outcome::Drop;
     };
 
     if !cfg.uid_ok(hdr.unit_id) {
@@ -85,9 +86,8 @@ pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outco
     match func {
         Function::ReadHolding | Function::ReadInput => {
             let bank = if func == Function::ReadHolding { Bank::Holding } else { Bank::Input };
-            let (addr, count) = match read_addr_count(pdu) {
-                Some(v) => v,
-                None => return exc(Exception::IllegalDataValue),
+            let Some((addr, count)) = read_addr_count(pdu) else {
+                return exc(Exception::IllegalDataValue);
             };
             if count == 0 || count > MAX_READ {
                 return exc(Exception::IllegalDataValue);
@@ -106,9 +106,8 @@ pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outco
         }
 
         Function::WriteSingle => {
-            let (addr, value) = match read_addr_count(pdu) {
-                Some(v) => v,
-                None => return exc(Exception::IllegalDataValue),
+            let Some((addr, value)) = read_addr_count(pdu) else {
+                return exc(Exception::IllegalDataValue);
             };
             regs.set_holding(addr, value);
             reply(pdu[..4].to_vec()) // echo address + value

@@ -30,6 +30,7 @@ impl Default for RegisterFile {
 }
 
 impl RegisterFile {
+    /// A register file with every register zeroed.
     pub fn new() -> Self {
         Self {
             holding: vec![0u16; BANK_LEN].into_boxed_slice(),
@@ -37,6 +38,7 @@ impl RegisterFile {
         }
     }
 
+    /// All registers of `bank`.
     pub fn bank(&self, bank: Bank) -> &[u16] {
         match bank {
             Bank::Holding => &self.holding,
@@ -44,6 +46,7 @@ impl RegisterFile {
         }
     }
 
+    /// Read one register.
     pub fn get(&self, bank: Bank, addr: u16) -> u16 {
         self.bank(bank)[addr as usize]
     }
