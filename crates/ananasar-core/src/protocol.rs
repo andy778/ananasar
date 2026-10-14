@@ -96,6 +96,18 @@ pub enum FrameError {
     BadLength,
 }
 
+impl std::fmt::Display for FrameError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::TooShort => "frame too short for an MBAP header and function code",
+            Self::BadHeader => "bad MBAP header (protocol id or length high byte non-zero)",
+            Self::BadLength => "MBAP length does not match the bytes received",
+        })
+    }
+}
+
+impl std::error::Error for FrameError {}
+
 /// Split a received buffer into its header, function byte and PDU payload.
 ///
 /// Mirrors the server's leading validation: protocol id must be 0, the length

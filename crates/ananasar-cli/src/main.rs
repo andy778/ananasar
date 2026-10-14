@@ -219,6 +219,6 @@ fn print_response(resp: &[u8]) {
                 println!("TI {}: FC 0x{func:02X} ok, {} data bytes", hdr.transaction_id, pdu.len());
             }
         }
-        Err(e) => println!("unframeable response: {e:?}"),
+        Err(e) => println!("unframeable response: {e}"),
     }
 }
