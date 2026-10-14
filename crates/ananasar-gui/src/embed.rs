@@ -2,6 +2,7 @@
 //! external clients (manual §2.1: port 502 default, max two clients).
 
 use crate::net::read_exact;
+use ananasar_core::sync::lock;
 use ananasar_core::protocol;
 use ananasar_core::registers::RegisterFile;
 use ananasar_core::server::{process, Outcome, ServerConfig};
@@ -40,14 +41,14 @@ pub fn start(regs: SharedRegs, handle: Arc<ServerHandle>, cfg: ServerConfig, por
         let listener = match TcpListener::bind(("0.0.0.0", port)) {
             Ok(l) => l,
             Err(e) => {
-                *handle.status.lock().unwrap() = format!("bind :{port} failed: {e}");
+                *lock(&handle.status) = format!("bind :{port} failed: {e}");
                 return;
             }
         };
         listener.set_nonblocking(true).ok();
         handle.listening.store(true, Ordering::SeqCst);
         handle.port.store(port as usize, Ordering::SeqCst);
-        *handle.status.lock().unwrap() = "listening".into();
+        *lock(&handle.status) = "listening".into();
         let cfg = Arc::new(cfg);
 
         loop {
@@ -74,7 +75,7 @@ pub fn start(regs: SharedRegs, handle: Arc<ServerHandle>, cfg: ServerConfig, por
             }
         }
         handle.listening.store(false, Ordering::SeqCst);
-        *handle.status.lock().unwrap() = "stopped".into();
+        *lock(&handle.status) = "stopped".into();
     });
 }
 
@@ -97,7 +98,7 @@ fn serve_conn(mut stream: TcpStream, cfg: &ServerConfig, regs: &Mutex<RegisterFi
             return;
         }
         let outcome = {
-            let mut regs = regs.lock().unwrap();
+            let mut regs = lock(&regs);
             process(cfg, &mut regs, &buf[..total])
         };
         if let Outcome::Reply(r) = outcome

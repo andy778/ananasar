@@ -4,6 +4,7 @@
 //! holds the values read back from the remote server it is pointed at).
 
 use crate::net::read_frame;
+use ananasar_core::sync::lock;
 use ananasar_core::client::{AddressBase, ManualCommand, PollEngine, PollList};
 use ananasar_core::protocol::{self, Function};
 use ananasar_core::registers::RegisterFile;
@@ -46,7 +47,7 @@ struct Shared {
 
 impl Shared {
     fn log_line(&self, s: impl Into<String>) {
-        let mut log = self.log.lock().unwrap();
+        let mut log = lock(&self.log);
         log.push_back(s.into());
         while log.len() > 500 {
             log.pop_front();
@@ -128,7 +129,7 @@ impl ClientView {
             } else if ui.button("Disconnect").clicked() {
                 let _ = self.tx.send(Cmd::Disconnect);
             }
-            ui.label(self.shared.status.lock().unwrap().clone());
+            ui.label(lock(&self.shared.status).clone());
         });
 
         ui.horizontal(|ui| {
@@ -208,7 +209,7 @@ impl ClientView {
         ui.separator();
         ui.strong("Event log");
         egui::ScrollArea::vertical().stick_to_bottom(true).max_height(240.0).auto_shrink([false, false]).show(ui, |ui| {
-            let log = self.shared.log.lock().unwrap();
+            let log = lock(&self.shared.log);
             for line in log.iter() {
                 ui.monospace(line);
             }
@@ -264,7 +265,7 @@ fn spawn_worker(shared: Arc<Shared>, rx: Receiver<Cmd>) {
                                     let peer = s.peer_addr().map(|a| a.to_string()).unwrap_or(addr.clone());
                                     stream = Some(s);
                                     shared.connected.store(true, Ordering::SeqCst);
-                                    *shared.status.lock().unwrap() = format!("Connected: {peer}");
+                                    *lock(&shared.status) = format!("Connected: {peer}");
                                     shared.log_line(format!("connected to {peer}"));
                                 }
                                 Err(e) => shared.log_line(format!("connect failed: {e}")),
@@ -273,7 +274,7 @@ fn spawn_worker(shared: Arc<Shared>, rx: Receiver<Cmd>) {
                         Cmd::Disconnect => {
                             stream = None;
                             shared.connected.store(false, Ordering::SeqCst);
-                            *shared.status.lock().unwrap() = "IP: --  Port: --".into();
+                            *lock(&shared.status) = "IP: --  Port: --".into();
                             shared.log_line("disconnected");
                         }
                         Cmd::SetMode(m) => { mode = m; shared.log_line(format!("mode: {m:?}")); }
@@ -302,13 +303,13 @@ fn spawn_worker(shared: Arc<Shared>, rx: Receiver<Cmd>) {
 
             let active = matches!(mode, Mode::Cycle | Mode::WaitAfter | Mode::Immediate);
             if active && stream.is_some() && !engine.is_idle() {
-                let query = { let regs = shared.regs.lock().unwrap(); engine.next_query(&regs) };
+                let query = { let regs = lock(&shared.regs); engine.next_query(&regs) };
                 if let Some(q) = query {
                     let s = stream.as_mut().unwrap();
                     if poll_once(s, &q, &shared).is_err() {
                         stream = None;
                         shared.connected.store(false, Ordering::SeqCst);
-                        *shared.status.lock().unwrap() = "IP: --  Port: --".into();
+                        *lock(&shared.status) = "IP: --  Port: --".into();
                         shared.log_line("connection lost");
                     }
                 }
@@ -355,7 +356,7 @@ fn store_read(shared: &Shared, func: u8, start: u16, pdu: &[u8]) {
     if func != Function::ReadHolding as u8 || pdu.is_empty() {
         return; // only mirror holding reads into the display regs
     }
-    let mut regs = shared.regs.lock().unwrap();
+    let mut regs = lock(&shared.regs);
     for (i, c) in pdu[1..].chunks(2).enumerate() {
         if c.len() < 2 { break; }
         if let Some(addr) = start.checked_add(i as u16) {

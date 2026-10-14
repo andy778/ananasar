@@ -9,6 +9,7 @@ pub mod client;
 pub mod protocol;
 pub mod registers;
 pub mod server;
+pub mod sync;
 
 #[cfg(test)]
 mod tests {

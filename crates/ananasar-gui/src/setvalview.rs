@@ -4,6 +4,7 @@
 //! register model, and "server is fully operational during editing", §2.5).
 
 use crate::embed::SharedRegs;
+use ananasar_core::sync::lock;
 use ananasar_core::registers::Bank;
 use eframe::egui;
 
@@ -78,7 +79,7 @@ impl SetValView {
     pub fn ui(&mut self, ui: &mut egui::Ui, regs: &SharedRegs) {
         let addr = self.addr_text.trim().parse::<u16>().unwrap_or(0);
         let (current, next) = {
-            let r = regs.lock().unwrap();
+            let r = lock(&regs);
             (r.get(self.bank, addr), r.get(self.bank, addr.saturating_add(1)))
         };
 
@@ -150,7 +151,7 @@ impl SetValView {
         ui.horizontal(|ui| {
             let can_set = self.bank == Bank::Holding;
             if ui.add_enabled(can_set, egui::Button::new("Set")).clicked() {
-                regs.lock().unwrap().set_holding(addr, self.pending);
+                lock(&regs).set_holding(addr, self.pending);
             }
             if self.bank == Bank::Input {
                 ui.weak("Input registers are read-only.");
