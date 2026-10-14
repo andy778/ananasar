@@ -3,7 +3,8 @@
 
 use ananasar_core::client::{PollEngine, PollList};
 use ananasar_core::protocol::{self, DEFAULT_PORT};
-use ananasar_core::registers::RegisterFile;
+use ananasar_core::registers::{Bank, RegisterFile};
+use ananasar_core::scanner::{ScanResult, Scanner};
 use ananasar_core::server::ServerConfig;
 use ananasar_net::{Event, MAX_CLIENTS, Server, read_frame};
 use std::io::Write;
@@ -12,7 +13,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 
 /// Modbus/TCP client and server (headless).
 #[derive(Parser)]
@@ -28,6 +29,8 @@ enum Command {
     Server(ServerArgs),
     /// Poll a Modbus/TCP server and print the responses
     Client(ClientArgs),
+    /// Read a range of registers one by one and report which respond
+    Scan(ScanArgs),
 }
 
 #[derive(Args)]
@@ -64,10 +67,41 @@ struct ClientArgs {
     interval_ms: u64,
 }
 
+#[derive(Clone, Copy, ValueEnum)]
+enum BankArg {
+    Holding,
+    Input,
+}
+
+#[derive(Args)]
+struct ScanArgs {
+    /// Server address as host:port
+    target: String,
+    /// Unit id to address
+    #[arg(short, long, default_value_t = 1)]
+    uid: u8,
+    /// Register bank to scan
+    #[arg(short, long, value_enum, default_value_t = BankArg::Holding)]
+    bank: BankArg,
+    /// First address
+    #[arg(long, default_value_t = 0)]
+    start: u16,
+    /// Last address (inclusive)
+    #[arg(long, default_value_t = 99)]
+    end: u16,
+    /// Per-request reply timeout in milliseconds
+    #[arg(long, default_value_t = 1000)]
+    timeout_ms: u64,
+    /// Only print addresses that answered with a value
+    #[arg(long)]
+    only_ok: bool,
+}
+
 fn main() {
     let code = match Cli::parse().command {
         Command::Server(a) => run_server(a.port, a.uid),
         Command::Client(a) => run_client(a),
+        Command::Scan(a) => run_scan(&a),
     };
     std::process::exit(code);
 }
@@ -150,4 +184,45 @@ fn print_response(resp: &[u8]) {
         }
         Err(e) => println!("unframeable response: {e}"),
     }
+}
+
+fn run_scan(args: &ScanArgs) -> i32 {
+    let bank = match args.bank {
+        BankArg::Holding => Bank::Holding,
+        BankArg::Input => Bank::Input,
+    };
+    let mut stream = match TcpStream::connect(&args.target) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("connect to {} failed: {e}", args.target);
+            return 1;
+        }
+    };
+    stream.set_read_timeout(Some(Duration::from_millis(args.timeout_ms))).ok();
+    let started = std::time::Instant::now();
+    let mut scan = Scanner::new(args.uid, bank, args.start, args.end);
+    while let Some((addr, query)) = scan.next_query() {
+        let response = stream.write_all(&query).ok().and_then(|()| read_frame(&mut stream).ok());
+        let broken = response.is_none();
+        match scan.record(addr, response.as_deref()) {
+            ScanResult::Value(v) => println!("{addr:5}: {v:5} (0x{v:04X})"),
+            ScanResult::Exception(c) if !args.only_ok => println!("{addr:5}: exception {c}"),
+            ScanResult::NoReply if !args.only_ok => println!("{addr:5}: no reply"),
+            _ => {}
+        }
+        if broken {
+            // A timeout leaves the stream out of step with the server; stop.
+            eprintln!("stopping: no usable reply for address {addr}");
+            break;
+        }
+    }
+    let s = scan.summary();
+    println!(
+        "{} registers scanned, {} succeeded, {} failed, total duration {:.2?}",
+        s.scanned,
+        s.succeeded,
+        s.failed,
+        started.elapsed()
+    );
+    i32::from(s.succeeded == 0)
 }
