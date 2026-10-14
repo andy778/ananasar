@@ -4,6 +4,7 @@
 
 mod clientview;
 mod embed;
+mod scannerview;
 mod setvalview;
 
 use ananasar_core::registers::{Bank, InitMode, RegisterFile};
@@ -13,6 +14,7 @@ use clientview::ClientView;
 use eframe::egui;
 use egui_extras::{Column, TableBuilder};
 use embed::{ServerHandle, SharedRegs};
+use scannerview::ScannerView;
 use setvalview::SetValView;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -46,8 +48,10 @@ struct App {
     edit_buf: String,
     show_client: bool,
     show_setval: bool,
+    show_scanner: bool,
     client: ClientView,
     setval: SetValView,
+    scanner: ScannerView,
 }
 
 impl App {
@@ -70,8 +74,10 @@ impl App {
             edit_buf: String::new(),
             show_client: false,
             show_setval: false,
+            show_scanner: false,
             client: ClientView::new(format!("127.0.0.1:{DEFAULT_PORT}"), ctx.clone()),
             setval: SetValView::default(),
+            scanner: ScannerView::new(format!("127.0.0.1:{DEFAULT_PORT}"), ctx.clone()),
         }
     }
 
@@ -120,6 +126,7 @@ impl eframe::App for App {
                 ui.menu_button("View", |ui| {
                     ui.checkbox(&mut self.show_client, "Client window");
                     ui.checkbox(&mut self.show_setval, "Set value window");
+                    ui.checkbox(&mut self.show_scanner, "Scanner");
                     ui.separator();
                     ui.label("Theme");
                     egui::widgets::global_theme_preference_buttons(ui);
@@ -231,5 +238,12 @@ impl eframe::App for App {
             .open(&mut show_setval)
             .show(&ctx, |ui| self.setval.ui(ui, &regs));
         self.show_setval = show_setval;
+
+        let mut show_scanner = self.show_scanner;
+        egui::Window::new("Register Scanner")
+            .open(&mut show_scanner)
+            .default_size([400.0, 480.0])
+            .show(&ctx, |ui| self.scanner.ui(ui));
+        self.show_scanner = show_scanner;
     }
 }
