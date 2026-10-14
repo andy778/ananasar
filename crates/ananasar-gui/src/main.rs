@@ -7,6 +7,7 @@ mod embed;
 mod net;
 mod setvalview;
 
+use ananasar_core::sync::lock;
 use ananasar_core::registers::{Bank, InitMode, RegisterFile};
 use ananasar_core::server::ServerConfig;
 use clientview::ClientView;
@@ -106,11 +107,11 @@ impl eframe::App for App {
                     }
                     ui.menu_button("Initialize holding", |ui| {
                         if ui.button("All → 0").clicked() {
-                            self.regs.lock().unwrap().initialize(Bank::Holding, InitMode::Zero);
+                            lock(&self.regs).initialize(Bank::Holding, InitMode::Zero);
                             ui.close();
                         }
                         if ui.button("Ascending").clicked() {
-                            self.regs.lock().unwrap().initialize(Bank::Holding, InitMode::Ascending);
+                            lock(&self.regs).initialize(Bank::Holding, InitMode::Ascending);
                             ui.close();
                         }
                     });
@@ -155,7 +156,7 @@ impl eframe::App for App {
                 ui.checkbox(&mut self.hex, "Hex");
             });
             ui.horizontal(|ui| {
-                let st = self.server.status.lock().unwrap().clone();
+                let st = lock(&self.server.status).clone();
                 let n = self.server.clients.load(Ordering::SeqCst);
                 ui.label(format!("Server :{} — {st} — {n} client(s)", self.server_port));
             });
@@ -171,7 +172,7 @@ impl eframe::App for App {
             }
             let editable = self.bank == Bank::Holding;
             let snapshot: Vec<(u16, u16)> = {
-                let regs = self.regs.lock().unwrap();
+                let regs = lock(&self.regs);
                 (0..VISIBLE_ROWS)
                     .filter_map(|i| self.start_address.checked_add(i))
                     .map(|addr| (addr, regs.get(self.bank, addr)))
@@ -197,7 +198,7 @@ impl eframe::App for App {
                                     resp.request_focus();
                                     if resp.lost_focus() {
                                         if let Some(v) = self.parse(&self.edit_buf.clone()) {
-                                            self.regs.lock().unwrap().set_holding(addr, v);
+                                            lock(&self.regs).set_holding(addr, v);
                                         }
                                         self.editing = None;
                                     }

@@ -8,6 +8,7 @@
 //! graceful shutdown, moving this binary to tokio would be the natural step
 //! (the core crate is I/O-free, so it would not change).
 
+use ananasar_core::sync::lock;
 use ananasar_core::client::{PollEngine, PollList};
 use ananasar_core::protocol::{self, DEFAULT_PORT};
 use ananasar_core::registers::RegisterFile;
@@ -136,7 +137,7 @@ fn serve_connection(mut stream: TcpStream, cfg: &ServerConfig, regs: &Mutex<Regi
             return;
         }
         let outcome = {
-            let mut regs = regs.lock().unwrap();
+            let mut regs = lock(&regs);
             process(cfg, &mut regs, &buf[..total])
         };
         if let Outcome::Reply(r) = outcome
