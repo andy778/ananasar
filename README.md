@@ -24,6 +24,7 @@ A port of the public-domain Ananas test tool, built with [REA](https://rea.tools
 ## Features
 
 - **Server** answering function codes 3, 4, 6, 16, 22 and 23, with proper exception responses and unit-id filtering. Two clients at a time, as in the original.
+- **Server data log** (CLI: `--log-dir`, `--interpretive`): every request and reply per connection, as hex or with decoded descriptions, plus detected errors.
 - **Client** poll engine: sorted address lists, consecutive addresses merged into as few queries as possible, Cycle / Wait / Immediate trigger modes and manual FC6 / FC22 / FC7 commands.
 - **One shared register model** (holding and input, 65 536 registers each) used by the server, the client and the editors.
 - **Register list** with hex display, inline editing and a **bit editor** with 32-bit Uint/Float views.
@@ -62,7 +63,12 @@ ananasar server --port 15020
 # client: poll holding registers, or write a block
 ananasar client 127.0.0.1:15020 --read-holding 10,11,12,100 -n 4
 ananasar client 127.0.0.1:15020 --write 42,43,44 -n 1
+
+# server with a data log (add --interpretive for decoded entries)
+ananasar server --port 15020 --log-dir logs
 ```
+
+The log file is named `<address> & <port> & <UTC time>.log`; each entry is numbered and shows the elapsed milliseconds, the connection (1 or 2), the query and the reply.
 
 Run `ananasar --help` or `ananasar client --help` for every option. Shell completions: `ananasar completions bash` (also zsh, fish, powershell, elvish).
 
@@ -83,6 +89,7 @@ The parsers that read network input are also fuzzed (`cargo +nightly fuzz run fr
   - `protocol`: MBAP framing, function and exception codes
   - `registers`: the shared register model
   - `server`: request validation and dispatch
+  - `log`: raw and interpretive log entry formatting
   - `client`: the poll engine and query builders
 - [`crates/ananasar-cli`](crates/ananasar-cli): the headless `ananasar` binary
 - [`crates/ananasar-gui`](crates/ananasar-gui): the egui application (`ananasar-gui`)
@@ -96,7 +103,7 @@ The parsers that read network input are also fuzzed (`cargo +nightly fuzz run fr
 
 ## Not yet implemented
 
-Raw and interpretive log files, and the Windows-only DDE and network-adapter features.
+The log option in the GUI (the CLI has it), and the Windows-only DDE and network-adapter features.
 
 ## License
 

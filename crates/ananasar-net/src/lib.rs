@@ -6,7 +6,10 @@
 //! ever lifted, moving this crate to tokio would be the natural step; the core
 //! crate is I/O-free and would not change.
 
-use ananasar_core::protocol::MBAP_PREFIX;
+pub use log::LogSink;
+
+use ananasar_core::log::Response;
+use ananasar_core::protocol::{self, MBAP_PREFIX};
 use ananasar_core::registers::RegisterFile;
 use ananasar_core::server::{Outcome, ServerConfig, process};
 use ananasar_core::sync::lock;
@@ -15,6 +18,8 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+
+mod log;
 
 /// Maximum simultaneous clients ("limited multiport support", manual §2.1).
 pub const MAX_CLIENTS: usize = 2;
@@ -69,6 +74,8 @@ pub struct Server {
     pub stop: Arc<AtomicBool>,
     /// Called for every [`Event`], from server threads.
     pub notify: Arc<dyn Fn(Event) + Send + Sync>,
+    /// Data log; `None` disables logging.
+    pub log: Option<Arc<LogSink>>,
 }
 
 /// Decrements the client count when a connection thread ends, even by panic.
@@ -105,16 +112,45 @@ impl Server {
             let _slot = slot;
             let peer = stream.peer_addr().map(|a| a.to_string()).unwrap_or_default();
             (server.notify)(Event::Connected(peer.clone()));
-            server.serve_connection(stream);
+            let conn = server.log.as_ref().map_or(0, |l| l.open_connection());
+            server.serve_connection(stream, conn);
+            if let Some(l) = &server.log {
+                l.close_connection(conn);
+            }
             (server.notify)(Event::Disconnected(peer));
         });
     }
 
-    fn serve_connection(&self, mut stream: TcpStream) {
+    fn serve_connection(&self, mut stream: TcpStream, conn: u8) {
         stream.set_read_timeout(Some(IDLE_TIMEOUT)).ok();
         stream.set_write_timeout(Some(IDLE_TIMEOUT)).ok();
-        while let Ok(request) = read_frame_max(&mut stream, MAX_REQUEST) {
+        loop {
+            let request = match read_frame_max(&mut stream, MAX_REQUEST) {
+                Ok(r) => r,
+                Err(e) => {
+                    // A bad length field is a detected error; a closed or
+                    // idle connection is not.
+                    if e.kind() == io::ErrorKind::InvalidData
+                        && let Some(log) = &self.log
+                    {
+                        log.record(conn, &[], Response::Error("invalid frame length, connection closed"));
+                    }
+                    return;
+                }
+            };
             let outcome = process(&self.cfg, &mut lock(&self.regs), &request);
+            if let Some(log) = &self.log {
+                match &outcome {
+                    Outcome::Reply(reply) => log.record(conn, &request, Response::Reply(reply)),
+                    Outcome::Drop => {
+                        let why = match protocol::frame(&request) {
+                            Err(e) => e.to_string(),
+                            Ok(_) => "request dropped: unit id mismatch".to_owned(),
+                        };
+                        log.record(conn, &request, Response::Error(&why));
+                    }
+                }
+            }
             if let Outcome::Reply(reply) = outcome
                 && stream.write_all(&reply).is_err()
             {

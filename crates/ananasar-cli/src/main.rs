@@ -3,13 +3,15 @@
 
 use ananasar_core::ananas_file;
 use ananasar_core::client::{PollEngine, PollList};
+use ananasar_core::log::LogMode;
 use ananasar_core::protocol::{self, DEFAULT_PORT};
 use ananasar_core::registers::{Bank, RegisterFile};
 use ananasar_core::scanner::{ScanResult, Scanner};
 use ananasar_core::server::ServerConfig;
-use ananasar_net::{Event, MAX_CLIENTS, Server, read_frame};
+use ananasar_net::{Event, LogSink, MAX_CLIENTS, Server, read_frame};
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -50,7 +52,13 @@ struct ServerArgs {
     uid: u8,
     /// Load register values from a *.ananas file before serving
     #[arg(long, value_name = "FILE")]
-    load: Option<std::path::PathBuf>,
+    load: Option<PathBuf>,
+    /// Log the server's Modbus exchanges to a file in this directory
+    #[arg(long, value_name = "DIR")]
+    log_dir: Option<PathBuf>,
+    /// Add decoded descriptions to the log entries (needs --log-dir)
+    #[arg(long, requires = "log_dir")]
+    interpretive: bool,
 }
 
 #[derive(Args)]
@@ -109,7 +117,7 @@ struct ScanArgs {
 
 fn main() {
     let code = match Cli::parse().command {
-        Command::Server(a) => run_server(a.port, a.uid, a.load.as_deref()),
+        Command::Server(a) => run_server(&a),
         Command::Client(a) => run_client(a),
         Command::Completions { shell } => {
             clap_complete::generate(shell, &mut Cli::command(), "ananasar", &mut std::io::stdout());
@@ -120,9 +128,10 @@ fn main() {
     std::process::exit(code);
 }
 
-fn run_server(port: u16, uid: u8, load: Option<&std::path::Path>) -> i32 {
+fn run_server(args: &ServerArgs) -> i32 {
+    let ServerArgs { port, uid, .. } = *args;
     let mut registers = RegisterFile::new();
-    if let Some(path) = load {
+    if let Some(path) = args.load.as_deref() {
         let loaded = std::fs::read_to_string(path)
             .map_err(|e| e.to_string())
             .and_then(|text| ananas_file::load(&text, &mut registers).map_err(|e| e.to_string()));
@@ -142,6 +151,28 @@ fn run_server(port: u16, uid: u8, load: Option<&std::path::Path>) -> i32 {
     };
     println!("Ananasar server listening on 0.0.0.0:{port} (uid {uid}, max {MAX_CLIENTS} clients)");
 
+    let log = match &args.log_dir {
+        Some(dir) => {
+            let mode = if args.interpretive { LogMode::Interpretive } else { LogMode::Raw };
+            // The original names its log after the two local addresses; this
+            // server has one listener, so the name carries address and port.
+            let made = std::fs::create_dir_all(dir).and_then(|()| LogSink::create(dir, "0.0.0.0", &port.to_string(), mode));
+            match made {
+                Ok(sink) => {
+                    if let Some(p) = sink.path() {
+                        println!("logging to {}", p.display());
+                    }
+                    Some(Arc::new(sink))
+                }
+                Err(e) => {
+                    eprintln!("cannot create log file in {}: {e}", dir.display());
+                    return 1;
+                }
+            }
+        }
+        None => None,
+    };
+
     let server = Server {
         regs: Arc::new(Mutex::new(registers)),
         cfg: Arc::new(ServerConfig { unit_id: uid, ..Default::default() }),
@@ -152,6 +183,7 @@ fn run_server(port: u16, uid: u8, load: Option<&std::path::Path>) -> i32 {
             Event::Disconnected(peer) => println!("client disconnected: {peer}"),
             Event::Activity => {}
         }),
+        log,
     };
     server.run(&listener);
     0

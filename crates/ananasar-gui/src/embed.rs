@@ -64,6 +64,7 @@ pub fn start(
             clients: handle.clients.clone(),
             stop,
             notify: Arc::new(move |_| repaint.request_repaint()),
+            log: None,
         }
         .run(&listener);
 
