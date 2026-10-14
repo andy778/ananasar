@@ -309,13 +309,33 @@ impl ClientView {
 
         ui.separator();
         ui.strong("Event log");
-        egui::ScrollArea::vertical().stick_to_bottom(true).max_height(240.0).auto_shrink([false, false]).show(ui, |ui| {
+        let scroll = egui::ScrollArea::vertical().stick_to_bottom(true).max_height(240.0).auto_shrink([false, false]).show(ui, |ui| {
             let log = lock(&self.shared.log);
             for line in log.iter() {
                 ui.monospace(line);
             }
         });
+        let log_area = ui.interact(scroll.inner_rect, scroll.id.with("log_menu"), egui::Sense::click());
+        log_area.context_menu(|ui| {
+            if ui.button("Copy").clicked() {
+                let text = join_lines(lock(&self.shared.log).iter());
+                ui.ctx().copy_text(text);
+                ui.close();
+            }
+        });
     }
+}
+
+/// Joins log lines with newlines, for the clipboard.
+fn join_lines<S: AsRef<str>>(lines: impl IntoIterator<Item = S>) -> String {
+    let mut out = String::new();
+    for (i, line) in lines.into_iter().enumerate() {
+        if i > 0 {
+            out.push('\n');
+        }
+        out.push_str(line.as_ref());
+    }
+    out
 }
 
 fn add_sorted(v: &mut Vec<u16>, a: u16) {
@@ -552,5 +572,12 @@ mod tests {
         assert_eq!(parse_range("7", "3"), None);
         assert_eq!(parse_range("x", "3"), None);
         assert_eq!(parse_range("0", "65536"), None);
+    }
+
+    #[test]
+    fn join_lines_separates_with_newlines() {
+        assert_eq!(join_lines(["a", "b", "c"]), "a\nb\nc");
+        assert_eq!(join_lines(["only"]), "only");
+        assert_eq!(join_lines(Vec::<String>::new()), "");
     }
 }
