@@ -4,7 +4,7 @@
 use ananasar_core::registers::RegisterFile;
 use ananasar_core::server::ServerConfig;
 use ananasar_core::sync::lock;
-use ananasar_net::{LogSink, Server};
+use ananasar_net::{LogSink, Server, Stats};
 use eframe::egui;
 use std::net::TcpListener;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -20,6 +20,10 @@ pub struct ServerHandle {
     pub port: AtomicUsize,
     /// Data log shared with the running server; idle until the user starts it.
     pub log: Arc<LogSink>,
+    /// Live statistics for the status panel.
+    pub stats: Arc<Mutex<Stats>>,
+    /// Server settings the UI can change while it runs (the accepted UID).
+    pub cfg: Arc<Mutex<ServerConfig>>,
 }
 
 impl ServerHandle {
@@ -30,6 +34,8 @@ impl ServerHandle {
             clients: Arc::new(AtomicUsize::new(0)),
             port: AtomicUsize::new(0),
             log: Arc::new(LogSink::idle()),
+            stats: Arc::default(),
+            cfg: Arc::default(),
         })
     }
 }
@@ -42,7 +48,6 @@ pub fn start(
     ctx: egui::Context,
     regs: SharedRegs,
     handle: Arc<ServerHandle>,
-    cfg: ServerConfig,
     port: u16,
     stop: Arc<AtomicBool>,
 ) {
@@ -63,11 +68,12 @@ pub fn start(
         let (repaint, log) = (ctx.clone(), handle.log.clone());
         Server {
             regs,
-            cfg: Arc::new(cfg),
+            cfg: handle.cfg.clone(),
             clients: handle.clients.clone(),
             stop,
             notify: Arc::new(move |_| repaint.request_repaint()),
             log: Some(log),
+            stats: handle.stats.clone(),
         }
         .run(&listener);
 

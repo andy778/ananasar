@@ -173,7 +173,7 @@ fn run_server(args: &ServerArgs) -> i32 {
 
     let server = Server {
         regs: Arc::new(Mutex::new(registers)),
-        cfg: Arc::new(ServerConfig { unit_id: uid, ..Default::default() }),
+        cfg: Arc::new(Mutex::new(ServerConfig { unit_id: uid, ..Default::default() })),
         clients: Arc::new(AtomicUsize::new(0)),
         stop: Arc::new(AtomicBool::new(false)),
         notify: Arc::new(|event| match event {
@@ -182,6 +182,7 @@ fn run_server(args: &ServerArgs) -> i32 {
             Event::Activity => {}
         }),
         log,
+        stats: Arc::default(),
     };
     server.run(&listener);
     0

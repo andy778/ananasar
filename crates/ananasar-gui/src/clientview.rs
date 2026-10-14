@@ -123,6 +123,11 @@ impl ClientView {
         });
     }
 
+    /// True while the client is connected to a server.
+    pub fn is_connected(&self) -> bool {
+        self.shared.connected.load(Ordering::SeqCst)
+    }
+
     pub fn ui(&mut self, ui: &mut egui::Ui) {
         let connected = self.shared.connected.load(Ordering::SeqCst);
         ui.horizontal(|ui| {
