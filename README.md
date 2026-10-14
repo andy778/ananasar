@@ -15,18 +15,19 @@ A port of Ananas, the free Modbus/TCP test tool by Petri Tuomio, built with [REA
 
 [Download](#download) · [Quick start](#quick-start) · [Build](#build-from-source) · [Layout](#project-layout)
 
-<img src="assets/screenshot.png" width="900" alt="Ananasar: the register list with the client polling and the set-value bit editor open">
+<img src="assets/screenshot.png" width="820" alt="Ananasar: the register list, the Server status panel with a client polling, and the logging controls">
 
-<sub>The register list, the client polling its own server, and the bit editor.</sub>
+<sub>The register list, the live Server status panel with a client polling, and the Logging controls.</sub>
 
 </div>
 
 ## Features
 
 - **Server** answering function codes 3, 4, 6, 16, 22 and 23, with proper exception responses and unit-id filtering. Two clients at a time, as in the original.
-- **Server data log** (CLI: `--log-dir`, `--interpretive`; GUI: View → Data logging with start/stop and a recording count): every request and reply per connection, as hex or with decoded descriptions, plus detected errors.
+- **Server data log** (CLI: `--log-dir`, `--interpretive`; GUI: the Logging panel with start/stop and a packet count): every request and reply per connection, as hex or with decoded descriptions, plus detected errors.
 - **Client** poll engine: sorted address lists, consecutive addresses merged into as few queries as possible, Cycle / Wait / Immediate trigger modes and manual FC6 / FC22 / FC7 commands.
 - **One shared register model** (holding and input, 65 536 registers each) used by the server, the client and the editors.
+- **Server status panel** like the original's: per-client IP, poll interval, last request fields, traffic totals and error flags, live.
 - **Register list** with hex display, inline editing and a **bit editor** with 32-bit Uint/Float views.
 - **Register scanner**: `ananasar scan host:port --start 0 --end 99` reads a range one register at a time and reports which answer. The GUI has the same sweep under View → Scanner, with a results table and a stoppable run.
 - **Save / load** register values as `*.ananas` text files (File → Open… / Save…, or `ananasar server --load FILE`).
