@@ -17,6 +17,37 @@ use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+/// Protocol maximums for registers per read and per write transaction.
+const MAX_READ: u16 = 125;
+const MAX_WRITE: u16 = 123;
+const READ_PRESETS: &[u16] = &[5, 50, 100, 125];
+const WRITE_PRESETS: &[u16] = &[50, 100, 123];
+
+/// Clamps a transaction limit to `1..=max`.
+fn clamp_limit(value: u16, max: u16) -> u16 {
+    value.clamp(1, max)
+}
+
+/// The presets that fit within `max`, so a preset never exceeds the protocol limit.
+fn valid_presets(presets: &[u16], max: u16) -> impl Iterator<Item = u16> + '_ {
+    presets.iter().copied().filter(move |&p| (1..=max).contains(&p))
+}
+
+/// A custom value box plus a preset menu for one transaction limit. Returns true if it changed.
+fn limit_control(ui: &mut egui::Ui, id: &str, value: &mut u16, presets: &[u16], max: u16) -> bool {
+    let mut changed = ui.add(egui::DragValue::new(value).range(1..=max)).changed();
+    egui::ComboBox::from_id_salt(id).selected_text("").width(14.0).show_ui(ui, |ui| {
+        for p in valid_presets(presets, max) {
+            if ui.selectable_label(*value == p, p.to_string()).clicked() {
+                *value = p;
+                changed = true;
+            }
+        }
+    });
+    *value = clamp_limit(*value, max);
+    changed
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Mode {
     Cycle,
@@ -31,7 +62,7 @@ enum Cmd {
     Disconnect,
     SetMode(Mode),
     SetLists { rh: Vec<u16>, ri: Vec<u16>, w: Vec<u16> },
-    SetMax(u16),
+    SetLimits { read: u16, write: u16 },
     SetInterval(u64),
     SetBase(AddressBase),
     SetZeroTi(bool),
@@ -76,7 +107,8 @@ pub struct ClientView {
     write: Vec<u16>,
     addr_input: String,
     mode: Mode,
-    max_per_query: u16,
+    max_read: u16,
+    max_write: u16,
     interval_ms: u64,
     base_one: bool,
     zero_ti: bool,
@@ -125,7 +157,8 @@ impl ClientView {
             write: vec![],
             addr_input: String::new(),
             mode: Mode::Pause,
-            max_per_query: 125,
+            max_read: MAX_READ,
+            max_write: MAX_WRITE,
             interval_ms: 1000,
             base_one: false,
             zero_ti: false,
@@ -223,9 +256,12 @@ impl ClientView {
             });
             ui.vertical(|ui| {
                 ui.horizontal(|ui| {
-                    ui.label("Max/q:");
-                    if ui.add(egui::DragValue::new(&mut self.max_per_query).range(1..=125)).changed() {
-                        let _ = self.tx.send(Cmd::SetMax(self.max_per_query));
+                    ui.label("Read/q:");
+                    let mut limits_changed = limit_control(ui, "max_read", &mut self.max_read, READ_PRESETS, MAX_READ);
+                    ui.label("Write/q:");
+                    limits_changed |= limit_control(ui, "max_write", &mut self.max_write, WRITE_PRESETS, MAX_WRITE);
+                    if limits_changed {
+                        let _ = self.tx.send(Cmd::SetLimits { read: self.max_read, write: self.max_write });
                     }
                     ui.label("ms:");
                     if ui.add(egui::DragValue::new(&mut self.interval_ms).range(0..=60000).speed(10.0)).changed() {
@@ -427,9 +463,9 @@ fn spawn_worker(shared: Arc<Shared>, rx: Receiver<Cmd>) {
                         engine.read_input = PollList::new(ri);
                         engine.write = PollList::new(w);
                     }
-                    Cmd::SetMax(m) => {
-                        engine.max_read = m.min(125);
-                        engine.max_write = m.min(123);
+                    Cmd::SetLimits { read, write } => {
+                        engine.max_read = clamp_limit(read, MAX_READ);
+                        engine.max_write = clamp_limit(write, MAX_WRITE);
                     }
                     Cmd::SetInterval(ms) => interval = Duration::from_millis(ms),
                     Cmd::SetBase(b) => engine.base = b,
@@ -552,5 +588,25 @@ mod tests {
         assert_eq!(parse_range("7", "3"), None);
         assert_eq!(parse_range("x", "3"), None);
         assert_eq!(parse_range("0", "65536"), None);
+    }
+}
+
+#[cfg(test)]
+mod limit_tests {
+    use super::*;
+
+    #[test]
+    fn clamps_to_protocol_maximums() {
+        assert_eq!(clamp_limit(0, MAX_READ), 1);
+        assert_eq!(clamp_limit(200, MAX_READ), 125);
+        assert_eq!(clamp_limit(125, MAX_WRITE), 123);
+        assert_eq!(clamp_limit(50, MAX_WRITE), 50);
+    }
+
+    #[test]
+    fn presets_fit_their_maximum() {
+        assert!(READ_PRESETS.iter().all(|&p| p <= MAX_READ));
+        assert!(WRITE_PRESETS.iter().all(|&p| p <= MAX_WRITE));
+        assert_eq!(valid_presets(&[5, 125, 200, 0], MAX_WRITE).collect::<Vec<_>>(), [5]);
     }
 }
