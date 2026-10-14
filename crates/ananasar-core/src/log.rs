@@ -307,9 +307,9 @@ mod tests {
     fn fc16_single_register_is_described_as_write_multiple() {
         let q = build(1, 2, 0x10, &[0, 7, 0, 1, 2, 0x12, 0x34]);
         let text = describe_query(&q);
-        assert!(text.contains("Reference: 7. Word count: 1. UID: 2"), "{text}");
-        assert!(text.contains("7 <- 4660"), "{text}");
-        assert!(!text.contains("AND"), "{text}");
+        assert!(text.contains("Reference: 7. Word count: 1. UID: 2"));
+        assert!(text.contains("7 <- 4660"));
+        assert!(!text.contains("AND"));
     }
 
     #[test]
