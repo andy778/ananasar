@@ -1,0 +1,40 @@
+name: semantic-release
+
+# Computes the next version from the Conventional Commits on main, then creates
+# the v* tag and the GitHub Release. The tag push triggers build.yml, which
+# builds, signs and attaches the binaries. The tag must be pushed with a GitHub
+# App token: a push made with the default GITHUB_TOKEN does not start workflows.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: semantic-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    steps:
+      - id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: npm ci --ignore-scripts
+      - run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}

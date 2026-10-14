@@ -43,6 +43,9 @@ jobs:
       - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
         with:
           tool: cargo-auditable
+      - name: Stamp version from tag
+        shell: bash
+        run: ./scripts/stamp-version.sh
       - name: Build release
         run: cargo auditable build --release --workspace --locked
       - name: Collect binaries
@@ -70,6 +73,9 @@ jobs:
       - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
         with:
           tool: cargo-auditable
+      - name: Stamp version from tag
+        shell: bash
+        run: ./scripts/stamp-version.sh
       - name: Build release (both arches)
         run: |
           cargo auditable build --release --workspace --locked --target aarch64-apple-darwin
@@ -102,6 +108,9 @@ jobs:
       - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
         with:
           tool: cargo-auditable
+      - name: Stamp version from tag
+        shell: bash
+        run: ./scripts/stamp-version.sh
       - name: Build release
         run: cargo auditable build --release --workspace --locked
       - name: Collect binaries
@@ -144,5 +153,6 @@ jobs:
             artifacts/**/*.exe
             artifacts/**/*.tar.gz
             artifacts/**/*.sigstore.json
-          generate_release_notes: true
+          # semantic-release writes the release notes; this job only attaches files.
+          generate_release_notes: false
           fail_on_unmatched_files: true
