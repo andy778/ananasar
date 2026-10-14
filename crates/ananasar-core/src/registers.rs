@@ -57,6 +57,20 @@ impl RegisterFile {
         self.holding[addr as usize] = value;
     }
 
+    /// Write an input register. Clients cannot do this over Modbus; it exists
+    /// for loading a saved register file and for the application's own editing.
+    pub fn set_input(&mut self, addr: u16, value: u16) {
+        self.input[addr as usize] = value;
+    }
+
+    /// Write a register in either bank (see [`RegisterFile::set_input`]).
+    pub fn set(&mut self, bank: Bank, addr: u16, value: u16) {
+        match bank {
+            Bank::Holding => self.set_holding(addr, value),
+            Bank::Input => self.set_input(addr, value),
+        }
+    }
+
     /// Read a contiguous span `[addr, addr+count)`. Returns `None` if the span
     /// would run past the end of the bank — this is the `start + count <= 65536`
     /// guard the server enforces before touching the array.
