@@ -3,7 +3,7 @@
 //! register file (the original's client shares the register model; here it
 //! holds the values read back from the remote server it is pointed at).
 
-use crate::net::read_frame;
+use ananasar_net::read_frame;
 use ananasar_core::sync::lock;
 use ananasar_core::client::{AddressBase, ManualCommand, PollEngine, PollList};
 use ananasar_core::protocol::{self, Function};
