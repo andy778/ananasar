@@ -295,12 +295,16 @@ impl eframe::App for App {
                     stats_row(ui, "Nagle", |i| conn(i).map(|c| if c.nagle { "Enabled" } else { "Disabled" }.to_owned()));
                     stats_row(ui, "Poll interval", |i| conn(i).and_then(|c| c.poll_interval_ms).map(|ms| format!("{ms} ms")));
                     stats_row(ui, "Data packet size", |i| conn(i).map(|c| c.packet_size.to_string()));
-                    stats_row(ui, "Header check", |i| {
-                        conn(i).and_then(|c| c.header_check.as_ref()).map(|r| match r {
-                            Ok(()) => "Passed".to_owned(),
-                            Err(_) => "Failed".to_owned(),
-                        })
-                    });
+                    // A failed check says why when hovered.
+                    ui.monospace("Header check:");
+                    for slot in 0..2 {
+                        match conn(slot).and_then(|c| c.header_check.as_ref()) {
+                            Some(Ok(())) => { ui.monospace("Passed"); }
+                            Some(Err(why)) => { ui.monospace("Failed").on_hover_text(why); }
+                            None => { ui.monospace("--"); }
+                        }
+                    }
+                    ui.end_row();
                     stats_row(ui, "Transaction ID", |i| conn(i).and_then(|c| c.transaction_id).map(hex16));
                     stats_row(ui, "Protocol ID", |i| conn(i).and_then(|c| c.protocol_id).map(hex16));
                     stats_row(ui, "Message length", |i| conn(i).and_then(|c| c.length).map(hex16));
