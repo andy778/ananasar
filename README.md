@@ -62,7 +62,7 @@ ananasar client 127.0.0.1:15020 --read-holding 10,11,12,100 -n 4
 ananasar client 127.0.0.1:15020 --write 42,43,44 -n 1
 ```
 
-Run `ananasar --help` or `ananasar client --help` for every option.
+Run `ananasar --help` or `ananasar client --help` for every option. Shell completions: `ananasar completions bash` (also zsh, fish, powershell, elvish).
 
 ## Build from source
 
