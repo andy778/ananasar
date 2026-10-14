@@ -8,6 +8,7 @@ description = "Blocking Modbus/TCP server and frame reader shared by the Ananasa
 
 [dependencies]
 ananasar-core = { path = "../ananasar-core" }
+socket2 = { version = "0.6", features = ["all"] }
 
 [lints]
 workspace = true

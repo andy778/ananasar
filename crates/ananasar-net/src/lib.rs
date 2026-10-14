@@ -6,6 +6,7 @@
 //! ever lifted, moving this crate to tokio would be the natural step; the core
 //! crate is I/O-free and would not change.
 
+pub use client::{connect, parse_endpoint, split_host_port};
 pub use log::LogSink;
 pub use stats::{ConnStats, Stats};
 
@@ -20,6 +21,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+mod client;
 mod log;
 mod stats;
 
