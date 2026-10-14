@@ -1,58 +1,45 @@
-<p align="center">
-  <img src="assets/logo.svg" width="320" alt="ananasar — two pineapples">
-</p>
+<div align="center">
 
-# Ananasar (Rust port of Ananas)
+<img src="assets/logo.svg" width="120" alt="Ananasar logo: two pineapples">
+
+# Ananasar
+
+**A Modbus/TCP client and server, written in Rust.**<br>
+A port of the public-domain Ananas test tool, built with [REA](https://rea.tools/) as a hands-on look at what AI-assisted development can do today.
 
 [![Build](https://github.com/andy778/ananasar/actions/workflows/build.yml/badge.svg)](https://github.com/andy778/ananasar/actions/workflows/build.yml)
-[![GitHub all releases](https://img.shields.io/github/downloads/andy778/ananasar/total?logo=github&cacheSeconds=300)](https://github.com/andy778/ananasar/releases)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/andy778/ananasar?logo=github&cacheSeconds=300)](https://github.com/andy778/ananasar/releases/latest)
+[![Release](https://img.shields.io/github/v/release/andy778/ananasar?logo=github&cacheSeconds=300)](https://github.com/andy778/ananasar/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/andy778/ananasar/total?logo=github&cacheSeconds=300)](https://github.com/andy778/ananasar/releases)
 [![License](https://img.shields.io/github/license/andy778/ananasar?cacheSeconds=300)](LICENSE)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/andy778/ananasar/badge)](https://securityscorecards.dev/viewer/?uri=github.com/andy778/ananasar)
 
-A Rust reimplementation of **Ananas**, a public-domain Modbus/TCP client–server
-test tool.
+[Download](#download) · [Quick start](#quick-start) · [Build](#build-from-source) · [Layout](#project-layout)
 
-Built as a hands-on exploration of what AI-assisted development can do today —
-using [REA](https://rea.tools/) to understand the original and guide the rewrite.
+<img src="assets/screenshot.png" width="900" alt="Ananasar: the register list with the client polling and the set-value bit editor open">
 
-## Layout
+<sub>The register list, the client polling its own server, and the bit editor.</sub>
 
-- `crates/ananasar-core` — `std`-only, platform-agnostic protocol engine:
-  - `protocol` — MBAP framing, function & exception codes.
-  - `registers` — the shared register model (two 65536×u16 banks, holding + input).
-  - `server` — request validation + dispatch (FC 3/4/6/16/22/23, +7/8).
-  - `client` — the poll engine: sorted address lists, the consecutive-run
-    optimizer, round-robin scheduler and query builders.
-- `crates/ananasar-cli` — headless `ananasar` binary (server + client over TCP).
+</div>
 
-## Build & test
+## Features
 
-```bash
-cargo build --release      # native (Linux) binary at target/release/ananasar
-cargo test                 # protocol/optimizer unit tests
-```
+- **Server** answering function codes 3, 4, 6, 16, 22 and 23, with proper exception responses and unit-id filtering. Two clients at a time, as in the original.
+- **Client** poll engine: sorted address lists, consecutive addresses merged into as few queries as possible, Cycle / Wait / Immediate trigger modes and manual FC6 / FC22 / FC7 commands.
+- **One shared register model** (holding and input, 65 536 registers each) used by the server, the client and the editors.
+- **Register list** with hex display, inline editing and a **bit editor** with 32-bit Uint/Float views.
+- **Headless CLI** for scripting, built on the same engine.
 
-### Windows binary
+## Download
 
-The Arch system `rustc` has no cross std. Use rustup:
+Prebuilt binaries are attached to every [release](https://github.com/andy778/ananasar/releases/latest):
 
-```bash
-rustup target add x86_64-pc-windows-gnu
-sudo pacman -S mingw-w64-gcc
-cargo build --release --target x86_64-pc-windows-gnu
-```
+| Platform | Files |
+| --- | --- |
+| Windows x64 | `ananasar.exe` (CLI), `ananasar-gui.exe` (GUI) |
+| macOS (Apple silicon + Intel) | `ananasar-macos-universal.tar.gz` |
+| Linux x86_64 | `ananasar-linux-x86_64.tar.gz` |
 
-### Prebuilt binaries
-
-Each tagged release has, built by CI:
-
-- **Windows x64** — `ananasar.exe`, `ananasar-gui.exe`
-- **macOS universal** (arm64 + x86_64) — `ananasar-macos-universal.tar.gz`
-- **Linux x86_64** — `ananasar-linux-x86_64.tar.gz`
-
-The macOS binaries are **unsigned**, so Gatekeeper blocks them on first run.
-After extracting, clear the quarantine flag:
+The macOS build is unsigned, so Gatekeeper blocks it on first run. Clear the quarantine flag after extracting:
 
 ```bash
 tar xzf ananasar-macos-universal.tar.gz
@@ -60,30 +47,55 @@ xattr -dr com.apple.quarantine ananasar ananasar-gui
 ./ananasar-gui
 ```
 
-## Run (headless)
+## Quick start
+
+Run the GUI (`ananasar-gui`). It starts a server on port 15020; open **View → Client window** to poll it, or point the client at any other Modbus/TCP device.
+
+Or use the headless CLI:
 
 ```bash
-# server (port 502 needs root; use a high port otherwise)
-ananasar server --port 15020 --uid 0
+# server (port 502 needs root, so use a high port)
+ananasar server --port 15020
 
-# client: poll holding registers, write a block, etc.
-ananasar client 127.0.0.1:15020 --read-holding 10,11,12,100 --count 4
-ananasar client 127.0.0.1:15020 --write 42,43,44 --count 1
+# client: poll holding registers, or write a block
+ananasar client 127.0.0.1:15020 --read-holding 10,11,12,100 -n 4
+ananasar client 127.0.0.1:15020 --write 42,43,44 -n 1
 ```
 
-## Fidelity notes
+Run `ananasar --help` or `ananasar client --help` for every option.
 
-- Server and client share one `RegisterFile`, as the original does
-  ("server and client are sharing registers", manual §2.2).
-- The optimizer merges only addresses that are already consecutive in the
-  sorted list, capped by the max-per-query setting — matching the original's
-  greedy coalescing loop.
-- **Intentional fix:** the original validated only `start + count <= 65536` and
-  built FC3/FC4 replies in a fixed 513-byte global, so quantities of 253–255
-  overflowed it. This port enforces the Modbus limits (125 read / 123 write) and
-  returns `IllegalDataValue` instead.
+## Build from source
 
-## Not yet ported
+Needs Rust 1.92 for the core and CLI, and 1.95 for the GUI (egui 0.36).
 
-The GUI (Delphi VCL forms), the `*.ananas` save/load format, raw/interpretive
-log files, the register scanner, and the Windows-only DDE / adapter-IP features.
+```bash
+cargo build --release      # binaries in target/release/
+cargo test                 # protocol and optimizer tests
+```
+
+The parsers that read network input are also fuzzed (`cargo +nightly fuzz run frame` from the repository root, using [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz)). CI builds and releases the Windows, macOS and Linux binaries.
+
+## Project layout
+
+- [`crates/ananasar-core`](crates/ananasar-core): `std`-only, I/O-free protocol engine
+  - `protocol`: MBAP framing, function and exception codes
+  - `registers`: the shared register model
+  - `server`: request validation and dispatch
+  - `client`: the poll engine and query builders
+- [`crates/ananasar-cli`](crates/ananasar-cli): the headless `ananasar` binary
+- [`crates/ananasar-gui`](crates/ananasar-gui): the egui application (`ananasar-gui`)
+- [`fuzz`](fuzz): cargo-fuzz targets for the frame parser and the server handler
+
+## Design notes
+
+- The server and client share one register file, as the original does ("server and client are sharing registers", manual §2.2).
+- The optimizer only merges addresses that are already consecutive in the sorted list, capped by the max-per-query setting, matching the original's greedy coalescing.
+- **Intentional fix:** the original validated only `start + count <= 65536` and built FC3/FC4 replies in a fixed 513-byte buffer, so quantities of 253–255 overflowed it. This port enforces the Modbus limits (125 read / 123 write) and returns `IllegalDataValue` instead.
+
+## Not yet implemented
+
+The register scanner, the `*.ananas` save/load format, raw and interpretive log files, and the Windows-only DDE and network-adapter features.
+
+## License
+
+[MIT](LICENSE). Ananasar is provided as is; see [SECURITY.md](SECURITY.md).
