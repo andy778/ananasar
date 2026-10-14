@@ -12,7 +12,8 @@ use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, CommandFactory, Parser, Subcommand};
+use clap_complete::Shell;
 
 /// Modbus/TCP client and server (headless).
 #[derive(Parser)]
@@ -28,6 +29,11 @@ enum Command {
     Server(ServerArgs),
     /// Poll a Modbus/TCP server and print the responses
     Client(ClientArgs),
+    /// Print a shell completion script to stdout
+    Completions {
+        /// Shell to generate completions for
+        shell: Shell,
+    },
 }
 
 #[derive(Args)]
@@ -68,6 +74,10 @@ fn main() {
     let code = match Cli::parse().command {
         Command::Server(a) => run_server(a.port, a.uid),
         Command::Client(a) => run_client(a),
+        Command::Completions { shell } => {
+            clap_complete::generate(shell, &mut Cli::command(), "ananasar", &mut std::io::stdout());
+            0
+        }
     };
     std::process::exit(code);
 }
