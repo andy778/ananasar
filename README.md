@@ -124,6 +124,10 @@ The parsers that read network input are also fuzzed (`cargo +nightly fuzz run fr
 
 The Windows-only DDE and network-adapter features (not planned).
 
+## About the original
+
+Ananas is a free Modbus/TCP test tool written by Petri Tuomio. The program was distributed from `http://www.tuomio.fi/ananas/`, which no longer exists. Ananasar is an independent reimplementation: it contains no code from the original, and the original program is not included here.
+
 ## License
 
 [MIT](LICENSE). Ananasar is provided as is; see [SECURITY.md](SECURITY.md).
