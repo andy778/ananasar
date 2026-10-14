@@ -1,6 +1,7 @@
 //! Headless Ananasar: a Modbus/TCP server and client driven from the command
 //! line, built on the shared `ananasar-core` engine and `ananasar-net` server.
 
+use ananasar_core::ananas_file;
 use ananasar_core::client::{PollEngine, PollList};
 use ananasar_core::protocol::{self, DEFAULT_PORT};
 use ananasar_core::registers::{Bank, RegisterFile};
@@ -47,6 +48,9 @@ struct ServerArgs {
     /// Accepted unit id; 0 accepts any
     #[arg(short, long, default_value_t = 0)]
     uid: u8,
+    /// Load register values from a *.ananas file before serving
+    #[arg(long, value_name = "FILE")]
+    load: Option<std::path::PathBuf>,
 }
 
 #[derive(Args)]
@@ -105,7 +109,7 @@ struct ScanArgs {
 
 fn main() {
     let code = match Cli::parse().command {
-        Command::Server(a) => run_server(a.port, a.uid),
+        Command::Server(a) => run_server(a.port, a.uid, a.load.as_deref()),
         Command::Client(a) => run_client(a),
         Command::Completions { shell } => {
             clap_complete::generate(shell, &mut Cli::command(), "ananasar", &mut std::io::stdout());
@@ -116,7 +120,18 @@ fn main() {
     std::process::exit(code);
 }
 
-fn run_server(port: u16, uid: u8) -> i32 {
+fn run_server(port: u16, uid: u8, load: Option<&std::path::Path>) -> i32 {
+    let mut registers = RegisterFile::new();
+    if let Some(path) = load {
+        let loaded = std::fs::read_to_string(path)
+            .map_err(|e| e.to_string())
+            .and_then(|text| ananas_file::load(&text, &mut registers).map_err(|e| e.to_string()));
+        if let Err(e) = loaded {
+            eprintln!("cannot load {}: {e}", path.display());
+            return 1;
+        }
+        println!("loaded registers from {}", path.display());
+    }
     let listener = match TcpListener::bind(("0.0.0.0", port)) {
         Ok(l) => l,
         Err(e) => {
@@ -128,7 +143,7 @@ fn run_server(port: u16, uid: u8) -> i32 {
     println!("Ananasar server listening on 0.0.0.0:{port} (uid {uid}, max {MAX_CLIENTS} clients)");
 
     let server = Server {
-        regs: Arc::new(Mutex::new(RegisterFile::new())),
+        regs: Arc::new(Mutex::new(registers)),
         cfg: Arc::new(ServerConfig { unit_id: uid, ..Default::default() }),
         clients: Arc::new(AtomicUsize::new(0)),
         stop: Arc::new(AtomicBool::new(false)),

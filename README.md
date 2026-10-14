@@ -28,6 +28,7 @@ A port of the public-domain Ananas test tool, built with [REA](https://rea.tools
 - **One shared register model** (holding and input, 65 536 registers each) used by the server, the client and the editors.
 - **Register list** with hex display, inline editing and a **bit editor** with 32-bit Uint/Float views.
 - **Register scanner**: `ananasar scan host:port --start 0 --end 99` reads a range one register at a time and reports which answer. The GUI has the same sweep under View → Scanner, with a results table and a stoppable run.
+- **Save / load** register values as `*.ananas` text files (File → Open… / Save…, or `ananasar server --load FILE`).
 - **Headless CLI** for scripting, built on the same engine.
 
 ## Download
@@ -95,7 +96,7 @@ The parsers that read network input are also fuzzed (`cargo +nightly fuzz run fr
 
 ## Not yet implemented
 
-The `*.ananas` save/load format, raw and interpretive log files, and the Windows-only DDE and network-adapter features.
+Raw and interpretive log files, and the Windows-only DDE and network-adapter features.
 
 ## License
 
