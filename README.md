@@ -50,6 +50,24 @@ xattr -dr com.apple.quarantine ananasar ananasar-gui
 ./ananasar-gui
 ```
 
+The Windows executables are not code-signed either, so Windows SmartScreen may warn the first time you run them ("More info" → "Run anyway").
+
+### Verify a download
+
+Every release file is signed with [cosign](https://github.com/sigstore/cosign) (keyless, from the release workflow); the signature is the matching `.sigstore.json` file on the release page:
+
+```bash
+cosign verify-blob \
+  --bundle ananasar-linux-x86_64.tar.gz.sigstore.json \
+  --certificate-identity-regexp '^https://github.com/andy778/ananasar/\.github/workflows/build\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  ananasar-linux-x86_64.tar.gz
+```
+
+The binaries are built with [cargo-auditable](https://github.com/rust-secure-code/cargo-auditable), so their dependency list is embedded and can be checked for known vulnerabilities with `cargo audit bin ananasar`.
+
+*Signatures and embedded audit data start with the first release made after they were added; older releases (v0.1.x) have neither.*
+
 ## Quick start
 
 Run the GUI (`ananasar-gui`). It starts a server on port 15020; open **View → Client window** to poll it, or point the client at any other Modbus/TCP device.
