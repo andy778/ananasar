@@ -30,10 +30,10 @@ pub enum Outcome {
     Drop,
 }
 
-/// Server configuration (the Options menu, manual §2.7.3).
+/// Server configuration (the original's Options menu).
 #[derive(Clone, Debug)]
 pub struct ServerConfig {
-    /// Accepted unit id. `0` means "accept any UID" (manual §2.1).
+    /// Accepted unit id. `0` means "accept any UID".
     pub unit_id: u8,
     /// Which function codes are enabled. If a request uses one not in here,
     /// the server replies with `IllegalFunction`.
@@ -42,7 +42,7 @@ pub struct ServerConfig {
 
 impl Default for ServerConfig {
     fn default() -> Self {
-        // Manual §2.1: server supports FC 3, 4, 6, 16, 22, 23 by default.
+        // By default the server supports FC 3, 4, 6, 16, 22 and 23.
         let supported = [0x03u8, 0x04, 0x06, 0x10, 0x16, 0x17].into_iter().collect();
         Self { unit_id: 0, supported }
     }
@@ -150,7 +150,7 @@ pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outco
         }
 
         Function::ReadWriteMultiple => {
-            // Write is performed before the read (manual §1.3, FC23).
+            // Write is performed before the read (FC23).
             if pdu.len() < 9 {
                 return exc(Exception::IllegalDataValue);
             }
