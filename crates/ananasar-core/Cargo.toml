@@ -7,3 +7,6 @@ license.workspace = true
 description = "Modbus/TCP protocol core for the Ananas reimplementation."
 
 [lib]
+
+[lints]
+workspace = true

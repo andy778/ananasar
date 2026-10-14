@@ -5,6 +5,8 @@
 //! Windows builds; OS-specific features (DDE, adapter IP config) live in the
 //! binary crates, not here.
 
+#![warn(missing_docs)]
+
 pub mod client;
 pub mod protocol;
 pub mod registers;
