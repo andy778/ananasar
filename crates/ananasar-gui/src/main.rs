@@ -48,7 +48,11 @@ fn main() -> eframe::Result<()> {
         viewport = viewport.with_icon(std::sync::Arc::new(icon));
     }
     let options = eframe::NativeOptions { viewport, ..Default::default() };
-    eframe::run_native("Ananasar — Modbus/TCP", options, Box::new(|_cc| Ok(Box::new(app))))
+    eframe::run_native("Ananasar — Modbus/TCP", options, Box::new(|cc| {
+        // Light by default, like the original; View → Theme can switch it.
+        cc.egui_ctx.set_theme(egui::ThemePreference::Light);
+        Ok(Box::new(app))
+    }))
 }
 
 struct App {
@@ -114,6 +118,9 @@ impl eframe::App for App {
                 ui.menu_button("View", |ui| {
                     ui.checkbox(&mut self.show_client, "Client window");
                     ui.checkbox(&mut self.show_setval, "Set value window");
+                    ui.separator();
+                    ui.label("Theme");
+                    egui::widgets::global_theme_preference_buttons(ui);
                 });
                 ui.menu_button("Server", |ui| {
                     let listening = self.server.listening.load(Ordering::SeqCst);
