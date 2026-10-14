@@ -19,6 +19,9 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 const MAX_CLIENTS: usize = 2;
+/// A connection that sends nothing for this long is dropped, so idle clients
+/// cannot hold both slots forever.
+const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
 use clap::{Args, Parser, Subcommand};
 
@@ -81,7 +84,6 @@ fn main() {
 }
 
 fn run_server(port: u16, uid: u8) -> i32 {
-
     let cfg = Arc::new(ServerConfig { unit_id: uid, ..Default::default() });
     let regs = Arc::new(Mutex::new(RegisterFile::new()));
     let clients = Arc::new(AtomicUsize::new(0));
@@ -117,6 +119,8 @@ fn run_server(port: u16, uid: u8) -> i32 {
 }
 
 fn serve_connection(mut stream: TcpStream, cfg: &ServerConfig, regs: &Mutex<RegisterFile>) {
+    stream.set_read_timeout(Some(IDLE_TIMEOUT)).ok();
+    stream.set_write_timeout(Some(IDLE_TIMEOUT)).ok();
     let mut buf = [0u8; 600];
     loop {
         // Read the MBAP prefix + length, then the rest of the frame.
