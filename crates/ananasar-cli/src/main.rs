@@ -1,9 +1,12 @@
 //! Headless Ananas: a Modbus/TCP server and client driven from the command line.
 //!
-//! The GUI (the Delphi VCL forms) is a separate layer and not reimplemented here
-//! yet; this exercises the reconstructed protocol core end to end. The server
-//! uses blocking sockets with a thread per connection and accepts at most two
-//! clients, matching the original's "limited multiport support" (manual §2.1).
+//! This drives the `ananasar-core` protocol engine end to end without a GUI. The
+//! server uses blocking `std::net` sockets with a thread per connection and
+//! accepts at most two clients, matching the original's "limited multiport
+//! support" (manual §2.1). At that scale threads are simpler than an async
+//! runtime; if the client cap is ever lifted, or connections need timeouts and
+//! graceful shutdown, moving this binary to tokio would be the natural step
+//! (the core crate is I/O-free, so it would not change).
 
 use ananasar_core::client::{PollEngine, PollList};
 use ananasar_core::protocol::{self, DEFAULT_PORT};
