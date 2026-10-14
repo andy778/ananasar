@@ -2,6 +2,9 @@
 //! (Values list), client and Set-value views into one app around a single
 //! in-process register model and embedded server. The GUI is egui/eframe.
 
+// Release builds on Windows are GUI-subsystem apps, so no console window opens.
+#![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
+
 mod clientview;
 mod embed;
 mod scannerview;
