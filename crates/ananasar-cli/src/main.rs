@@ -83,6 +83,9 @@ struct ClientArgs {
     /// Delay between polls in milliseconds
     #[arg(long, default_value_t = 1000)]
     interval_ms: u64,
+    /// Always send transaction id 0 in requests
+    #[arg(long)]
+    zero_ti: bool,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -189,10 +192,11 @@ fn run_server(args: &ServerArgs) -> i32 {
 }
 
 fn run_client(args: ClientArgs) -> i32 {
-    let ClientArgs { target, uid, read_holding, read_input, write, count: polls, interval_ms } = args;
+    let ClientArgs { target, uid, read_holding, read_input, write, count: polls, interval_ms, zero_ti } = args;
     let interval = Duration::from_millis(interval_ms);
     let regs = RegisterFile::new();
     let mut eng = PollEngine::new(uid);
+    eng.force_zero_txn = zero_ti;
     eng.read_holding = PollList::new(read_holding);
     eng.read_input = PollList::new(read_input);
     eng.write = PollList::new(write);

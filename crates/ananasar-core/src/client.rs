@@ -112,6 +112,8 @@ pub struct PollEngine {
     pub unit_id: u8,
     /// Next transaction id; wraps from 0xFFFF to 0.
     pub txn: u16,
+    /// Send transaction id 0 in every request instead of incrementing.
+    pub force_zero_txn: bool,
     /// Most registers merged into one read query.
     pub max_read: u16,
     /// Most registers merged into one write query.
@@ -133,6 +135,7 @@ impl PollEngine {
         Self {
             unit_id,
             txn: 0,
+            force_zero_txn: false,
             max_read: 125,
             max_write: 123,
             base: AddressBase::Zero,
@@ -144,6 +147,9 @@ impl PollEngine {
     }
 
     fn next_txn(&mut self) -> u16 {
+        if self.force_zero_txn {
+            return 0;
+        }
         let t = self.txn;
         self.txn = if self.txn < 0xFFFF { self.txn + 1 } else { 0 };
         t

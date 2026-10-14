@@ -137,6 +137,25 @@ mod tests {
     }
 
     #[test]
+    fn force_zero_txn_keeps_transaction_id_at_zero() {
+        let regs = RegisterFile::new();
+        let mut eng = PollEngine::new(1);
+        eng.force_zero_txn = true;
+        eng.read_holding = PollList::new(vec![1]);
+        for _ in 0..3 {
+            let q = eng.next_query(&regs).unwrap();
+            assert_eq!(&q[0..2], &[0, 0]);
+        }
+        let q = eng.build_manual(ManualCommand::ReadExceptionStatus);
+        assert_eq!(&q[0..2], &[0, 0]);
+        eng.force_zero_txn = false;
+        let q = eng.next_query(&regs).unwrap();
+        assert_eq!(&q[0..2], &[0, 0]); // counter never advanced while forced
+        let q = eng.next_query(&regs).unwrap();
+        assert_eq!(&q[0..2], &[0, 1]);
+    }
+
+    #[test]
     fn address_base_one_subtracts_on_wire() {
         let regs = RegisterFile::new();
         let mut eng = PollEngine::new(1);
