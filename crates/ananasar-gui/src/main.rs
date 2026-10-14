@@ -6,6 +6,7 @@ mod clientview;
 mod embed;
 mod scannerview;
 mod filewindow;
+mod logview;
 mod setvalview;
 
 use ananasar_core::registers::{Bank, InitMode, RegisterFile};
@@ -17,6 +18,7 @@ use egui_extras::{Column, TableBuilder};
 use embed::{ServerHandle, SharedRegs};
 use scannerview::ScannerView;
 use filewindow::FileWindow;
+use logview::LogView;
 use setvalview::SetValView;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -51,10 +53,12 @@ struct App {
     show_client: bool,
     show_setval: bool,
     show_scanner: bool,
+    show_log: bool,
     client: ClientView,
     setval: SetValView,
     scanner: ScannerView,
     file: FileWindow,
+    logview: LogView,
 }
 
 impl App {
@@ -78,10 +82,12 @@ impl App {
             show_client: false,
             show_setval: false,
             show_scanner: false,
+            show_log: false,
             client: ClientView::new(format!("127.0.0.1:{DEFAULT_PORT}"), ctx.clone()),
             setval: SetValView::default(),
             scanner: ScannerView::new(format!("127.0.0.1:{DEFAULT_PORT}"), ctx.clone()),
             file: FileWindow::default(),
+            logview: LogView::default(),
         }
     }
 
@@ -140,6 +146,7 @@ impl eframe::App for App {
                     ui.checkbox(&mut self.show_client, "Client window");
                     ui.checkbox(&mut self.show_setval, "Set value window");
                     ui.checkbox(&mut self.show_scanner, "Scanner");
+                    ui.checkbox(&mut self.show_log, "Data logging");
                     ui.separator();
                     ui.label("Theme");
                     egui::widgets::global_theme_preference_buttons(ui);
@@ -258,6 +265,17 @@ impl eframe::App for App {
             .default_size([400.0, 480.0])
             .show(&ctx, |ui| self.scanner.ui(ui));
         self.show_scanner = show_scanner;
+
+        let mut show_log = self.show_log;
+        let (log, port, listening) = (
+            self.server.log.clone(),
+            self.server.port.load(Ordering::SeqCst),
+            self.server.listening.load(Ordering::SeqCst),
+        );
+        egui::Window::new("Data logging")
+            .open(&mut show_log)
+            .show(&ctx, |ui| self.logview.ui(ui, &log, port, listening));
+        self.show_log = show_log;
         self.file.ui(&ctx, &self.regs, self.bank, &mut self.start_address);
     }
 }

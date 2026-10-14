@@ -24,7 +24,7 @@ A port of the public-domain Ananas test tool, built with [REA](https://rea.tools
 ## Features
 
 - **Server** answering function codes 3, 4, 6, 16, 22 and 23, with proper exception responses and unit-id filtering. Two clients at a time, as in the original.
-- **Server data log** (CLI: `--log-dir`, `--interpretive`): every request and reply per connection, as hex or with decoded descriptions, plus detected errors.
+- **Server data log** (CLI: `--log-dir`, `--interpretive`; GUI: View → Data logging with start/stop and a recording count): every request and reply per connection, as hex or with decoded descriptions, plus detected errors.
 - **Client** poll engine: sorted address lists, consecutive addresses merged into as few queries as possible, Cycle / Wait / Immediate trigger modes and manual FC6 / FC22 / FC7 commands.
 - **One shared register model** (holding and input, 65 536 registers each) used by the server, the client and the editors.
 - **Register list** with hex display, inline editing and a **bit editor** with 32-bit Uint/Float views.
@@ -103,7 +103,7 @@ The parsers that read network input are also fuzzed (`cargo +nightly fuzz run fr
 
 ## Not yet implemented
 
-The log option in the GUI (the CLI has it), and the Windows-only DDE and network-adapter features.
+The Windows-only DDE and network-adapter features (not planned).
 
 ## License
 
