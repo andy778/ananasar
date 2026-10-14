@@ -5,6 +5,7 @@
 mod clientview;
 mod embed;
 mod scannerview;
+mod filewindow;
 mod setvalview;
 
 use ananasar_core::registers::{Bank, InitMode, RegisterFile};
@@ -15,6 +16,7 @@ use eframe::egui;
 use egui_extras::{Column, TableBuilder};
 use embed::{ServerHandle, SharedRegs};
 use scannerview::ScannerView;
+use filewindow::FileWindow;
 use setvalview::SetValView;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -52,6 +54,7 @@ struct App {
     client: ClientView,
     setval: SetValView,
     scanner: ScannerView,
+    file: FileWindow,
 }
 
 impl App {
@@ -78,6 +81,7 @@ impl App {
             client: ClientView::new(format!("127.0.0.1:{DEFAULT_PORT}"), ctx.clone()),
             setval: SetValView::default(),
             scanner: ScannerView::new(format!("127.0.0.1:{DEFAULT_PORT}"), ctx.clone()),
+            file: FileWindow::default(),
         }
     }
 
@@ -102,6 +106,15 @@ impl eframe::App for App {
         egui::Panel::top("menubar").show(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
+                    if ui.button("Open…").clicked() {
+                        self.file.open();
+                        ui.close();
+                    }
+                    if ui.button("Save…").clicked() {
+                        self.file.save();
+                        ui.close();
+                    }
+                    ui.separator();
                     if ui.button("Exit").clicked() {
                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
@@ -245,5 +258,6 @@ impl eframe::App for App {
             .default_size([400.0, 480.0])
             .show(&ctx, |ui| self.scanner.ui(ui));
         self.show_scanner = show_scanner;
+        self.file.ui(&ctx, &self.regs, self.bank, &mut self.start_address);
     }
 }

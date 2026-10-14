@@ -7,6 +7,7 @@
 
 #![warn(missing_docs)]
 
+pub mod ananas_file;
 pub mod client;
 pub mod protocol;
 pub mod registers;
