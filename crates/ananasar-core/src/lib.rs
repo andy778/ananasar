@@ -10,6 +10,7 @@
 pub mod client;
 pub mod protocol;
 pub mod registers;
+pub mod scanner;
 pub mod server;
 pub mod sync;
 
