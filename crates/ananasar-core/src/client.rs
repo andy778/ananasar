@@ -82,11 +82,19 @@ impl PollList {
     }
 }
 
-/// A one-off manual command (FC6 and FC22, plus FC7).
+/// A one-off manual command (FC6, FC16 and FC22, plus FC7).
 #[derive(Clone, Copy, Debug)]
 pub enum ManualCommand {
     /// FC6: write `value` to holding register `addr`.
     WriteSingle {
+        /// Register address.
+        addr: u16,
+        /// Value to write.
+        value: u16,
+    },
+    /// FC16 with a register count of 1: write `value` to holding register
+    /// `addr` as a write-multiple request.
+    WriteSingleMultiple {
         /// Register address.
         addr: u16,
         /// Value to write.
@@ -225,6 +233,15 @@ impl PollEngine {
                 data.extend_from_slice(&wire.to_be_bytes());
                 data.extend_from_slice(&value.to_be_bytes());
                 build(txn, self.unit_id, Function::WriteSingle as u8, &data)
+            }
+            ManualCommand::WriteSingleMultiple { addr, value } => {
+                let wire = addr.wrapping_sub(self.base.offset());
+                let mut data = Vec::with_capacity(7);
+                data.extend_from_slice(&wire.to_be_bytes());
+                data.extend_from_slice(&1u16.to_be_bytes());
+                data.push(2);
+                data.extend_from_slice(&value.to_be_bytes());
+                build(txn, self.unit_id, Function::WriteMultiple as u8, &data)
             }
             ManualCommand::MaskWrite { addr, and_mask, or_mask } => {
                 let wire = addr.wrapping_sub(self.base.offset());

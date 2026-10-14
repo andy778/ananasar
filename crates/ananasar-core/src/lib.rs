@@ -175,4 +175,25 @@ mod tests {
         assert_eq!(func, 0x16);
         assert_eq!(pdu, &[0x00, 0x04, 0xF0, 0xF0, 0x0A, 0x0A]);
     }
+
+    #[test]
+    fn manual_write_single_as_fc16_frame() {
+        let mut eng = PollEngine::new(3);
+        eng.base = AddressBase::One;
+        let q = eng.build_manual(ManualCommand::WriteSingleMultiple { addr: 5, value: 0x1234 });
+        let (hdr, func, pdu) = frame(&q).unwrap();
+        assert_eq!(hdr.unit_id, 3);
+        assert_eq!(func, 0x10);
+        // wire address 4, count 1, byte count 2, value
+        assert_eq!(pdu, &[0x00, 0x04, 0x00, 0x01, 0x02, 0x12, 0x34]);
+    }
+
+    #[test]
+    fn manual_write_single_fc6_frame() {
+        let mut eng = PollEngine::new(3);
+        let q = eng.build_manual(ManualCommand::WriteSingle { addr: 5, value: 0x1234 });
+        let (_, func, pdu) = frame(&q).unwrap();
+        assert_eq!(func, 0x06);
+        assert_eq!(pdu, &[0x00, 0x05, 0x12, 0x34]);
+    }
 }
