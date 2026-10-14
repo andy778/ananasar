@@ -84,6 +84,7 @@ pub struct ClientView {
     man_value: String,
     man_and: String,
     man_or: String,
+    man_use_fc16: bool,
     range: RangeDialog,
 }
 
@@ -132,6 +133,7 @@ impl ClientView {
             man_value: "0".into(),
             man_and: "FFFF".into(),
             man_or: "0000".into(),
+            man_use_fc16: false,
             range: RangeDialog { open: false, from: "0".into(), to: "0".into(), list: ListKind::ReadHolding, remove: false },
         }
     }
@@ -279,10 +281,17 @@ impl ClientView {
             ui.add(egui::TextEdit::singleline(&mut self.man_value).desired_width(50.0));
             let addr = self.man_addr.trim().parse::<u16>().ok();
             let val = u16::from_str_radix(self.man_value.trim(), 16).ok();
-            if ui.add_enabled(connected, egui::Button::new("FC6")).clicked()
+            let write_label = if self.man_use_fc16 { "FC16" } else { "FC6" };
+            if ui.add_enabled(connected, egui::Button::new(write_label)).clicked()
                 && let (Some(a), Some(v)) = (addr, val) {
-                    let _ = self.tx.send(Cmd::Manual(ManualCommand::WriteSingle { addr: a, value: v }));
+                    let cmd = if self.man_use_fc16 {
+                        ManualCommand::WriteSingleMultiple { addr: a, value: v }
+                    } else {
+                        ManualCommand::WriteSingle { addr: a, value: v }
+                    };
+                    let _ = self.tx.send(Cmd::Manual(cmd));
                 }
+            ui.checkbox(&mut self.man_use_fc16, "Use Function 16");
             if ui.add_enabled(connected, egui::Button::new("FC7")).clicked() {
                 let _ = self.tx.send(Cmd::Manual(ManualCommand::ReadExceptionStatus));
             }
