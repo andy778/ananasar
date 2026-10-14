@@ -10,40 +10,101 @@ use std::sync::Mutex;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 struct State {
-    out: Box<dyn Write + Send>,
+    /// Where entries go; `None` while recording is off.
+    out: Option<Box<dyn Write + Send>>,
+    path: Option<PathBuf>,
+    mode: LogMode,
+    started: Instant,
+    /// Entries written to the current recording.
     number: u64,
-    /// Connection slots (1 and 2) currently in use.
+    /// Bytes written to the current recording.
+    bytes: u64,
+    /// Connection slots (1 and 2) currently in use. Kept across recordings so
+    /// a recording started mid-connection still shows the right number.
     used: [bool; 2],
 }
 
-/// Records the server's Modbus exchanges, per connection, to one log file.
+/// Records the server's Modbus exchanges, per connection, to a log file. It
+/// can be created already recording ([`create`](Self::create)) or idle
+/// ([`idle`](Self::idle)) and started and stopped while the server runs.
 pub struct LogSink {
-    mode: LogMode,
-    path: Option<PathBuf>,
-    started: Instant,
     state: Mutex<State>,
 }
 
 impl LogSink {
+    /// A sink that is not recording yet.
+    pub fn idle() -> Self {
+        Self {
+            state: Mutex::new(State {
+                out: None,
+                path: None,
+                mode: LogMode::Raw,
+                started: Instant::now(),
+                number: 0,
+                bytes: 0,
+                used: [false; 2],
+            }),
+        }
+    }
+
     /// Create `<ip1> & <ip2> & <time>.log` in `dir` (which must exist) and log
     /// into it. The time in the name is UTC.
     pub fn create(dir: &Path, ip1: &str, ip2: &str, mode: LogMode) -> io::Result<Self> {
-        let secs = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
-        let path = dir.join(file_name(ip1, ip2, secs));
-        let file = File::create(&path)?;
-        let mut sink = Self::from_writer(Box::new(file), mode);
-        sink.path = Some(path);
+        let sink = Self::idle();
+        sink.start(dir, ip1, ip2, mode)?;
         Ok(sink)
     }
 
     /// Log into any writer (used by tests and embedders).
     pub fn from_writer(out: Box<dyn Write + Send>, mode: LogMode) -> Self {
-        Self { mode, path: None, started: Instant::now(), state: Mutex::new(State { out, number: 0, used: [false; 2] }) }
+        let sink = Self::idle();
+        sink.start_writer(out, None, mode);
+        sink
     }
 
-    /// The log file, if this sink writes to one.
-    pub fn path(&self) -> Option<&Path> {
-        self.path.as_deref()
+    /// Start recording into a new file in `dir`, replacing any current
+    /// recording. Returns the file's path.
+    pub fn start(&self, dir: &Path, ip1: &str, ip2: &str, mode: LogMode) -> io::Result<PathBuf> {
+        let secs = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
+        let path = dir.join(file_name(ip1, ip2, secs));
+        let file = File::create(&path)?;
+        self.start_writer(Box::new(file), Some(path.clone()), mode);
+        Ok(path)
+    }
+
+    fn start_writer(&self, out: Box<dyn Write + Send>, path: Option<PathBuf>, mode: LogMode) {
+        let mut st = lock(&self.state);
+        st.out = Some(out);
+        st.path = path;
+        st.mode = mode;
+        st.started = Instant::now();
+        st.number = 0;
+        st.bytes = 0;
+    }
+
+    /// Stop recording and close the file. The statistics stay readable.
+    pub fn stop(&self) {
+        lock(&self.state).out = None;
+    }
+
+    /// True while entries are being written.
+    pub fn is_recording(&self) -> bool {
+        lock(&self.state).out.is_some()
+    }
+
+    /// The current or last log file, if the sink wrote to one.
+    pub fn path(&self) -> Option<PathBuf> {
+        lock(&self.state).path.clone()
+    }
+
+    /// Entries written to the current or last recording.
+    pub fn recordings(&self) -> u64 {
+        lock(&self.state).number
+    }
+
+    /// Bytes written to the current or last recording.
+    pub fn bytes(&self) -> u64 {
+        lock(&self.state).bytes
     }
 
     /// Claim the lowest free connection number (1 or 2). Returns 0 if both
@@ -67,16 +128,22 @@ impl LogSink {
         }
     }
 
-    /// Append one entry. Write errors are ignored: a full disk must not stop
-    /// the server answering.
+    /// Append one entry while recording; otherwise do nothing. Write errors
+    /// are ignored: a full disk must not stop the server answering.
     pub fn record(&self, connection: u8, query: &[u8], response: Response<'_>) {
         let mut st = lock(&self.state);
+        if st.out.is_none() {
+            return;
+        }
         st.number += 1;
-        let elapsed_ms = u64::try_from(self.started.elapsed().as_millis()).unwrap_or(u64::MAX);
+        let elapsed_ms = u64::try_from(st.started.elapsed().as_millis()).unwrap_or(u64::MAX);
         let entry = Entry { number: st.number, elapsed_ms, connection, query, response };
-        let text = format_entry(&entry, self.mode);
-        let _ = st.out.write_all(text.as_bytes());
-        let _ = st.out.flush();
+        let text = format_entry(&entry, st.mode);
+        st.bytes += text.len() as u64;
+        if let Some(out) = st.out.as_mut() {
+            let _ = out.write_all(text.as_bytes());
+            let _ = out.flush();
+        }
     }
 }
 
@@ -113,5 +180,26 @@ mod tests {
         assert!(text.starts_with("#1 "));
         assert!(text.contains("\n#2 "));
         assert!(text.contains("Connection: 2\n"));
+    }
+
+    #[test]
+    fn can_start_and_stop_while_connections_stay_numbered() {
+        let sink = LogSink::idle();
+        assert_eq!(sink.open_connection(), 1);
+        sink.record(1, &[], Response::Error("not recording"));
+        assert_eq!(sink.recordings(), 0);
+        let buf = Buf::default();
+        sink.start_writer(Box::new(buf.clone()), None, LogMode::Raw);
+        assert!(sink.is_recording());
+        sink.record(1, &[], Response::Error("a"));
+        sink.stop();
+        sink.record(1, &[], Response::Error("b"));
+        assert!(!sink.is_recording());
+        assert_eq!(sink.recordings(), 1);
+        assert!(sink.bytes() > 0);
+        let text = String::from_utf8(lock(&buf.0).clone()).unwrap();
+        assert!(text.contains("Connection: 1\n"));
+        assert_eq!(text.matches("#1 ").count(), 1);
+        assert!(!text.contains("#2 "));
     }
 }

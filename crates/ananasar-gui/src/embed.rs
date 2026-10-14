@@ -4,7 +4,7 @@
 use ananasar_core::registers::RegisterFile;
 use ananasar_core::server::ServerConfig;
 use ananasar_core::sync::lock;
-use ananasar_net::Server;
+use ananasar_net::{LogSink, Server};
 use eframe::egui;
 use std::net::TcpListener;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -18,6 +18,8 @@ pub struct ServerHandle {
     pub listening: AtomicBool,
     pub clients: Arc<AtomicUsize>,
     pub port: AtomicUsize,
+    /// Data log shared with the running server; idle until the user starts it.
+    pub log: Arc<LogSink>,
 }
 
 impl ServerHandle {
@@ -27,6 +29,7 @@ impl ServerHandle {
             listening: AtomicBool::new(false),
             clients: Arc::new(AtomicUsize::new(0)),
             port: AtomicUsize::new(0),
+            log: Arc::new(LogSink::idle()),
         })
     }
 }
@@ -57,14 +60,14 @@ pub fn start(
         *lock(&handle.status) = "listening".into();
         ctx.request_repaint();
 
-        let repaint = ctx.clone();
+        let (repaint, log) = (ctx.clone(), handle.log.clone());
         Server {
             regs,
             cfg: Arc::new(cfg),
             clients: handle.clients.clone(),
             stop,
             notify: Arc::new(move |_| repaint.request_repaint()),
-            log: None,
+            log: Some(log),
         }
         .run(&listener);
 
