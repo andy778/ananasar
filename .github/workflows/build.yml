@@ -55,7 +55,7 @@ jobs:
           cp target/release/ananasar.exe dist/
           cp target/release/ananasar-gui.exe dist/
           ls -la dist
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ananasar-windows-x64
           path: dist/*.exe
@@ -92,7 +92,7 @@ jobs:
           done
           tar -C dist -czf ananasar-macos-universal.tar.gz ananasar ananasar-gui
           ls -la dist ananasar-macos-universal.tar.gz
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ananasar-macos-universal
           path: ananasar-macos-universal.tar.gz
@@ -121,7 +121,7 @@ jobs:
           chmod +x dist/*
           tar -C dist -czf ananasar-linux-x86_64.tar.gz ananasar ananasar-gui
           ls -la dist ananasar-linux-x86_64.tar.gz
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ananasar-linux-x86_64
           path: ananasar-linux-x86_64.tar.gz
