@@ -38,7 +38,7 @@ impl LogView {
             } else if ui.add_enabled(listening, egui::Button::new("Start logging")).clicked() {
                 let mode = if self.interpretive { LogMode::Interpretive } else { LogMode::Raw };
                 let made = std::fs::create_dir_all(Path::new(&self.dir))
-                    .and_then(|()| log.start(Path::new(&self.dir), "0.0.0.0", &port.to_string(), mode));
+                    .and_then(|()| log.start(Path::new(&self.dir), &port.to_string(), mode));
                 self.message = match made {
                     Ok(p) => format!("Logging to {}", p.display()),
                     Err(e) => format!("Cannot start log: {e}"),

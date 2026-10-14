@@ -16,7 +16,7 @@
 pub const MBAP_PREFIX: usize = 7;
 /// Protocol identifier for Modbus/TCP.
 pub const PROTOCOL_ID: u16 = 0;
-/// The server listens here by default (manual §2.1).
+/// The server listens here by default.
 pub const DEFAULT_PORT: u16 = 502;
 
 /// Modbus function codes the application understands.
@@ -58,7 +58,7 @@ impl Function {
     }
 }
 
-/// Modbus exception codes (manual §1.4). The server returns these with the
+/// Modbus exception codes. The server returns these with the
 /// function code's MSB set.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]

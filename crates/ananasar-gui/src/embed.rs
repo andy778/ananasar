@@ -1,5 +1,5 @@
 //! The embedded Modbus/TCP server, serving the app's shared register file to
-//! external clients (manual §2.1: port 502 default, max two clients).
+//! external clients (default port 502, at most two clients).
 
 use ananasar_core::registers::RegisterFile;
 use ananasar_core::server::ServerConfig;
@@ -35,7 +35,7 @@ impl ServerHandle {
 }
 
 /// Start listening on `port`. A `stop` flag lets the UI take the port down
-/// (manual §2.7.2 "Monitor port"); the accept loop exits when it is set.
+/// (the original's "Monitor port" option); the accept loop exits when it is set.
 /// The UI is repainted whenever a client connects, disconnects or sends a
 /// request, so it can stay idle in between.
 pub fn start(

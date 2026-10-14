@@ -144,7 +144,7 @@ fn run_server(args: &ServerArgs) -> i32 {
     let listener = match TcpListener::bind(("0.0.0.0", port)) {
         Ok(l) => l,
         Err(e) => {
-            // Manual §2.1: port 502 in use elsewhere surfaces a socket error.
+            // Like the original: a port already in use surfaces a socket error.
             eprintln!("Socket initialisation failed on port {port}: {e}");
             return 1;
         }
@@ -154,9 +154,7 @@ fn run_server(args: &ServerArgs) -> i32 {
     let log = match &args.log_dir {
         Some(dir) => {
             let mode = if args.interpretive { LogMode::Interpretive } else { LogMode::Raw };
-            // The original names its log after the two local addresses; this
-            // server has one listener, so the name carries address and port.
-            let made = std::fs::create_dir_all(dir).and_then(|()| LogSink::create(dir, "0.0.0.0", &port.to_string(), mode));
+            let made = std::fs::create_dir_all(dir).and_then(|()| LogSink::create(dir, &port.to_string(), mode));
             match made {
                 Ok(sink) => {
                     if let Some(p) = sink.path() {

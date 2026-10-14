@@ -1,7 +1,7 @@
 //! Set-value view (`TFRMSETVAL`): edit one register by value or by its 16
 //! individual bits, with a 32-bit Uint/Float interpretation. Operates directly
 //! on the app's shared register file in-process (the original edits the shared
-//! register model, and "server is fully operational during editing", §2.5).
+//! register model; the server keeps serving while a value is edited).
 
 use crate::embed::SharedRegs;
 use ananasar_core::sync::lock;

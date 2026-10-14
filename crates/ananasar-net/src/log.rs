@@ -47,11 +47,11 @@ impl LogSink {
         }
     }
 
-    /// Create `<ip1> & <ip2> & <time>.log` in `dir` (which must exist) and log
+    /// Create `ananasar-<label>-<time>.log` in `dir` (which must exist) and log
     /// into it. The time in the name is UTC.
-    pub fn create(dir: &Path, ip1: &str, ip2: &str, mode: LogMode) -> io::Result<Self> {
+    pub fn create(dir: &Path, label: &str, mode: LogMode) -> io::Result<Self> {
         let sink = Self::idle();
-        sink.start(dir, ip1, ip2, mode)?;
+        sink.start(dir, label, mode)?;
         Ok(sink)
     }
 
@@ -64,9 +64,9 @@ impl LogSink {
 
     /// Start recording into a new file in `dir`, replacing any current
     /// recording. Returns the file's path.
-    pub fn start(&self, dir: &Path, ip1: &str, ip2: &str, mode: LogMode) -> io::Result<PathBuf> {
+    pub fn start(&self, dir: &Path, label: &str, mode: LogMode) -> io::Result<PathBuf> {
         let secs = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
-        let path = dir.join(file_name(ip1, ip2, secs));
+        let path = dir.join(file_name(label, secs));
         let file = File::create(&path)?;
         self.start_writer(Box::new(file), Some(path.clone()), mode);
         Ok(path)

@@ -1,4 +1,4 @@
-//! Server data log formatting (manual §2.8, "raw" and "interpretive" logs).
+//! Server data log formatting ("raw" and "interpretive" logs).
 //!
 //! This module is pure: it turns one recorded exchange (query bytes plus the
 //! reply or a detected error) into the text of a log entry. Opening files and
@@ -9,9 +9,9 @@
 //! ```text
 //! #1 0 ms Connection: 1
 //! Query:
-//! 00 21 00 00 00 06 01 03 00 01 00 06
+//! 00 07 00 00 00 06 01 03 00 0A 00 02
 //! Reply:
-//! 00 21 00 00 00 0F 01 03 0C 00 00 ...
+//! 00 07 00 00 00 07 01 03 04 00 05 00 09
 //! ```
 //!
 //! Interpretive mode adds a decoded description after the query and a decoded
@@ -292,9 +292,10 @@ pub fn sanitize_file_part(part: &str) -> String {
     part.chars().map(|c| if c.is_control() || "<>:\"/\\|?*".contains(c) { '_' } else { c }).collect()
 }
 
-/// The log file name `<ip1> & <ip2> & <time>.log`, safe on every platform.
-pub fn file_name(ip1: &str, ip2: &str, unix_secs: u64) -> String {
-    format!("{} & {} & {}.log", sanitize_file_part(ip1), sanitize_file_part(ip2), format_timestamp(unix_secs))
+/// The log file name `ananasar-<label>-<time>.log`, safe on every platform.
+/// `label` is usually the port; the time is UTC.
+pub fn file_name(label: &str, unix_secs: u64) -> String {
+    format!("ananasar-{}-{}.log", sanitize_file_part(label), format_timestamp(unix_secs).replace(' ', "_"))
 }
 
 #[cfg(test)]
@@ -302,40 +303,34 @@ mod tests {
     use super::*;
     use crate::protocol::build;
 
-    fn read_reply(tid: u16, words: u16) -> Vec<u8> {
-        let mut data = vec![(words * 2) as u8];
-        data.resize(1 + usize::from(words) * 2, 0);
-        build(tid, 1, 0x03, &data)
-    }
-
     #[test]
-    fn raw_manual_example() {
-        let q = build(0x21, 1, 0x03, &[0, 1, 0, 6]);
-        let r = read_reply(0x21, 6);
+    fn raw_entry_layout() {
+        let q = build(7, 1, 0x03, &[0, 10, 0, 2]);
+        let r = build(7, 1, 0x03, &[4, 0, 5, 0, 9]);
         let e = Entry { number: 1, elapsed_ms: 0, connection: 1, query: &q, response: Response::Reply(&r) };
-        let expected = "#1 0 ms Connection: 1\nQuery:\n00 21 00 00 00 06 01 03 00 01 00 06\nReply:\n\
-                        00 21 00 00 00 0F 01 03 0C 00 00 00 00 00 00 00 00 00 00 00 00\n\n";
+        let expected = "#1 0 ms Connection: 1\nQuery:\n00 07 00 00 00 06 01 03 00 0A 00 02\nReply:\n\
+                        00 07 00 00 00 07 01 03 04 00 05 00 09\n\n";
         assert_eq!(format_entry(&e, LogMode::Raw), expected);
     }
 
     #[test]
-    fn interpretive_manual_example() {
-        let q = build(0x0D, 1, 0x03, &[0, 1, 0, 6]);
-        let r = read_reply(0x0D, 6);
+    fn interpretive_entry_layout() {
+        let q = build(7, 1, 0x03, &[0, 10, 0, 2]);
+        let r = build(7, 1, 0x03, &[4, 0, 5, 0, 9]);
         let e = Entry { number: 1, elapsed_ms: 0, connection: 1, query: &q, response: Response::Reply(&r) };
         let expected = "#1 0 ms Connection: 1\n\
 Query:\n\
-00 0D 00 00 00 06 01 03 00 01 00 06\n\
+00 07 00 00 00 06 01 03 00 0A 00 02\n\
 \n\
 Read holding registers\n\
-Reference: 1. Word count: 6. UID: 1\n\
-Register(s): 1 2 3 4 5 6\n\
+Reference: 10. Word count: 2. UID: 1\n\
+Register(s): 10 11\n\
 \n\
 Reply:\n\
-00 0D 00 00 00 0F 01 03 0C 00 00 00 00 00 00 00 00 00 00 00 00\n\
+00 07 00 00 00 07 01 03 04 00 05 00 09\n\
 \n\
 Register : Value\n\
-1:0\n2:0\n3:0\n4:0\n5:0\n6:0\n\
+10:5\n11:9\n\
 \n";
         assert_eq!(format_entry(&e, LogMode::Interpretive), expected);
     }
@@ -401,8 +396,8 @@ Register : Value\n\
     fn timestamps_and_file_names() {
         assert_eq!(format_timestamp(0), "1970-01-01 00-00-00");
         assert_eq!(format_timestamp(1_709_164_800 + 3661), "2024-02-29 01-01-01");
-        let n = file_name("fe80::1%eth0", "192.168.0.2", 0);
-        assert_eq!(n, "fe80__1%eth0 & 192.168.0.2 & 1970-01-01 00-00-00.log");
+        let n = file_name("fe80::1%eth0", 0);
+        assert_eq!(n, "ananasar-fe80__1%eth0-1970-01-01_00-00-00.log");
         assert!(!n.contains([':', '/', '\\', '*', '?', '"', '<', '>', '|']));
     }
 }

@@ -1,8 +1,7 @@
 //! The shared register model.
 //!
 //! Two flat arrays of 65536 u16 registers each (holding + input); both the
-//! server and the client read/write the same tables (manual §2.2: "server and
-//! client are sharing registers"). One [`RegisterFile`] is shared by both roles.
+//! server and the client read/write the same tables. One [`RegisterFile`] is shared by both roles.
 
 /// Number of addressable registers in each bank (addresses `0..=65535`).
 pub const BANK_LEN: usize = 65536;
@@ -83,7 +82,7 @@ impl RegisterFile {
         Some(&self.bank(bank)[start..end])
     }
 
-    /// Initialize a bank the way the Options menu does (manual §2.7.3):
+    /// Initialize a bank the way the original's Options menu does:
     /// every register set to 0, or to the value of its own address.
     pub fn initialize(&mut self, bank: Bank, mode: InitMode) {
         let arr = match bank {
