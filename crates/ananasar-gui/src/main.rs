@@ -10,6 +10,7 @@ mod embed;
 mod scannerview;
 mod filewindow;
 mod setvalview;
+mod theme;
 
 use ananasar_core::registers::{Bank, InitMode, RegisterFile};
 use ananasar_core::log::LogMode;
@@ -73,6 +74,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native("Ananasar — Modbus/TCP", options, Box::new(|cc| {
         // Light by default, like the original; View → Theme can switch it.
         cc.egui_ctx.set_theme(egui::ThemePreference::Light);
+        theme::apply(&cc.egui_ctx, true);
         Ok(Box::new(App::new(&cc.egui_ctx)))
     }))
 }
@@ -86,6 +88,7 @@ struct App {
     bank: Bank,
     start_address: u16,
     hex: bool,
+    classic: bool,
     editing: Option<u16>,
     edit_buf: String,
     show_client: bool,
@@ -119,6 +122,7 @@ impl App {
             bank: Bank::Holding,
             start_address: 0,
             hex: false,
+            classic: true,
             editing: None,
             edit_buf: String::new(),
             show_client: false,
@@ -239,6 +243,9 @@ impl eframe::App for App {
                     ui.separator();
                     ui.label("Theme");
                     egui::widgets::global_theme_preference_buttons(ui);
+                    if ui.checkbox(&mut self.classic, "Classic style (light)").changed() {
+                        theme::apply(&ctx, self.classic);
+                    }
                 });
                 ui.menu_button("Options", |ui| {
                     let listening = self.server.listening.load(Ordering::SeqCst);
