@@ -100,3 +100,7 @@ print(c.write_register(5, 0x1234, slave=1))
 ```
 
 Point either at a `proxy` listen address to capture the frames. Library clients enforce the specification limits themselves, so they cannot send an over-limit request; use `ananasar-parity run` for those.
+
+## The feature table
+
+`docs/parity.toml` lists which behaviours of the original are shipped, partial or missing, with the test (or issue) behind each. `cargo test -p ananasar-core --test parity_table` fails when a shipped entry names a test that does not exist. Update the table in the same PR that adds or changes a feature.
