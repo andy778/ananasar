@@ -1,11 +1,9 @@
-//! File → Open… / Save…: load and save the register values and the Values
-//! list position as a `*.ananas` file. A small path prompt keeps the app free
-//! of a native-dialog dependency.
+//! File → Open… / Save As…: load and save the register values and the Values
+//! list position as a `*.ananas` file, through the system's own file dialog.
 
 use ananasar_core::ananas_file::{self, view_from};
 use ananasar_core::registers::{Bank, RegisterFile};
 use ananasar_core::sync::lock;
-use eframe::egui;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -15,65 +13,35 @@ enum Mode {
     Save,
 }
 
-/// The Open/Save prompt and its last result message.
+/// A pending Open or Save request.
+#[derive(Default)]
 pub struct FileWindow {
     mode: Option<Mode>,
-    path: String,
-    message: String,
-}
-
-impl Default for FileWindow {
-    fn default() -> Self {
-        Self { mode: None, path: "registers.ananas".into(), message: String::new() }
-    }
 }
 
 impl FileWindow {
     pub fn open(&mut self) {
         self.mode = Some(Mode::Open);
-        self.message.clear();
     }
 
     pub fn save(&mut self) {
         self.mode = Some(Mode::Save);
-        self.message.clear();
     }
 
-    /// Show the prompt if it is open. Loading replaces all register values and
-    /// moves `start_address` to the first address of the shown bank's list.
-    pub fn ui(&mut self, ctx: &egui::Context, regs: &Arc<Mutex<RegisterFile>>, bank: Bank, start_address: &mut u16) {
-        let Some(mode) = self.mode else { return };
-        let mut keep_open = true;
-        let mut done = false;
-        let title = if mode == Mode::Open { "Open register file" } else { "Save register file" };
-        egui::Window::new(title).open(&mut keep_open).collapsible(false).show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.label("File:");
-                ui.add(egui::TextEdit::singleline(&mut self.path).desired_width(260.0));
-            });
-            if !self.message.is_empty() {
-                ui.label(&self.message);
-            }
-            ui.horizontal(|ui| {
-                let label = if mode == Mode::Open { "Open" } else { "Save" };
-                if ui.button(label).clicked() {
-                    match self.run(mode, regs, bank, start_address) {
-                        Ok(()) => done = true,
-                        Err(e) => self.message = e,
-                    }
-                }
-                if ui.button("Cancel").clicked() {
-                    done = true;
-                }
-            });
-        });
-        if !keep_open || done {
-            self.mode = None;
-        }
+    /// Run the requested file dialog, if any. Loading replaces all register
+    /// values and moves `start_address` to the first address of the shown bank's
+    /// list. Returns an error message for the caller to show.
+    pub fn ui(&mut self, regs: &Arc<Mutex<RegisterFile>>, bank: Bank, start_address: &mut u16) -> Option<String> {
+        let mode = self.mode.take()?;
+        let dialog = rfd::FileDialog::new().add_filter("Ananasar variable list [*.ananas]", &["ananas"]);
+        let picked = match mode {
+            Mode::Open => dialog.set_title("Open Ananasar variable list").pick_file(),
+            Mode::Save => dialog.set_title("Save Ananasar variable list").set_file_name("registers.ananas").save_file(),
+        }?;
+        Self::run(mode, &picked.to_string_lossy(), regs, bank, start_address).err()
     }
 
-    fn run(&self, mode: Mode, regs: &Arc<Mutex<RegisterFile>>, bank: Bank, start_address: &mut u16) -> Result<(), String> {
-        let path = self.path.trim();
+    fn run(mode: Mode, path: &str, regs: &Arc<Mutex<RegisterFile>>, bank: Bank, start_address: &mut u16) -> Result<(), String> {
         match mode {
             Mode::Save => {
                 let view = view_from(*start_address);

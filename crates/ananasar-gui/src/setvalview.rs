@@ -109,7 +109,7 @@ pub(crate) fn client_rect(area: Rect, x: f32, y: f32, w: f32, h: f32) -> Rect {
 
 /// A group box over `rect` with its caption sitting on the top border.
 pub(crate) fn group_box(ui: &egui::Ui, rect: Rect, title: &str) {
-    let font = FontId::proportional(13.0);
+    let font = FontId::proportional(12.0);
     let galley = ui.painter().layout_no_wrap(title.to_owned(), font, Color32::BLACK);
     let top = Rect::from_min_max(Pos2::new(rect.left(), rect.top() + galley.size().y / 2.0), rect.max);
     ui.painter().rect_stroke(top, 0.0, Stroke::new(1.0, BORDER), egui::StrokeKind::Inside);
@@ -127,15 +127,14 @@ impl SetValView {
 
     /// Show the window; `open` is cleared by the Close button.
     pub fn show(&mut self, ctx: &egui::Context, open: &mut bool, regs: &SharedRegs, menu: egui::containers::menu::MenuConfig) {
-        let mut is_open = *open;
+        if !*open {
+            return;
+        }
+        let is_open = *open;
         let mut close = false;
-        egui::Window::new("Set Register Value")
-            .open(&mut is_open)
-            .resizable(false)
-            .collapsible(false)
-            .show(ctx, |ui| {
+        let closed = crate::dialog::show(ctx, "set-register-value", "Set Register Value", [CLIENT.x + 12.0, CLIENT.y + 44.0], 6, &mut |ui| {
                 ui.spacing_mut().item_spacing = Vec2::ZERO;
-                egui::MenuBar::new().config(menu).ui(ui, |ui| {
+                egui::MenuBar::new().config(menu.clone()).ui(ui, |ui| {
                     ui.menu_button("Edit", |ui| {
                         ui.menu_button("32-bit Representation Byte Order", |ui| {
                             for bo in ByteOrder::ALL {
@@ -149,7 +148,7 @@ impl SetValView {
                 ui.add_space(4.0);
                 close = self.client(ui, regs);
             });
-        *open = is_open && !close;
+        *open = is_open && !close && !closed;
     }
 
     /// The client area; returns whether Close was clicked.

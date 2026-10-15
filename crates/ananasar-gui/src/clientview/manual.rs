@@ -1,10 +1,16 @@
 //! Manual commands: exception status and the Write/Mask single register tool window.
 
-use super::widgets::{fixed_window, Canvas};
+use super::widgets::Canvas;
 use super::worker::Cmd;
 use super::ClientView;
 use ananasar_core::client::ManualCommand;
 use eframe::egui;
+
+const CTRL_ALT: egui::Modifiers = egui::Modifiers::COMMAND.plus(egui::Modifiers::ALT);
+const SHORTCUT_WRITE: egui::KeyboardShortcut = egui::KeyboardShortcut::new(CTRL_ALT, egui::Key::S);
+const SHORTCUT_MASK: egui::KeyboardShortcut = egui::KeyboardShortcut::new(CTRL_ALT, egui::Key::M);
+const SHORTCUT_EXCEPTION: egui::KeyboardShortcut = egui::KeyboardShortcut::new(CTRL_ALT, egui::Key::R);
+const SHORTCUT_SCANNER: egui::KeyboardShortcut = egui::KeyboardShortcut::new(CTRL_ALT, egui::Key::C);
 
 /// A plain value: decimal, or hex with a `0x` prefix.
 fn parse_value(text: &str) -> Option<u16> {
@@ -32,15 +38,50 @@ pub(super) fn build_command(addr: &str, value: &str, and: &str, or: &str, mask: 
 }
 
 impl ClientView {
+    /// Modbus menu, as in the original. Returns true when Register Scanner was chosen.
+    pub(super) fn modbus_menu(&mut self, ui: &mut egui::Ui, connected: bool) -> bool {
+        ui.set_min_width(230.0);
+        let sc = |ui: &egui::Ui, s: &egui::KeyboardShortcut| ui.ctx().format_shortcut(s);
+        let mut scanner = false;
+        if ui.add(egui::Button::new("Write Single Register\u{2026}").shortcut_text(sc(ui, &SHORTCUT_WRITE))).clicked() {
+            self.man_mask = false;
+            self.man_open = true;
+            ui.close();
+        }
+        if ui.add(egui::Button::new("Mask Write Register\u{2026}").shortcut_text(sc(ui, &SHORTCUT_MASK))).clicked() {
+            self.man_mask = true;
+            self.man_open = true;
+            ui.close();
+        }
+        if ui.add_enabled(connected, egui::Button::new("Read Exception Status\u{2026}").shortcut_text(sc(ui, &SHORTCUT_EXCEPTION))).clicked() {
+            let _ = self.tx.send(Cmd::Manual(ManualCommand::ReadExceptionStatus));
+            ui.close();
+        }
+        ui.separator();
+        if ui.add(egui::Button::new("Register Scanner\u{2026}").shortcut_text(sc(ui, &SHORTCUT_SCANNER))).clicked() {
+            scanner = true;
+            ui.close();
+        }
+        scanner
+    }
+
+    /// The Ctrl+Alt shortcuts of the Modbus menu. Returns true for Register Scanner.
+    pub(super) fn modbus_shortcuts(&mut self, ctx: &egui::Context, connected: bool) -> bool {
+        if ctx.input_mut(|i| i.consume_shortcut(&SHORTCUT_WRITE)) {
+            self.man_mask = false;
+            self.man_open = true;
+        }
+        if ctx.input_mut(|i| i.consume_shortcut(&SHORTCUT_MASK)) {
+            self.man_mask = true;
+            self.man_open = true;
+        }
+        if ctx.input_mut(|i| i.consume_shortcut(&SHORTCUT_EXCEPTION)) && connected {
+            let _ = self.tx.send(Cmd::Manual(ManualCommand::ReadExceptionStatus));
+        }
+        ctx.input_mut(|i| i.consume_shortcut(&SHORTCUT_SCANNER))
+    }
+
     pub(super) fn manual_ui(&mut self, ui: &mut egui::Ui, connected: bool) {
-        ui.horizontal(|ui| {
-            if ui.button("Write register…").on_hover_text("Write or mask a single register").clicked() {
-                self.man_open = true;
-            }
-            if ui.add_enabled(connected, egui::Button::new("FC7")).clicked() {
-                let _ = self.tx.send(Cmd::Manual(ManualCommand::ReadExceptionStatus));
-            }
-        });
         self.write_dialog(ui.ctx(), connected);
     }
 
@@ -48,9 +89,9 @@ impl ClientView {
         if !self.man_open {
             return;
         }
-        let mut open = true;
         let mut close = false;
-        fixed_window(if self.man_mask { "Mask single register" } else { "Write single register" }).id(egui::Id::new("write-register")).open(&mut open).show(ctx, |ui| {
+        let title = if self.man_mask { "Mask single register" } else { "Write single register" };
+        let closed = crate::dialog::show(ctx, "write-register", title, [382.0, 128.0], 0, &mut |ui| {
             let c = Canvas::new(ui, 382.0, 128.0);
             let mask = self.man_mask;
             let command = build_command(&self.man_addr, &self.man_value, &self.man_and, &self.man_or, mask, self.man_use_fc16);
@@ -88,7 +129,7 @@ impl ClientView {
                 }
             });
         });
-        self.man_open = open && !close;
+        self.man_open = !close && !closed;
     }
 }
 
