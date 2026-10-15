@@ -699,10 +699,7 @@ impl eframe::App for App {
         self.show_setval = show_setval;
 
         let mut show_scanner = self.show_scanner;
-        egui::Window::new("Register Scanner")
-            .open(&mut show_scanner)
-            .default_size([400.0, 480.0])
-            .show(&ctx, |ui| self.scanner.ui(ui));
+        self.scanner.show(&ctx, &mut show_scanner, &self.regs, self.tooltips);
         self.show_scanner = show_scanner;
 
         self.file.ui(&ctx, &self.regs, self.bank, &mut self.start_address);
