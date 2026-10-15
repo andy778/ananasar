@@ -282,3 +282,6 @@ pub fn show(ui: &mut egui::Ui, items: &[MenuItem]) -> Option<Action> {
     }
     chosen
 }
+
+#[cfg(test)]
+mod spec_tests;
