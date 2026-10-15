@@ -6,6 +6,8 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
 mod clientview;
+#[cfg(windows)]
+mod ddeview;
 mod dialog;
 mod embed;
 mod scannerview;
@@ -149,6 +151,8 @@ struct App {
     port_dialog: Option<PortDialog>,
     /// Modal notice shown once at startup when the default port was busy.
     port_notice: Option<String>,
+    #[cfg(windows)]
+    dde: ddeview::DdeView,
     bank: Bank,
     start_address: u16,
     tooltips: bool,
@@ -216,6 +220,8 @@ impl App {
             server_port: port,
             port_dialog: None,
             port_notice,
+            #[cfg(windows)]
+            dde: ddeview::DdeView::default(),
             bank: Bank::Holding,
             start_address: 0,
             tooltips: true,
@@ -799,6 +805,12 @@ impl eframe::App for App {
                         theme::check_item(ui, true, false, "Release Connection if Unused >1 min", None);
                     });
                     ui.separator();
+                    #[cfg(windows)]
+                    if ui.button("DDE Server…").clicked() {
+                        self.dde.open();
+                        ui.close();
+                    }
+                    #[cfg(not(windows))]
                     off(ui, "DDE Server…");
                     ui.separator();
                     if check(ui, self.tooltips, "Show Tooltips", &tips_sc) {
@@ -834,6 +846,8 @@ impl eframe::App for App {
         self.port_dialog_ui(&ctx);
         self.port_notice_ui(&ctx);
         self.about_ui(&ctx);
+        #[cfg(windows)]
+        self.dde.show(&ctx, &self.regs, &mut self.message);
         self.message_ui(&ctx);
 
         // ---- status bar: the date and time in a sunken panel, as in the original ----

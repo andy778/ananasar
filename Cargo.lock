@@ -171,10 +171,19 @@ name = "ananasar-core"
 version = "0.1.0"
 
 [[package]]
+name = "ananasar-dde"
+version = "0.1.0"
+dependencies = [
+ "ananasar-core",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "ananasar-gui"
 version = "0.1.0"
 dependencies = [
  "ananasar-core",
+ "ananasar-dde",
  "ananasar-net",
  "chrono",
  "eframe",
