@@ -119,14 +119,14 @@ id = "client-manual-writes"
 area = "client"
 feature = "Manual FC6 and FC22 commands, and the Use Function 16 option for single-register writes"
 status = "shipped"
-tests = ["crates/ananasar-core/src/lib.rs::manual_write_single_fc6_frame", "crates/ananasar-core/src/lib.rs::manual_write_single_as_fc16_frame", "crates/ananasar-core/src/lib.rs::manual_mask_write_frame"]
+tests = ["crates/ananasar-core/src/lib.rs::manual_write_single_fc6_frame", "crates/ananasar-core/src/lib.rs::manual_write_single_as_fc16_frame", "crates/ananasar-core/src/lib.rs::manual_mask_write_frame", "crates/ananasar-gui/src/clientview/manual.rs::single_write_picks_fc6_or_fc16", "crates/ananasar-gui/src/clientview/manual.rs::mask_write_reads_hex_patterns"]
 
 [[feature]]
 id = "client-connection-dialog"
 area = "client"
 feature = "Host and port input, keepalive option and partner info"
 status = "shipped"
-tests = ["crates/ananasar-net/src/client.rs::parses_valid_endpoint", "crates/ananasar-net/src/client.rs::rejects_bad_endpoints", "crates/ananasar-net/src/client.rs::connects_with_and_without_keepalive", "crates/ananasar-gui/src/clientview/connection.rs::partner_text_shows_ip_and_port"]
+tests = ["crates/ananasar-net/src/client.rs::parses_valid_endpoint", "crates/ananasar-net/src/client.rs::rejects_bad_endpoints", "crates/ananasar-net/src/client.rs::connects_with_and_without_keepalive", "crates/ananasar-gui/src/clientview/connection.rs::partner_text_shows_ip_and_port", "crates/ananasar-gui/src/clientview/connection.rs::octets_round_trip_and_validate", "crates/ananasar-gui/src/clientview/connection.rs::port_rejects_zero_and_overflow"]
 
 [[feature]]
 id = "client-event-log-copy"

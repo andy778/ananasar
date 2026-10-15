@@ -16,6 +16,7 @@ mod worker;
 
 use ananasar_core::registers::RegisterFile;
 use eframe::egui;
+use connection::ConnDialog;
 use lists::RangeDialog;
 use polling::{MAX_READ, MAX_WRITE};
 use std::collections::VecDeque;
@@ -48,6 +49,9 @@ pub struct ClientView {
     man_and: String,
     man_or: String,
     man_use_fc16: bool,
+    man_open: bool,
+    man_mask: bool,
+    conn: ConnDialog,
     range: RangeDialog,
 }
 
@@ -87,6 +91,9 @@ impl ClientView {
             man_and: "FFFF".into(),
             man_or: "0000".into(),
             man_use_fc16: false,
+            man_open: false,
+            man_mask: false,
+            conn: ConnDialog::new(),
             range: RangeDialog::new(),
         }
     }
