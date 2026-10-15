@@ -58,7 +58,7 @@ impl std::error::Error for LoadError {}
 
 /// Addresses `start..start + VIEW_ROWS`, clamped at the top of the address space.
 pub fn view_from(start: u16) -> Vec<u16> {
-    (0..VIEW_ROWS).map(|i| u16::try_from((usize::from(start) + i).min(BANK_LEN - 1)).unwrap_or(u16::MAX)).collect()
+    (0..VIEW_ROWS).map(|i| u16::try_from(usize::from(start).saturating_add(i).min(BANK_LEN.saturating_sub(1))).unwrap_or(u16::MAX)).collect()
 }
 
 /// Serialise `regs` and the two Values lists. `saved_at` is free text written
@@ -71,8 +71,8 @@ pub fn save(regs: &RegisterFile, input_view: &[u16], holding_view: &[u16], saved
     for (bank, base, count) in [(Bank::Input, INPUT_BASE, &mut inputs), (Bank::Holding, HOLDING_BASE, &mut holdings)] {
         for (addr, &v) in regs.bank(bank).iter().enumerate() {
             if v != 0 {
-                out.push_str(&format!("{}|{v}\n", base + u32::try_from(addr).unwrap_or(0)));
-                *count += 1;
+                out.push_str(&format!("{}|{v}\n", base.saturating_add(u32::try_from(addr).unwrap_or(0))));
+                *count = count.saturating_add(1);
             }
         }
     }
@@ -85,7 +85,7 @@ pub fn save(regs: &RegisterFile, input_view: &[u16], holding_view: &[u16], saved
         out.push_str(&format!("{a}\n"));
     }
     out.push_str("#EOVLH\n//\n");
-    out.push_str(&format!("// {} ({inputs}/{holdings})\n// {saved_at}\n#EOF\n", inputs + holdings));
+    out.push_str(&format!("// {} ({inputs}/{holdings})\n// {saved_at}\n#EOF\n", inputs.saturating_add(holdings)));
     out
 }
 
@@ -98,7 +98,7 @@ pub fn load(text: &str, regs: &mut RegisterFile) -> Result<Loaded, LoadError> {
     let mut loaded = Loaded { input_view: Vec::new(), holding_view: Vec::new() };
     for (i, raw) in text.lines().enumerate() {
         let line = raw.trim();
-        let err = |reason: &str| LoadError { line: i + 1, reason: reason.into() };
+        let err = |reason: &str| LoadError { line: i.saturating_add(1), reason: reason.into() };
         if line.is_empty() || line.starts_with("//") {
             continue;
         }

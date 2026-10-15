@@ -47,19 +47,24 @@ impl RegisterFile {
 
     /// Read one register.
     pub fn get(&self, bank: Bank, addr: u16) -> u16 {
-        self.bank(bank)[addr as usize]
+        // The banks hold one word per u16 address, so the lookup cannot miss.
+        self.bank(bank).get(usize::from(addr)).copied().unwrap_or(0)
     }
 
     /// Write a holding register. Input registers are read-only, so there is no
     /// `set` for them (matching the server, which only writes the holding bank).
     pub fn set_holding(&mut self, addr: u16, value: u16) {
-        self.holding[addr as usize] = value;
+        if let Some(r) = self.holding.get_mut(usize::from(addr)) {
+            *r = value;
+        }
     }
 
     /// Write an input register. Clients cannot do this over Modbus; it exists
     /// for loading a saved register file and for the application's own editing.
     pub fn set_input(&mut self, addr: u16, value: u16) {
-        self.input[addr as usize] = value;
+        if let Some(r) = self.input.get_mut(usize::from(addr)) {
+            *r = value;
+        }
     }
 
     /// Write a register in either bank (see [`RegisterFile::set_input`]).
@@ -74,12 +79,9 @@ impl RegisterFile {
     /// would run past the end of the bank — this is the `start + count <= 65536`
     /// guard the server enforces before touching the array.
     pub fn read_span(&self, bank: Bank, addr: u16, count: u16) -> Option<&[u16]> {
-        let start = addr as usize;
-        let end = start.checked_add(count as usize)?;
-        if end > BANK_LEN {
-            return None;
-        }
-        Some(&self.bank(bank)[start..end])
+        let start = usize::from(addr);
+        let end = start.checked_add(usize::from(count))?;
+        self.bank(bank).get(start..end)
     }
 
     /// Initialize a bank the way the original's Options menu does:
@@ -93,7 +95,7 @@ impl RegisterFile {
             InitMode::Zero => arr.iter_mut().for_each(|r| *r = 0),
             InitMode::Ascending => {
                 for (i, r) in arr.iter_mut().enumerate() {
-                    *r = i as u16;
+                    *r = u16::try_from(i).unwrap_or(u16::MAX);
                 }
             }
         }

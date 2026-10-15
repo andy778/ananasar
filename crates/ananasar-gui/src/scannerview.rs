@@ -66,7 +66,7 @@ impl ScannerView {
             lock(&self.shared.state).note = "UID must be 0-255".into();
             return;
         };
-        let total = if self.end >= self.start { usize::from(self.end - self.start) + 1 } else { 0 };
+        let total = if self.end >= self.start { usize::from(self.end.saturating_sub(self.start)).saturating_add(1) } else { 0 };
         {
             let mut st = lock(&self.shared.state);
             *st = State { running: true, total, started: Some(Instant::now()), ..State::default() };
@@ -153,7 +153,7 @@ impl ScannerView {
             })
             .body(|body| {
                 body.rows(18.0, rows.len(), |mut row| {
-                    let (addr, res) = st.results[rows[row.index()]];
+                    let Some(&(addr, res)) = rows.get(row.index()).and_then(|&i| st.results.get(i)) else { return };
                     row.col(|ui| { ui.monospace(addr.to_string()); });
                     match res {
                         ScanResult::Value(v) => {

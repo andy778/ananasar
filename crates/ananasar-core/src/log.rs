@@ -55,7 +55,7 @@ pub struct Entry<'a> {
 
 /// Format `bytes` as uppercase hex separated by single spaces.
 pub fn hex(bytes: &[u8]) -> String {
-    let mut s = String::with_capacity(bytes.len() * 3);
+    let mut s = String::with_capacity(bytes.len().saturating_mul(3));
     for (i, b) in bytes.iter().enumerate() {
         if i > 0 {
             s.push(' ');
@@ -96,7 +96,7 @@ pub fn format_entry(entry: &Entry<'_>, mode: LogMode) -> String {
 }
 
 fn be16(d: &[u8], at: usize) -> Option<u16> {
-    Some(u16::from_be_bytes([*d.get(at)?, *d.get(at + 1)?]))
+    Some(u16::from_be_bytes([*d.get(at)?, *d.get(at.checked_add(1)?)?]))
 }
 
 /// Longest register list printed in full; longer ones are cut with `...`.
@@ -109,7 +109,7 @@ fn register_list(start: u16, count: u16) -> String {
         if i > 0 {
             s.push(' ');
         }
-        let _ = write!(s, "{}", u32::from(start) + u32::from(i));
+        let _ = write!(s, "{}", u32::from(start).saturating_add(u32::from(i)));
     }
     if count > shown {
         s.push_str(" ...");
@@ -152,7 +152,7 @@ fn exception_name(code: u8) -> &'static str {
 fn write_table(start: u16, data: &[u8]) -> String {
     let mut s = String::new();
     for (i, w) in data.as_chunks::<2>().0.iter().enumerate() {
-        let _ = writeln!(s, "{} <- {}", u32::from(start) + i as u32, u16::from_be_bytes(*w));
+        let _ = writeln!(s, "{} <- {}", u32::from(start).saturating_add(u32::try_from(i).unwrap_or(u32::MAX)), u16::from_be_bytes(*w));
     }
     s
 }
@@ -235,7 +235,7 @@ fn describe_reply(query: &[u8], reply: &[u8]) -> String {
             let start = be16(qd, 0).unwrap_or(0);
             s.push_str("Register : Value\n");
             for (i, w) in d.get(1..).unwrap_or(&[]).as_chunks::<2>().0.iter().enumerate() {
-                let _ = writeln!(s, "{}:{}", u32::from(start) + i as u32, u16::from_be_bytes(*w));
+                let _ = writeln!(s, "{}:{}", u32::from(start).saturating_add(u32::try_from(i).unwrap_or(u32::MAX)), u16::from_be_bytes(*w));
             }
         }
         0x06 => {
@@ -270,8 +270,11 @@ fn describe_reply(query: &[u8], reply: &[u8]) -> String {
 
 /// Format Unix seconds as a UTC `YYYY-MM-DD HH-MM-SS` stamp that is valid in
 /// Windows file names.
+// The date maths stays far inside i64: `unix_secs / 86_400` is below 2^48, so
+// none of the intermediate values can overflow.
+#[allow(clippy::arithmetic_side_effects, reason = "bounded date arithmetic, see above")]
 pub fn format_timestamp(unix_secs: u64) -> String {
-    let days = (unix_secs / 86_400) as i64;
+    let days = i64::try_from(unix_secs / 86_400).unwrap_or(i64::MAX >> 16);
     let rem = unix_secs % 86_400;
     // Civil-from-days (proleptic Gregorian), after H. Hinnant.
     let z = days + 719_468;
