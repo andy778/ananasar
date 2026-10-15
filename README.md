@@ -33,6 +33,7 @@ A port of Ananas, the free Modbus/TCP test tool by Tuomio, built with [REA](http
 - **Save / load** register values as `*.ananas` text files (File → Open… / Save…, or `ananasar server --load FILE`).
 - **Headless CLI** for scripting, built on the same engine.
 - **MCP server** (`ananasar-mcp`) so an AI assistant such as Claude can read and write Modbus devices and run a simulated server, read-only by default. See [docs/mcp.md](docs/mcp.md).
+- **Stress mode** (`ananasar stress host:port`) for load and robustness checks of equipment you are authorised to test: parallel connections, rate ramps, fault injection, connection churn, latency percentiles and a JSON/CSV report. Not a link-level storm generator. See [docs/stress-testing.md](docs/stress-testing.md).
 
 ## Download
 
@@ -124,6 +125,7 @@ The README screenshot is rendered headlessly from the real window; see [docs/scr
   - `log`: raw and interpretive log entry formatting
   - `client`: the poll engine and query builders
 - [`crates/ananasar-cli`](crates/ananasar-cli): the headless `ananasar` binary
+- [`crates/ananasar-stress`](crates/ananasar-stress): the library behind `ananasar stress`, see [docs/stress-testing.md](docs/stress-testing.md)
 - [`crates/ananasar-mcp`](crates/ananasar-mcp): the `ananasar-mcp` binary, an MCP server for AI assistants, see [docs/mcp.md](docs/mcp.md)
 - [`crates/ananasar-gui`](crates/ananasar-gui): the egui application (`ananasar-gui`)
 - [`crates/ananasar-parity`](crates/ananasar-parity): wire-level scenario runner, recording proxy and diff for comparing servers, see [docs/parity-testing.md](docs/parity-testing.md)
