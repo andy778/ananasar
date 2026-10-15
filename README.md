@@ -71,7 +71,7 @@ The binaries are built with [cargo-auditable](https://github.com/rust-secure-cod
 
 ## Quick start
 
-Run the GUI (`ananasar-gui`). It starts a server on port 15020; open **View → Client window** to poll it, or point the client at any other Modbus/TCP device.
+Run the GUI (`ananasar-gui`). It starts a server on port 502 on Windows (15020 on other platforms, where ports below 1024 need privileges). If the default port is already used by another instance, it moves to the next free port and shows a notice; open **View → Client window** to poll it, or point the client at any other Modbus/TCP device.
 
 Or use the headless CLI:
 
