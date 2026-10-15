@@ -29,14 +29,14 @@ use std::sync::{Arc, Mutex};
 const VISIBLE_ROWS: u16 = 26;
 const DEFAULT_PORT: u16 = 15020;
 
-/// The port from `--port N` / `-p N` on the command line, else the default.
+/// The port from `--port N` / `-p N` on the command line, if given.
 /// An unusable value exits with a message rather than silently using the default.
-fn cli_port() -> u16 {
+fn cli_port() -> Option<u16> {
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         if a == "--port" || a == "-p" {
             match args.next().as_deref().map(parse_port) {
-                Some(Ok(p)) => return p,
+                Some(Ok(p)) => return Some(p),
                 Some(Err(e)) => {
                     eprintln!("{a}: {e}");
                     std::process::exit(2);
@@ -48,7 +48,30 @@ fn cli_port() -> u16 {
             }
         }
     }
-    DEFAULT_PORT
+    None
+}
+
+/// How many ports are tried in total (the default and the ones after it).
+const PORT_SEARCH_ATTEMPTS: u16 = 20;
+
+/// Try `start`, then each following port, until `bind` succeeds. Only
+/// "address in use" moves on to the next port; any other error stops the
+/// search. Gives up after `attempts` ports or at 65535.
+fn first_free_port<T>(start: u16, attempts: u16, mut bind: impl FnMut(u16) -> std::io::Result<T>) -> std::io::Result<(u16, T)> {
+    let mut last = std::io::Error::from(std::io::ErrorKind::AddrInUse);
+    for port in (start..=u16::MAX).take(usize::from(attempts)) {
+        match bind(port) {
+            Ok(v) => return Ok((port, v)),
+            Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => last = e,
+            Err(e) => return Err(e),
+        }
+    }
+    Err(last)
+}
+
+/// Text of the notice shown when the default port was taken at startup.
+fn port_changed_text(new: u16, default: u16) -> String {
+    format!("Port changed to {new}. Default port {default} is currently used by other instance of Ananas.")
 }
 
 /// Parse a TCP port number (1-65535).
@@ -81,7 +104,7 @@ struct PortDialog {
 }
 
 fn main() -> eframe::Result<()> {
-    let mut viewport = egui::ViewportBuilder::default().with_inner_size([820.0, 700.0]).with_title(window_title(&local_ip(), cli_port()));
+    let mut viewport = egui::ViewportBuilder::default().with_inner_size([820.0, 700.0]).with_title(window_title(&local_ip(), cli_port().unwrap_or(DEFAULT_PORT)));
     // Window/taskbar icon — the two-pineapple logo (assets/icon.png).
     if let Ok(icon) = eframe::icon_data::from_png_bytes(include_bytes!("../../../assets/icon.png")) {
         viewport = viewport.with_icon(std::sync::Arc::new(icon));
@@ -101,6 +124,8 @@ struct App {
     server_stop: Arc<AtomicBool>,
     server_port: u16,
     port_dialog: Option<PortDialog>,
+    /// Modal notice shown once at startup when the default port was busy.
+    port_notice: Option<String>,
     bank: Bank,
     start_address: u16,
     tooltips: bool,
@@ -133,9 +158,25 @@ impl App {
         let regs: SharedRegs = Arc::new(Mutex::new(RegisterFile::new()));
         let server = ServerHandle::new();
         let stop = Arc::new(AtomicBool::new(false));
-        let port = cli_port();
-        if let Err(e) = embed::start(ctx.clone(), regs.clone(), server.clone(), port, stop.clone()) {
-            *lock(&server.status) = format!("bind :{port} failed: {e}");
+        let mut port = cli_port().unwrap_or(DEFAULT_PORT);
+        let mut port_notice = None;
+        let start = |p: u16| embed::start(ctx.clone(), regs.clone(), server.clone(), p, stop.clone());
+        if cli_port().is_some() {
+            if let Err(e) = start(port) {
+                *lock(&server.status) = format!("bind :{port} failed: {e}");
+            }
+        } else {
+            // Like the original: when the default port is used by another
+            // instance, move up to the next free one and tell the user.
+            match first_free_port(port, PORT_SEARCH_ATTEMPTS, start) {
+                Ok((p, ())) => {
+                    if p != port {
+                        port_notice = Some(port_changed_text(p, port));
+                    }
+                    port = p;
+                }
+                Err(e) => *lock(&server.status) = format!("bind :{port} failed: {e}"),
+            }
         }
         Self {
             regs,
@@ -143,6 +184,7 @@ impl App {
             server_stop: stop,
             server_port: port,
             port_dialog: None,
+            port_notice,
             bank: Bank::Holding,
             start_address: 0,
             tooltips: true,
@@ -215,6 +257,22 @@ impl App {
             }
         }
         self.port_dialog = Some(dlg);
+    }
+
+    fn port_notice_ui(&mut self, ctx: &egui::Context) {
+        let Some(text) = self.port_notice.clone() else { return };
+        let mut close = false;
+        egui::Window::new("Ananas Modbus/TCP server - client").collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+            ui.set_max_width(320.0);
+            ui.label(text);
+            ui.add_space(8.0);
+            ui.vertical_centered(|ui| {
+                close = ui.add_sized([75.0, 25.0], egui::Button::new("OK")).clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter) || i.key_pressed(egui::Key::Escape));
+            });
+        });
+        if close {
+            self.port_notice = None;
+        }
     }
 
     /// Options → TCP → Port → Monitor Port: stop the listener, or start it again.
@@ -510,6 +568,7 @@ impl eframe::App for App {
         }
 
         self.port_dialog_ui(&ctx);
+        self.port_notice_ui(&ctx);
         self.about_ui(&ctx);
 
         // ---- status bar ----
@@ -791,13 +850,58 @@ fn hex8(v: u8) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{list_text, next_forced_exception, parse_port, Exception, EXCEPTION_CHOICES, FUNCTION_TOGGLES};
+    use super::{first_free_port, port_changed_text, list_text, next_forced_exception, parse_port, Exception, EXCEPTION_CHOICES, FUNCTION_TOGGLES};
 
     #[test]
     fn list_text_is_tab_separated_and_honours_hex() {
         let rows = [(10, 255), (11, 0)];
         assert_eq!(list_text(&rows, false, false), "10\t255\n11\t0\n");
         assert_eq!(list_text(&rows, true, true), "000A\t00FF\n000B\t0000\n");
+    }
+
+    fn in_use() -> std::io::Error {
+        std::io::Error::from(std::io::ErrorKind::AddrInUse)
+    }
+
+    #[test]
+    fn first_free_port_skips_busy_ports() {
+        let got = first_free_port(502, 20, |p| if p < 504 { Err(in_use()) } else { Ok(()) });
+        assert_eq!(got.map(|(p, ())| p).ok(), Some(504));
+        let got = first_free_port(502, 20, |_| Ok(()));
+        assert_eq!(got.map(|(p, ())| p).ok(), Some(502));
+    }
+
+    #[test]
+    fn first_free_port_gives_up_after_the_bound() {
+        let mut tried = Vec::new();
+        let got = first_free_port(502, 3, |p| {
+            tried.push(p);
+            Err::<(), _>(in_use())
+        });
+        assert_eq!(got.err().map(|e| e.kind()), Some(std::io::ErrorKind::AddrInUse));
+        assert_eq!(tried, [502, 503, 504]);
+    }
+
+    #[test]
+    fn first_free_port_stops_at_65535_and_on_other_errors() {
+        let mut tried = Vec::new();
+        let _ = first_free_port(65534, 20, |p| {
+            tried.push(p);
+            Err::<(), _>(in_use())
+        });
+        assert_eq!(tried, [65534, 65535]);
+        let mut n = 0;
+        let got = first_free_port(502, 20, |_| {
+            n += 1;
+            Err::<(), _>(std::io::Error::from(std::io::ErrorKind::PermissionDenied))
+        });
+        assert_eq!(got.err().map(|e| e.kind()), Some(std::io::ErrorKind::PermissionDenied));
+        assert_eq!(n, 1);
+    }
+
+    #[test]
+    fn port_changed_text_names_both_ports() {
+        assert_eq!(port_changed_text(503, 502), "Port changed to 503. Default port 502 is currently used by other instance of Ananas.");
     }
 
     #[test]

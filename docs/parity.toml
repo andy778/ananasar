@@ -73,6 +73,15 @@ issue = 50
 note = "port validation is tested; the dialog and the rebind are a manual check"
 
 [[feature]]
+id = "server-port-fallback"
+area = "gui"
+feature = "At startup, when the default port is used by another instance, the server moves to the next free port and shows a notice"
+status = "partial"
+tests = ["crates/ananasar-gui/src/main.rs::first_free_port_skips_busy_ports", "crates/ananasar-gui/src/main.rs::first_free_port_gives_up_after_the_bound", "crates/ananasar-gui/src/main.rs::first_free_port_stops_at_65535_and_on_other_errors", "crates/ananasar-gui/src/main.rs::port_changed_text_names_both_ports"]
+issue = 50
+note = "the port search and message are tested; the notice dialog is a manual check"
+
+[[feature]]
 id = "client-poll-engine"
 area = "client"
 feature = "Round-robin polling of sorted address lists"
