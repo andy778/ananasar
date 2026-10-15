@@ -99,6 +99,60 @@ mod tests {
         }
     }
 
+    fn exception_code(cfg: &ServerConfig, func: u8) -> Option<(u8, u8)> {
+        let req = crate::protocol::build(1, 1, func, &[0, 0, 0, 1]);
+        match process(cfg, &mut RegisterFile::new(), &req) {
+            Outcome::Reply(r) => {
+                let (_, f, pdu) = frame(&r).unwrap();
+                (f & 0x80 != 0).then(|| (f, pdu[0]))
+            }
+            Outcome::Drop => None,
+        }
+    }
+
+    #[test]
+    fn disabled_function_code_yields_illegal_function() {
+        let mut cfg = ServerConfig::default();
+        assert_eq!(exception_code(&cfg, 0x03), None);
+        cfg.supported.remove(&0x03);
+        assert_eq!(exception_code(&cfg, 0x03), Some((0x83, 0x01)));
+        // Other codes stay enabled.
+        assert_eq!(exception_code(&cfg, 0x04), None);
+    }
+
+    #[test]
+    fn fc7_and_fc8_are_enabled_by_default_and_can_be_disabled() {
+        let mut cfg = ServerConfig::default();
+        assert_eq!(exception_code(&cfg, 0x07), None);
+        assert_eq!(exception_code(&cfg, 0x08), None);
+        cfg.supported.remove(&0x07);
+        cfg.supported.remove(&0x08);
+        assert_eq!(exception_code(&cfg, 0x07), Some((0x87, 0x01)));
+        assert_eq!(exception_code(&cfg, 0x08), Some((0x88, 0x01)));
+    }
+
+    #[test]
+    fn forced_exception_answers_every_request() {
+        use crate::protocol::Exception;
+        for exc in [Exception::SlaveDeviceBusy, Exception::GatewayTargetFailed] {
+            let cfg = ServerConfig { forced_exception: Some(exc), ..Default::default() };
+            for func in [0x03u8, 0x04, 0x06, 0x07, 0x08, 0x10, 0x16, 0x17, 0x01] {
+                assert_eq!(exception_code(&cfg, func), Some((func | 0x80, exc as u8)));
+            }
+        }
+    }
+
+    #[test]
+    fn forced_exception_still_drops_unit_id_mismatch() {
+        let cfg = ServerConfig {
+            unit_id: 7,
+            forced_exception: Some(crate::protocol::Exception::SlaveDeviceFailure),
+            ..Default::default()
+        };
+        let req = crate::protocol::build(1, 9, 0x03, &[0, 0, 0, 1]);
+        assert_eq!(process(&cfg, &mut RegisterFile::new(), &req), Outcome::Drop);
+    }
+
     #[test]
     fn uid_mismatch_is_dropped() {
         let mut regs = RegisterFile::new();
@@ -205,7 +259,7 @@ mod tests {
     /// reply or a drop and never a panic.
     #[test]
     fn truncated_requests_never_panic() {
-        let cfg = ServerConfig { unit_id: 0, supported: (0..=0x20).collect() };
+        let cfg = ServerConfig { unit_id: 0, supported: (0..=0x20).collect(), forced_exception: None };
         let pdus: [&[u8]; 6] = [
             &[0, 1, 0, 2],
             &[0, 1, 0, 2, 4, 0, 1, 0, 2],
