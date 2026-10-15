@@ -189,3 +189,25 @@ feature = "Alarm data with timestamps over Modbus"
 status = "missing"
 issue = 32
 note = "investigation only; legal status must be settled first"
+
+[[feature]]
+id = "server-active-functions"
+area = "server"
+feature = "Each of function codes 3, 4, 6, 7, 8, 16, 22 and 23 can be switched off, then gets an Illegal Function reply"
+status = "shipped"
+tests = ["crates/ananasar-core/src/lib.rs::disabled_function_code_yields_illegal_function", "crates/ananasar-core/src/lib.rs::fc7_and_fc8_are_enabled_by_default_and_can_be_disabled", "crates/ananasar-gui/src/main.rs::option_menus_match_the_original_entries"]
+
+[[feature]]
+id = "server-return-exception"
+area = "server"
+feature = "Option to answer every request with a chosen exception code"
+status = "shipped"
+tests = ["crates/ananasar-core/src/lib.rs::forced_exception_answers_every_request", "crates/ananasar-core/src/lib.rs::forced_exception_still_drops_unit_id_mismatch", "crates/ananasar-gui/src/main.rs::choosing_the_active_exception_again_turns_it_off"]
+
+[[feature]]
+id = "server-disable-nagle"
+area = "server"
+feature = "Disable Nagle's algorithm on a connected client from the Options menu"
+status = "missing"
+issue = 38
+note = "the menu entries Connection #1 and #2 are shown greyed out; the server does not change TCP_NODELAY on a live connection yet"
