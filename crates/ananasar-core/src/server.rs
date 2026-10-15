@@ -38,13 +38,16 @@ pub struct ServerConfig {
     /// Which function codes are enabled. If a request uses one not in here,
     /// the server replies with `IllegalFunction`.
     pub supported: BTreeSet<u8>,
+    /// When set, every request that passes the unit id filter is answered with
+    /// this exception instead of being processed.
+    pub forced_exception: Option<Exception>,
 }
 
 impl Default for ServerConfig {
     fn default() -> Self {
-        // By default the server supports FC 3, 4, 6, 16, 22 and 23.
-        let supported = [0x03u8, 0x04, 0x06, 0x10, 0x16, 0x17].into_iter().collect();
-        Self { unit_id: 0, supported }
+        // By default the server supports FC 3, 4, 6, 7, 8, 16, 22 and 23.
+        let supported = [0x03u8, 0x04, 0x06, 0x07, 0x08, 0x10, 0x16, 0x17].into_iter().collect();
+        Self { unit_id: 0, supported, forced_exception: None }
     }
 }
 
@@ -74,6 +77,9 @@ pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outco
         ))
     };
 
+    if let Some(forced) = cfg.forced_exception {
+        return exc(forced);
+    }
     if !cfg.supported.contains(&func_byte) {
         return exc(Exception::IllegalFunction);
     }
