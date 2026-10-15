@@ -19,10 +19,14 @@ impl Canvas {
         egui::pos2(self.origin.x + l, self.origin.y + t)
     }
 
+    /// The rectangle (`l`, `t`, `w`, `h`) relative to the client area.
+    pub(super) fn rect(&self, (l, t, w, h): (f32, f32, f32, f32)) -> egui::Rect {
+        egui::Rect::from_min_size(self.pos(l, t), egui::vec2(w, h))
+    }
+
     /// Runs `add` inside the rectangle (`l`, `t`, `w`, `h`) relative to the client area.
-    pub(super) fn at<R>(&self, ui: &mut egui::Ui, (l, t, w, h): (f32, f32, f32, f32), add: impl FnOnce(&mut egui::Ui) -> R) -> R {
-        let rect = egui::Rect::from_min_size(self.pos(l, t), egui::vec2(w, h));
-        ui.scope_builder(egui::UiBuilder::new().max_rect(rect), add).inner
+    pub(super) fn at<R>(&self, ui: &mut egui::Ui, area: (f32, f32, f32, f32), add: impl FnOnce(&mut egui::Ui) -> R) -> R {
+        ui.scope_builder(egui::UiBuilder::new().max_rect(self.rect(area)), add).inner
     }
 
     /// A captioned frame; `add` fills its 22 px content row.
@@ -32,38 +36,15 @@ impl Canvas {
         let fill = ui.visuals().window_fill;
         let frame = egui::Rect::from_min_size(self.pos(l, t + 7.0), egui::vec2(w, h - 7.0));
         ui.painter().rect_stroke(frame, 0.0, stroke, egui::StrokeKind::Inside);
-        let galley = ui.painter().layout_no_wrap(caption.to_owned(), egui::FontId::proportional(13.0), text_color);
+        let galley = ui.painter().layout_no_wrap(caption.to_owned(), egui::FontId::proportional(12.0), text_color);
         let caption_rect = egui::Rect::from_min_size(self.pos(l + 6.0, t), egui::vec2(galley.size().x + 4.0, galley.size().y));
         ui.painter().rect_filled(caption_rect, 0.0, fill);
         ui.painter().galley(self.pos(l + 8.0, t), galley, text_color);
         self.at(ui, (l + 8.0, t + 20.0, w - 16.0, 22.0), add)
     }
-}
 
-/// A tool window or dialog frame: titled, fixed in size, not collapsible.
-pub(super) fn fixed_window(title: &str) -> egui::Window<'_> {
-    egui::Window::new(title).collapsible(false).resizable(false)
-}
-
-/// A titled group of removable address chips. Returns true if one was removed.
-pub(super) fn list_chips(ui: &mut egui::Ui, title: &str, list: &mut Vec<u16>) -> bool {
-    let mut removed = None;
-    ui.group(|ui| {
-        ui.vertical(|ui| {
-            ui.label(format!("{title} ({})", list.len()));
-            ui.horizontal_wrapped(|ui| {
-                for (i, a) in list.iter().enumerate() {
-                    if ui.small_button(format!("{a} ✕")).clicked() {
-                        removed = Some(i);
-                    }
-                }
-            });
-        });
-    });
-    if let Some(i) = removed {
-        list.remove(i);
-        true
-    } else {
-        false
+    /// Only the frame and caption of a group, for contents placed separately.
+    pub(super) fn frame(&self, ui: &mut egui::Ui, area: (f32, f32, f32, f32), caption: &str) {
+        self.group(ui, area, caption, |_| {});
     }
 }
