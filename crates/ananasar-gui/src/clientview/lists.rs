@@ -1,6 +1,6 @@
 //! Register lists: single-address add, chips, clear and the From/To range dialog.
 
-use super::widgets::list_chips;
+use super::widgets::{fixed_window, list_chips, Canvas};
 use super::ClientView;
 use eframe::egui;
 
@@ -72,8 +72,11 @@ impl ClientView {
             if changed { self.push_lists(); }
         });
         ui.horizontal(|ui| {
-            if ui.button("Range…").clicked() {
-                self.range.open = true;
+            for (label, kind) in [("Series Read H…", ListKind::ReadHolding), ("Series Read I…", ListKind::ReadInput), ("Series Write…", ListKind::Write)] {
+                if ui.button(label).on_hover_text("Add or remove a series of registers").clicked() {
+                    self.range.list = kind;
+                    self.range.open = true;
+                }
             }
             let mut cleared = false;
             for (label, list) in [("Clear Read H", &mut self.read_holding), ("Clear Read I", &mut self.read_input), ("Clear Write", &mut self.write)] {
@@ -88,28 +91,40 @@ impl ClientView {
     }
 
     fn range_dialog(&mut self, ctx: &egui::Context) {
-        let mut open = self.range.open;
-        let mut apply = false;
-        egui::Window::new("Add / remove range").open(&mut open).collapsible(false).resizable(false).show(ctx, |ui| {
+        if !self.range.open {
+            return;
+        }
+        let mut open = true;
+        let (mut ok, mut cancel) = (false, false);
+        fixed_window("Series").id(egui::Id::new("series")).open(&mut open).show(ctx, |ui| {
+            let c = Canvas::new(ui, 231.0, 104.0);
             let r = &mut self.range;
-            ui.horizontal(|ui| {
+            let valid = parse_range(&r.from, &r.to).is_some();
+            c.at(ui, (8.0, 10.0, 40.0, 20.0), |ui| {
                 ui.label("From:");
-                ui.add(egui::TextEdit::singleline(&mut r.from).desired_width(60.0));
+            });
+            c.at(ui, (48.0, 8.0, 80.0, 22.0), |ui| {
+                ui.add(egui::TextEdit::singleline(&mut r.from).desired_width(80.0)).on_hover_text("Starting value of series");
+            });
+            c.at(ui, (8.0, 50.0, 40.0, 20.0), |ui| {
                 ui.label("To:");
-                ui.add(egui::TextEdit::singleline(&mut r.to).desired_width(60.0));
             });
-            ui.horizontal(|ui| {
-                ui.radio_value(&mut r.list, ListKind::ReadHolding, "Read H");
-                ui.radio_value(&mut r.list, ListKind::ReadInput, "Read I");
-                ui.radio_value(&mut r.list, ListKind::Write, "Write");
+            c.at(ui, (48.0, 48.0, 80.0, 22.0), |ui| {
+                ui.add(egui::TextEdit::singleline(&mut r.to).desired_width(80.0)).on_hover_text("Ending value of series");
             });
-            ui.checkbox(&mut r.remove, "Remove");
-            let bounds = parse_range(&r.from, &r.to);
-            if ui.add_enabled(bounds.is_some(), egui::Button::new(if r.remove { "Remove" } else { "Add" })).clicked() {
-                apply = true;
-            }
+            c.at(ui, (48.0, 80.0, 80.0, 20.0), |ui| {
+                ui.checkbox(&mut r.remove, "Remove").on_hover_text("Remove serie");
+            });
+            c.at(ui, (136.0, 8.0, 75.0, 25.0), |ui| {
+                let button = ui.add_enabled(valid, egui::Button::new("OK").min_size(egui::vec2(75.0, 25.0)));
+                ok = button.on_hover_text("Enter series to register list").clicked();
+            });
+            c.at(ui, (136.0, 48.0, 75.0, 25.0), |ui| {
+                cancel = ui.add_sized([75.0, 25.0], egui::Button::new("Cancel")).clicked();
+            });
         });
-        self.range.open = open;
+        let apply = ok;
+        self.range.open = open && !ok && !cancel;
         if apply && let Some((from, to)) = parse_range(&self.range.from, &self.range.to) {
             let list = match self.range.list {
                 ListKind::ReadHolding => &mut self.read_holding,
