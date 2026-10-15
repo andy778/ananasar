@@ -189,6 +189,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ananasar-parity"
+version = "0.1.0"
+dependencies = [
+ "ananasar-core",
+ "ananasar-net",
+]
+
+[[package]]
 name = "android-activity"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
