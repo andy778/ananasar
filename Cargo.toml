@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/ananasar-core", "crates/ananasar-net", "crates/ananasar-cli", "crates/ananasar-gui", "crates/ananasar-parity", "crates/ananasar-dde"]
+members = ["crates/ananasar-core", "crates/ananasar-net", "crates/ananasar-cli", "crates/ananasar-mcp", "crates/ananasar-gui", "crates/ananasar-parity", "crates/ananasar-dde"]
 # The fuzz crate needs a nightly toolchain + libFuzzer, so it is not part of the
 # normal workspace build.
 exclude = ["fuzz"]
