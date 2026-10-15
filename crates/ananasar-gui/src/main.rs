@@ -6,6 +6,7 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
 mod clientview;
+mod dialog;
 mod embed;
 mod scannerview;
 mod filewindow;
@@ -18,7 +19,6 @@ use ananasar_core::log::LogMode;
 use ananasar_core::sync::lock;
 use clientview::ClientView;
 use eframe::egui;
-use egui_extras::{Column, TableBuilder};
 use embed::{ServerHandle, SharedRegs};
 use scannerview::ScannerView;
 use filewindow::FileWindow;
@@ -32,6 +32,20 @@ const VISIBLE_ROWS: u16 = 26;
 const DEFAULT_PORT: u16 = 502;
 #[cfg(not(windows))]
 const DEFAULT_PORT: u16 = 15020;
+/// The fixed client area of the main window, below the menu bar.
+const CLIENT_W: f32 = 627.0;
+/// How far the controls and Server group sit left of the original's positions,
+/// since the register list is narrower here.
+const SHIFT_X: f32 = 33.0;
+/// (x, width) of the Start Address and UID group boxes. Each is wider than its
+/// 12 px caption (about 66 and 20 px) plus the caption's 8 px inset, and a gap
+/// separates them.
+const START_BOX: (f32, f32) = (214.0, 84.0);
+const UID_BOX: (f32, f32) = (306.0, 62.0);
+const CLIENT_H: f32 = 548.0;
+/// Inner size of the client window: its 301 x 522 client area, menu bar and margins.
+const CLIENT_WINDOW_W: f32 = 309.0;
+const CLIENT_WINDOW_H: f32 = 560.0;
 
 /// The port from `--port N` / `-p N` on the command line, if given.
 /// An unusable value exits with a message rather than silently using the default.
@@ -108,7 +122,11 @@ struct PortDialog {
 }
 
 fn main() -> eframe::Result<()> {
-    let mut viewport = egui::ViewportBuilder::default().with_inner_size([820.0, 700.0]).with_title(window_title(&local_ip(), cli_port().unwrap_or(DEFAULT_PORT)));
+    let mut viewport = egui::ViewportBuilder::default()
+        .with_inner_size([CLIENT_W, CLIENT_H + 48.0])
+        .with_resizable(false)
+        .with_maximize_button(false)
+        .with_title(window_title(&local_ip(), cli_port().unwrap_or(DEFAULT_PORT)));
     // Window/taskbar icon — the two-pineapple logo (assets/icon.png).
     if let Ok(icon) = eframe::icon_data::from_png_bytes(include_bytes!("../../../assets/icon.png")) {
         viewport = viewport.with_icon(std::sync::Arc::new(icon));
@@ -118,6 +136,7 @@ fn main() -> eframe::Result<()> {
         // Light by default, like the original; View → Theme can switch it.
         cc.egui_ctx.set_theme(egui::ThemePreference::Light);
         theme::apply(&cc.egui_ctx, true);
+        theme::load_monospace_font(&cc.egui_ctx);
         Ok(Box::new(App::new(&cc.egui_ctx)))
     }))
 }
@@ -142,12 +161,15 @@ struct App {
     value_list_edit: bool,
     edit_buf: String,
     show_about: bool,
+    about_icon: Option<egui::TextureHandle>,
     local_ip: Option<std::net::IpAddr>,
     title: String,
     show_client: bool,
     show_setval: bool,
     show_scanner: bool,
     log_interpretive: bool,
+    /// An error to show the user in a message box.
+    message: Option<String>,
     status_note: String,
     client: ClientView,
     setval: SetValView,
@@ -164,10 +186,12 @@ impl App {
         let stop = Arc::new(AtomicBool::new(false));
         let mut port = cli_port().unwrap_or(DEFAULT_PORT);
         let mut port_notice = None;
+        let mut startup_error = None;
         let start = |p: u16| embed::start(ctx.clone(), regs.clone(), server.clone(), p, stop.clone());
         if cli_port().is_some() {
             if let Err(e) = start(port) {
                 *lock(&server.status) = format!("bind :{port} failed: {e}");
+                startup_error = Some(format!("Cannot listen on port {port}: {e}"));
             }
         } else {
             // Like the original: when the default port is used by another
@@ -179,7 +203,10 @@ impl App {
                     }
                     port = p;
                 }
-                Err(e) => *lock(&server.status) = format!("bind :{port} failed: {e}"),
+                Err(e) => {
+                    *lock(&server.status) = format!("bind :{port} failed: {e}");
+                    startup_error = Some(format!("Cannot listen on port {port}: {e}"));
+                }
             }
         }
         Self {
@@ -200,12 +227,14 @@ impl App {
             value_list_edit: false,
             edit_buf: String::new(),
             show_about: false,
+            about_icon: None,
             local_ip: local_ip(),
             title: String::new(),
             show_client: false,
             show_setval: false,
             show_scanner: false,
-            log_interpretive: false,
+            log_interpretive: true,
+            message: startup_error,
             status_note: String::new(),
             client: ClientView::new(format!("127.0.0.1:{port}"), ctx.clone()),
             setval: SetValView::default(),
@@ -233,7 +262,8 @@ impl App {
     fn port_dialog_ui(&mut self, ctx: &egui::Context) {
         let Some(mut dlg) = self.port_dialog.take() else { return };
         let (mut ok, mut cancel) = (false, false);
-        egui::Window::new("Server port").collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+        let current = self.server_port;
+        let closed = dialog::show(ctx, "server-port", "Server port", [223.0, 109.0], 0, &mut |ui| {
             // Fixed 223x109 client area; controls sit at explicit offsets.
             let (area, _) = ui.allocate_exact_size(egui::vec2(223.0, 109.0), egui::Sense::hover());
             let at = |x: f32, y: f32, w: f32, h: f32| setvalview::client_rect(area, x, y, w, h);
@@ -243,15 +273,15 @@ impl App {
                 ok = true;
             }
             let (text, color) = if dlg.error.is_empty() {
-                (format!("Port currently used: {}", self.server_port), egui::Color32::BLACK)
+                (format!("Port currently used: {current}"), egui::Color32::BLACK)
             } else {
                 (dlg.error.clone(), ui.visuals().error_fg_color)
             };
             ui.put(at(8.0, 75.0, 207.0, 28.0), egui::Label::new(egui::RichText::new(text).color(color)).wrap());
-            ok |= ui.put(at(120.0, 8.0, 96.0, 33.0), egui::Button::new("OK")).clicked();
-            cancel = ui.put(at(120.0, 47.0, 96.0, 33.0), egui::Button::new("Cancel")).clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape));
+            ok |= theme::bevel_button(ui, at(120.0, 8.0, 96.0, 33.0), "port_ok", "OK", true, None).clicked();
+            cancel = theme::bevel_button(ui, at(120.0, 47.0, 96.0, 33.0), "port_cancel", "Cancel", true, None).clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape));
         });
-        if cancel {
+        if cancel || closed {
             return;
         }
         if ok {
@@ -286,23 +316,264 @@ impl App {
             return;
         }
         self.server_stop.store(false, Ordering::SeqCst);
-        self.status_note = match embed::start(ctx.clone(), self.regs.clone(), self.server.clone(), self.server_port, self.server_stop.clone()) {
-            Ok(()) => String::new(),
-            Err(e) => format!("Cannot listen on port {}: {e}", self.server_port),
-        };
+        self.status_note.clear();
+        if let Err(e) = embed::start(ctx.clone(), self.regs.clone(), self.server.clone(), self.server_port, self.server_stop.clone()) {
+            self.message = Some(format!("Cannot listen on port {}: {e}", self.server_port));
+        }
     }
 
+    /// The About window: our own logo, then the version and credits, right-aligned like the original's.
     fn about_ui(&mut self, ctx: &egui::Context) {
-        let mut open = self.show_about;
-        egui::Window::new("About Ananasar").open(&mut open).collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
-            ui.heading("Ananasar");
-            ui.label(format!("Version {}", env!("CARGO_PKG_VERSION")));
-            ui.label("Modbus/TCP server and client");
-            ui.label("Licensed under the MIT licence.");
-            ui.separator();
-            ui.label("A port of Ananas, the free Modbus/TCP tool by Tuomio, built with REA.");
+        if !self.show_about {
+            return;
+        }
+        let icon = self.about_icon.get_or_insert_with(|| {
+            let image = eframe::icon_data::from_png_bytes(include_bytes!("../../../assets/icon.png"))
+                .map(|d| egui::ColorImage::from_rgba_unmultiplied([d.width as usize, d.height as usize], &d.rgba))
+                .unwrap_or_else(|_| egui::ColorImage::filled([1, 1], egui::Color32::TRANSPARENT));
+            ctx.load_texture("about-icon", image, egui::TextureOptions::LINEAR)
         });
-        self.show_about = open;
+        let texture = icon.clone();
+        let bits = if cfg!(target_pointer_width = "64") { "64-bit" } else { "32-bit" };
+        let lines = [format!("Version: {}", env!("CARGO_PKG_VERSION")), bits.to_owned(), "MIT licence".to_owned()];
+        let closed = dialog::show(ctx, "about", "About Ananasar", [296.0, 340.0], 0, &mut |ui| {
+            let (area, _) = ui.allocate_exact_size(egui::vec2(296.0, 340.0), egui::Sense::hover());
+            let at = |x: f32, y: f32, w: f32, h: f32| setvalview::client_rect(area, x, y, w, h);
+            ui.painter().image(texture.id(), at(48.0, 12.0, 200.0, 200.0), egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), egui::Color32::WHITE);
+            for (i, line) in lines.iter().enumerate() {
+                let y = 232.0 + 18.0 * f32::from(u8::try_from(i).unwrap_or(0));
+                ui.painter().text(at(280.0, y, 0.0, 0.0).min, egui::Align2::RIGHT_CENTER, line, egui::FontId::proportional(12.0), egui::Color32::BLACK);
+            }
+            ui.put(at(12.0, 290.0, 272.0, 40.0), egui::Label::new(egui::RichText::new("A port of Ananas, the free Modbus/TCP tool by Tuomio, built with REA.").size(11.0)).wrap());
+        });
+        if closed {
+            self.show_about = false;
+        }
+    }
+
+    /// A message box for errors that have no other place on the fixed-size window.
+    fn message_ui(&mut self, ctx: &egui::Context) {
+        let Some(text) = self.message.clone() else { return };
+        let mut close = false;
+        egui::Window::new("Ananasar").collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+            ui.set_max_width(320.0);
+            ui.label(text);
+            ui.add_space(6.0);
+            let (rect, _) = ui.allocate_exact_size(egui::vec2(75.0, 23.0), egui::Sense::hover());
+            close = theme::bevel_button(ui, rect, "message_ok", "OK", true, None).clicked();
+        });
+        if close || ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
+            self.message = None;
+        }
+    }
+
+    /// The "Registers" list: one sunken white list with a header row.
+    fn registers_ui(&mut self, ui: &mut egui::Ui, area: egui::Rect) {
+        const COLS: [f32; 3] = [58.0, 48.0, 34.0];
+        const HEADER_H: f32 = 18.0;
+        const ROW_H: f32 = 19.0;
+        let at = |x: f32, y: f32, w: f32, h: f32| setvalview::client_rect(area, x, y, w, h);
+        let painter = ui.painter().clone();
+        let black = egui::Color32::BLACK;
+        let font = egui::FontId::proportional(12.0);
+        painter.text(at(14.0, 8.0, 0.0, 0.0).min, egui::Align2::LEFT_TOP, "Registers", font.clone(), black);
+        let outer = at(14.0, 25.0, COLS.iter().sum::<f32>() + 4.0, HEADER_H + ROW_H * f32::from(VISIBLE_ROWS) + 4.0);
+        let inner = outer.shrink(2.0);
+        painter.rect_filled(inner, 0.0, egui::Color32::WHITE);
+        let line = egui::Stroke::new(1.0, theme::GRID_LINE);
+        let xs = [inner.left(), inner.left() + COLS[0], inner.left() + COLS[0] + COLS[1], inner.left() + COLS[0] + COLS[1] + COLS[2]];
+        let col_x = |i: usize| xs.get(i).copied().unwrap_or(inner.left());
+
+        // Header row, in bold (the text drawn twice, a fraction of a pixel apart).
+        for (i, title) in ["Register", "Value", "R/W"].into_iter().enumerate() {
+            let galley = painter.layout_no_wrap(title.to_owned(), font.clone(), black);
+            let pos = egui::pos2(col_x(i) + 4.0, inner.top() + (HEADER_H - galley.size().y) / 2.0);
+            painter.galley(pos, galley.clone(), black);
+            painter.galley(theme::shift(pos, 0.6, 0.0), galley, black);
+        }
+        let list_top = inner.top() + HEADER_H;
+        painter.line_segment([egui::pos2(inner.left(), list_top), egui::pos2(inner.right(), list_top)], line);
+        for i in 1..3 {
+            let x = col_x(i);
+            painter.line_segment([egui::pos2(x, inner.top()), egui::pos2(x, inner.bottom())], line);
+        }
+
+        // Mouse wheel over the list scrolls by ten registers.
+        let scroll = ui.input(|i| i.smooth_scroll_delta.y);
+        if scroll.abs() > 0.0 && ui.rect_contains_pointer(outer) {
+            let step = if scroll > 0.0 { 10i32 } else { -10 };
+            self.start_address = u16::try_from((i32::from(self.start_address).saturating_add(step)).clamp(0, 65535)).unwrap_or(0);
+        }
+        let editable = self.bank == Bank::Holding && self.value_list_edit;
+        let snapshot: Vec<(u16, u16)> = {
+            let regs = lock(&self.regs);
+            (0..VISIBLE_ROWS)
+                .filter_map(|i| self.start_address.checked_add(i))
+                .map(|addr| (addr, regs.get(self.bank, addr)))
+                .collect()
+        };
+        for (n, (addr, value)) in snapshot.into_iter().enumerate() {
+            let top = list_top + ROW_H * f32::from(u16::try_from(n).unwrap_or(0));
+            let row_y = top + ROW_H / 2.0;
+            painter.line_segment([egui::pos2(inner.left(), top + ROW_H), egui::pos2(inner.right(), top + ROW_H)], line);
+            let text_at = |col: usize| egui::pos2(col_x(col) + 4.0, row_y);
+            let reg = if self.addr_hex { format!("{addr:04X}") } else { addr.to_string() };
+            painter.text(text_at(0), egui::Align2::LEFT_CENTER, reg, font.clone(), black);
+            painter.text(text_at(2), egui::Align2::LEFT_CENTER, "-/-", font.clone(), black);
+
+            let cell = egui::Rect::from_min_max(egui::pos2(col_x(1) + 1.0, top + 1.0), egui::pos2(col_x(2), top + ROW_H));
+            if self.editing == Some(addr) {
+                let edit = egui::TextEdit::singleline(&mut self.edit_buf).frame(egui::Frame::NONE).margin(egui::Margin::symmetric(3, 0)).vertical_align(egui::Align::Center);
+                let resp = ui.put(cell, edit);
+                resp.request_focus();
+                if resp.lost_focus() {
+                    if let Some(v) = self.parse(&self.edit_buf.clone()) {
+                        lock(&self.regs).set_holding(addr, v);
+                    }
+                    self.editing = None;
+                }
+                continue;
+            }
+            painter.text(text_at(1), egui::Align2::LEFT_CENTER, self.fmt(value), font.clone(), black);
+            let resp = ui.interact(cell, ui.id().with(("reg_cell", n)), egui::Sense::click());
+            if resp.clicked() || resp.double_clicked() {
+                self.selected = Some(addr);
+            }
+            if editable && resp.double_clicked() {
+                self.editing = Some(addr);
+                self.edit_buf = self.fmt(value);
+            }
+            if self.selected == Some(addr) {
+                let r = cell.shrink(1.0);
+                let pts = vec![r.left_top(), r.right_top(), r.right_bottom(), r.left_bottom(), r.left_top()];
+                painter.extend(egui::Shape::dashed_line(&pts, egui::Stroke::new(1.0, black), 1.0, 1.0));
+            }
+        }
+        theme::sunken_border(&painter, outer);
+    }
+
+    /// Type Shown, Start Address, UID, Client and Logging, in one band.
+    fn controls_ui(&mut self, ui: &mut egui::Ui, area: egui::Rect) {
+        let at = |x: f32, y: f32, w: f32, h: f32| setvalview::client_rect(area, x, y, w, h);
+        let log = self.server.log.clone();
+        let listening = self.server.listening.load(Ordering::SeqCst);
+        let recording = log.is_recording();
+
+        setvalview::group_box(ui, at(214.0, 16.0, 153.0, 36.0), "Type Shown");
+        if ui.put(at(222.0, 28.0, 66.0, 20.0), egui::RadioButton::new(self.bank == Bank::Input, "Input")).clicked() {
+            self.bank = Bank::Input;
+        }
+        if ui.put(at(295.0, 28.0, 70.0, 20.0), egui::RadioButton::new(self.bank == Bank::Holding, "Holding")).clicked() {
+            self.bank = Bank::Holding;
+        }
+
+        setvalview::group_box(ui, at(START_BOX.0, 58.0, START_BOX.1, 47.0), "Start Address");
+        // Every address is in the list (in hex while registers are shown as hex); it can also be typed.
+        theme::combo_u16(ui, at(START_BOX.0 + 4.0, 77.0, START_BOX.1 - 8.0, 21.0), "start_address", &mut self.start_address, 65535, 1, 65536, self.addr_hex);
+        setvalview::group_box(ui, at(UID_BOX.0, 58.0, UID_BOX.1, 47.0), "UID");
+        let mut uid_wide = u16::from(lock(&self.server.cfg).unit_id);
+        if theme::combo_u16(ui, at(UID_BOX.0 + 8.0, 77.0, UID_BOX.1 - 16.0, 21.0), "uid", &mut uid_wide, 255, 1, 256, false) {
+            lock(&self.server.cfg).unit_id = u8::try_from(uid_wide).unwrap_or(u8::MAX);
+        }
+
+        setvalview::group_box(ui, at(391.0, 16.0, 132.0, 89.0), "Client");
+        let text = if self.show_client { "Hide" } else { "Show" };
+        let rect = at(406.0, 34.0, 100.0, 38.0);
+        if theme::bevel_button(ui, rect, "show_client", text, true, Some(theme::icon_window)).clicked() {
+            self.show_client = !self.show_client;
+        }
+        let state = if self.client.is_connected() { "Connected" } else { "Disconnected" };
+        ui.painter().text(at(457.0, 87.0, 0.0, 0.0).min, egui::Align2::CENTER_CENTER, state, egui::FontId::proportional(12.0), egui::Color32::BLACK);
+
+        setvalview::group_box(ui, at(535.0, 16.0, 120.0, 89.0), "Logging");
+        let enabled = recording || listening;
+        let rect = at(545.0, 34.0, 100.0, 38.0);
+        let text = if recording { "Stop" } else { "Start" };
+        if theme::bevel_button(ui, rect, "logging", text, enabled, Some(theme::icon_play)).clicked() {
+            if recording {
+                log.stop();
+                self.status_note.clear();
+            } else {
+                let mode = if self.log_interpretive { LogMode::Interpretive } else { LogMode::Raw };
+                match log.start(std::path::Path::new("."), &self.server_port.to_string(), mode) {
+                    Ok(path) => self.status_note = format!("Logging to {}", path.display()),
+                    Err(e) => self.message = Some(format!("Cannot start log: {e}")),
+                }
+            }
+        }
+        ui.add_enabled_ui(!recording, |ui| ui.put(at(552.0, 79.0, 96.0, 20.0), egui::Checkbox::new(&mut self.log_interpretive, "Interpretive")));
+    }
+
+    /// The Server group: one value column per connection slot.
+    fn server_ui(&mut self, ui: &mut egui::Ui, area: egui::Rect) {
+        const ROWS_Y: [f32; 22] = [
+            139.0, 156.0, 173.0, 197.0, 214.0, 239.0, 256.0, 273.0, 290.0, 307.0, 324.0, 341.0, 363.0, 377.0, 399.0, 421.0, 443.0, 463.0, 479.0, 495.0, 511.0,
+            527.0,
+        ];
+        const LABELS: [&str; 22] = [
+            "Connection IP", "Nagle", "Poll interval", "Data packet size", "Header check", "Transaction ID", "Protocol ID", "Message length", "Unit ID",
+            "Function code", "Start address", "Word count", "Data received", "Data sent", "Local port", "Logged packets", "Address offset", "Out of Synch",
+            "Incorrect length", "Incorrect PID", "Incorrect TI", "Return exception",
+        ];
+        const COL_X: [f32; 2] = [391.0, 526.0];
+        let at = |x: f32, y: f32| setvalview::client_rect(area, x, y, 0.0, 0.0).min;
+        let stats = lock(&self.server.stats).clone();
+        let log = self.server.log.clone();
+        let recording = log.is_recording();
+        let font = egui::FontId::monospace(13.0);
+        let dark = egui::Color32::BLACK;
+        let flag = |on: bool| if on { "On" } else { "Off" }.to_owned();
+        let forced = lock(&self.server.cfg).forced_exception.is_some();
+        setvalview::group_box(ui, setvalview::client_rect(area, 206.0, 120.0, 448.0, 425.0), "Server");
+        let painter = ui.painter().clone();
+        let dash = || "--".to_owned();
+        for (i, (label, y)) in LABELS.iter().zip(ROWS_Y).enumerate() {
+            painter.text(at(215.0, y), egui::Align2::LEFT_CENTER, format!("{label}:"), font.clone(), egui::Color32::BLACK);
+            let single = match i {
+                14 => Some(self.server.port.load(Ordering::SeqCst).to_string()),
+                15 => Some(if recording || log.recordings() > 0 { log.recordings().to_string() } else { dash() }),
+                16 | 20 => Some(flag(false)),
+                17 => Some(flag(stats.out_of_sync)),
+                18 => Some(flag(stats.incorrect_length)),
+                19 => Some(flag(stats.incorrect_protocol_id)),
+                21 => Some(flag(forced || stats.return_exception.is_some())),
+                _ => None,
+            };
+            if let Some(v) = single {
+                let colour = if i == 14 { theme::VALUE_BLUE } else { dark };
+                painter.text(at(COL_X[0], y), egui::Align2::LEFT_CENTER, v, font.clone(), colour);
+                continue;
+            }
+            for (slot, x) in COL_X.into_iter().enumerate() {
+                let c = stats.slots.get(slot).and_then(Option::as_ref);
+                let v = match i {
+                    0 => c.map_or_else(dash, |c| c.ip.clone()),
+                    1 => c.map_or_else(dash, |c| if c.nagle { "Enabled" } else { "Disabled" }.to_owned()),
+                    2 => fmt_ms(c.and_then(|c| c.poll_interval_ms)),
+                    3 => c.map_or(0, |c| c.packet_size).to_string(),
+                    4 => match c.and_then(|c| c.header_check.as_ref()) {
+                        Some(Ok(())) => "Passed".to_owned(),
+                        Some(Err(_)) => "Failed".to_owned(),
+                        None => dash(),
+                    },
+                    5 => hex16(c.and_then(|c| c.transaction_id).unwrap_or(0)),
+                    6 => hex16_plain(c.and_then(|c| c.protocol_id).unwrap_or(0)),
+                    7 => hex16(c.and_then(|c| c.length).unwrap_or(0)),
+                    8 => hex8(c.and_then(|c| c.unit_id).unwrap_or(0)),
+                    9 => hex8(c.and_then(|c| c.function).unwrap_or(0)),
+                    10 => hex16(c.and_then(|c| c.start_address).unwrap_or(0)),
+                    11 => hex16(c.and_then(|c| c.word_count).unwrap_or(0)),
+                    12 => c.map_or(0, |c| c.bytes_received).to_string(),
+                    _ => c.map_or(0, |c| c.bytes_sent).to_string(),
+                };
+                let colour = if (5..=11).contains(&i) { theme::VALUE_BLUE } else { dark };
+                let rect = painter.text(at(x, y), egui::Align2::LEFT_CENTER, v, font.clone(), colour);
+                // A failed header check says why when hovered.
+                if i == 4 && self.tooltips && let Some(Err(why)) = c.and_then(|c| c.header_check.as_ref()) {
+                    ui.interact(rect, ui.id().with(("header_check", slot)), egui::Sense::hover()).on_hover_text(why);
+                }
+            }
+        }
     }
 
     fn fmt(&self, v: u16) -> String {
@@ -337,8 +608,8 @@ impl eframe::App for App {
         }
         let setreg_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::R);
         let hex_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::H);
-        let addr_hex_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND | egui::Modifiers::SHIFT, egui::Key::H);
-        // The more specific shortcut first, so Ctrl+Shift+H is not taken as Ctrl+H.
+        let addr_hex_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND | egui::Modifiers::ALT, egui::Key::H);
+        // The more specific shortcut first, so Ctrl+Alt+H is not taken as Ctrl+H.
         if ctx.input_mut(|i| i.consume_shortcut(&addr_hex_sc)) {
             self.addr_hex = !self.addr_hex;
         }
@@ -367,8 +638,7 @@ impl eframe::App for App {
             self.tooltips = !self.tooltips;
         }
         let check = |ui: &mut egui::Ui, on: bool, text: &str, sc: &egui::KeyboardShortcut| {
-            let label = if on { format!("\u{2713} {text}") } else { format!("    {text}") };
-            ui.add(egui::Button::new(label).shortcut_text(ctx.format_shortcut(sc))).clicked()
+            theme::check_item(ui, on, true, text, Some(ctx.format_shortcut(sc)))
         };
         // Value List shortcuts leave Ctrl+C/E/M to a focused text field.
         let vl_edit_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::E);
@@ -454,21 +724,11 @@ impl eframe::App for App {
                 });
                 ui.menu_button("View", |ui| {
                     ui.set_min_width(190.0);
-                    if check(ui, self.hex, "Values as Hex", &hex_sc) {
-                        self.hex = !self.hex;
-                    }
                     if check(ui, self.addr_hex, "Registers as Hex", &addr_hex_sc) {
                         self.addr_hex = !self.addr_hex;
                     }
-                    ui.separator();
-                    ui.checkbox(&mut self.show_client, "Client window");
-                    ui.checkbox(&mut self.show_setval, "Set value window");
-                    ui.checkbox(&mut self.show_scanner, "Scanner");
-                    ui.separator();
-                    ui.label("Theme");
-                    egui::widgets::global_theme_preference_buttons(ui);
-                    if ui.checkbox(&mut self.classic, "Classic style (light)").changed() {
-                        theme::apply(&ctx, self.classic);
+                    if check(ui, self.hex, "Values as Hex", &hex_sc) {
+                        self.hex = !self.hex;
                     }
                 });
                 ui.menu_button("Options", |ui| {
@@ -536,7 +796,7 @@ impl eframe::App for App {
                         });
                         ui.separator();
                         // The server always drops a connection silent for a minute.
-                        ui.add_enabled(false, egui::Button::new("\u{2713} Release Connection if Unused >1 min"));
+                        theme::check_item(ui, true, false, "Release Connection if Unused >1 min", None);
                     });
                     ui.separator();
                     off(ui, "DDE Server…");
@@ -574,203 +834,60 @@ impl eframe::App for App {
         self.port_dialog_ui(&ctx);
         self.port_notice_ui(&ctx);
         self.about_ui(&ctx);
+        self.message_ui(&ctx);
 
-        // ---- status bar ----
-        egui::Panel::bottom("statusbar").show(ui, |ui| {
+        // ---- status bar: the date and time in a sunken panel, as in the original ----
+        egui::Panel::bottom("statusbar").exact_size(24.0).show(ui, |ui| {
+            let (rect, resp) = ui.allocate_exact_size(egui::vec2(128.0, 19.0), egui::Sense::hover());
+            theme::sunken_panel(ui.painter(), rect);
+            let now = chrono::Local::now().format("%d/%m/%Y %H.%M.%S").to_string();
+            ui.painter().text(theme::shift(rect.left_center(), 4.0, 0.0), egui::Align2::LEFT_CENTER, now, egui::FontId::proportional(12.0), egui::Color32::BLACK);
+            // The server state that used to fill the bar is kept as a tooltip.
             let st = lock(&self.server.status).clone();
             let n = self.server.clients.load(Ordering::SeqCst);
-            ui.horizontal(|ui| {
-                ui.label(format!("Server :{} — {st} — {n} client(s)", self.server_port));
-                if !self.status_note.is_empty() {
-                    ui.separator();
-                    ui.label(&self.status_note);
-                }
-            });
-        });
-
-        // ---- the Values list (left) ----
-        egui::Panel::left("registers").resizable(false).exact_size(215.0).show(ui, |ui| {
-            let scroll = ui.input(|i| i.smooth_scroll_delta.y);
-            if scroll.abs() > 0.0 && ui.ui_contains_pointer() {
-                let step = if scroll > 0.0 { 10i32 } else { -10 };
-                self.start_address = u16::try_from((i32::from(self.start_address).saturating_add(step)).clamp(0, 65535)).unwrap_or(0);
+            let mut tip = format!("Server :{} \u{2014} {st} \u{2014} {n} client(s)", self.server_port);
+            if !self.status_note.is_empty() {
+                tip.push('\n');
+                tip.push_str(&self.status_note);
             }
-            let editable = self.bank == Bank::Holding && self.value_list_edit;
-            let snapshot: Vec<(u16, u16)> = {
-                let regs = lock(&self.regs);
-                (0..VISIBLE_ROWS)
-                    .filter_map(|i| self.start_address.checked_add(i))
-                    .map(|addr| (addr, regs.get(self.bank, addr)))
-                    .collect()
-            };
-            let cell = |ui: &mut egui::Ui, selected: bool| {
-                if selected {
-                    ui.painter().rect_filled(ui.max_rect(), 0.0, theme::HIGHLIGHT);
-                }
-                ui.painter().rect_stroke(ui.max_rect(), 0.0, theme::grid_stroke(), egui::StrokeKind::Inside);
-            };
-            TableBuilder::new(ui)
-                .striped(false)
-                .column(Column::exact(60.0))
-                .column(Column::exact(80.0))
-                .column(Column::exact(30.0))
-                .header(22.0, |mut h| {
-                    h.col(|ui| { cell(ui, false); ui.strong("Register"); });
-                    h.col(|ui| { cell(ui, false); ui.strong("Value"); });
-                    h.col(|ui| { cell(ui, false); ui.strong("R/W"); });
-                })
-                .body(|mut body| {
-                    for (addr, value) in snapshot {
-                        body.row(20.0, |mut row| {
-                            row.col(|ui| {
-                                cell(ui, false);
-                                ui.monospace(if self.addr_hex { format!("{addr:04X}") } else { addr.to_string() });
-                            });
-                            row.col(|ui| {
-                                let selected = self.selected == Some(addr) && self.editing != Some(addr);
-                                cell(ui, selected);
-                                if self.editing == Some(addr) {
-                                    let resp = ui.add(egui::TextEdit::singleline(&mut self.edit_buf).desired_width(f32::INFINITY));
-                                    resp.request_focus();
-                                    if resp.lost_focus() {
-                                        if let Some(v) = self.parse(&self.edit_buf.clone()) {
-                                            lock(&self.regs).set_holding(addr, v);
-                                        }
-                                        self.editing = None;
-                                    }
-                                } else {
-                                    let mut text = egui::RichText::new(self.fmt(value)).monospace();
-                                    if selected {
-                                        text = text.color(egui::Color32::WHITE);
-                                    }
-                                    let label = ui.add(egui::Label::new(text).sense(egui::Sense::click()));
-                                    if label.clicked() || label.double_clicked() {
-                                        self.selected = Some(addr);
-                                    }
-                                    if editable && label.double_clicked() {
-                                        self.editing = Some(addr);
-                                        self.edit_buf = self.fmt(value);
-                                    }
-                                }
-                            });
-                            row.col(|ui| {
-                                cell(ui, false);
-                                ui.monospace("-/-");
-                            });
-                        });
-                    }
-                });
+            resp.on_hover_text(tip);
+            ctx.request_repaint_after(std::time::Duration::from_secs(1));
         });
 
-        // ---- controls and the Server status panel (right) ----
-        egui::CentralPanel::default().show(ui, |ui| {
-            let log = self.server.log.clone();
-            let listening = self.server.listening.load(Ordering::SeqCst);
-            let recording = log.is_recording();
-            ui.horizontal_top(|ui| {
-                theme::titled_group(ui, "Type Shown", |ui| {
-                    ui.vertical(|ui| {
-                        ui.radio_value(&mut self.bank, Bank::Input, "Input");
-                        ui.radio_value(&mut self.bank, Bank::Holding, "Holding");
-                        ui.horizontal(|ui| {
-                            ui.label("Start Address");
-                            theme::combo_u16(ui, "start_address", &mut self.start_address, 65535, &[0, 10, 20, 50, 100, 200, 500, 1000, 10000]);
-                        });
-                        ui.horizontal(|ui| {
-                            ui.label("UID");
-                            let mut uid = lock(&self.server.cfg).unit_id;
-                            let mut uid_wide = u16::from(uid);
-                            if theme::combo_u16(ui, "uid", &mut uid_wide, 255, &[0, 1, 2, 3, 4, 5, 247, 255]) {
-                                uid = uid_wide as u8;
-                                lock(&self.server.cfg).unit_id = uid;
-                            }
-                        });
-                    });
-                });
-                theme::titled_group(ui, "Client", |ui| {
-                    ui.vertical(|ui| {
-                        let text = if self.show_client { "Hide" } else { "Show" };
-                        if ui.add(egui::Button::new(text).min_size(egui::vec2(72.0, 32.0))).clicked() {
-                            self.show_client = !self.show_client;
-                        }
-                        ui.label(if self.client.is_connected() { "Connected" } else { "Disconnected" });
-                    });
-                });
-                theme::titled_group(ui, "Logging", |ui| {
-                    ui.vertical(|ui| {
-                        let text = if recording { "Stop" } else { "Start" };
-                        if ui.add_enabled(recording || listening, egui::Button::new(text).min_size(egui::vec2(72.0, 32.0))).clicked() {
-                            if recording {
-                                log.stop();
-                                self.status_note.clear();
-                            } else {
-                                let mode = if self.log_interpretive { LogMode::Interpretive } else { LogMode::Raw };
-                                self.status_note = match log.start(std::path::Path::new("."), &self.server_port.to_string(), mode) {
-                                    Ok(path) => format!("Logging to {}", path.display()),
-                                    Err(e) => format!("Cannot start log: {e}"),
-                                };
-                            }
-                        }
-                        ui.add_enabled(!recording, egui::Checkbox::new(&mut self.log_interpretive, "Interpretive"));
-                    });
-                });
-            });
-            ui.add_space(4.0);
-            let stats = lock(&self.server.stats).clone();
-            theme::titled_group(ui, "Server", |ui| {
-                egui::Grid::new("server_stats").num_columns(3).spacing([14.0, 2.0]).show(ui, |ui| {
-                    let conn = |i: usize| stats.slots.get(i).and_then(Option::as_ref);
-                    stats_row(ui, "Connection IP", |i| conn(i).map(|c| c.ip.clone()));
-                    stats_row(ui, "Nagle", |i| conn(i).map(|c| if c.nagle { "Enabled" } else { "Disabled" }.to_owned()));
-                    stats_row(ui, "Poll interval", |i| conn(i).and_then(|c| c.poll_interval_ms).map(|ms| format!("{ms} ms")));
-                    stats_row(ui, "Data packet size", |i| conn(i).map(|c| c.packet_size.to_string()));
-                    // A failed check says why when hovered.
-                    ui.monospace("Header check:");
-                    for slot in 0..2 {
-                        match conn(slot).and_then(|c| c.header_check.as_ref()) {
-                            Some(Ok(())) => { ui.monospace("Passed"); }
-                            Some(Err(why)) => {
-                                let failed = ui.monospace("Failed");
-                                if self.tooltips {
-                                    failed.on_hover_text(why);
-                                }
-                            }
-                            None => { ui.monospace("--"); }
-                        }
-                    }
-                    ui.end_row();
-                    stats_row(ui, "Transaction ID", |i| conn(i).and_then(|c| c.transaction_id).map(hex16));
-                    stats_row(ui, "Protocol ID", |i| conn(i).and_then(|c| c.protocol_id).map(hex16));
-                    stats_row(ui, "Message length", |i| conn(i).and_then(|c| c.length).map(hex16));
-                    stats_row(ui, "Unit ID", |i| conn(i).and_then(|c| c.unit_id).map(hex8));
-                    stats_row(ui, "Function code", |i| conn(i).and_then(|c| c.function).map(hex8));
-                    stats_row(ui, "Start address", |i| conn(i).and_then(|c| c.start_address).map(hex16));
-                    stats_row(ui, "Word count", |i| conn(i).and_then(|c| c.word_count).map(hex16));
-                    stats_row(ui, "Data received", |i| conn(i).map(|c| c.bytes_received.to_string()));
-                    stats_row(ui, "Data sent", |i| conn(i).map(|c| c.bytes_sent.to_string()));
-                    let flag = |on: bool| if on { "On" } else { "Off" }.to_owned();
-                    let single = |ui: &mut egui::Ui, label: &str, value: String| {
-                        ui.monospace(format!("{label}:"));
-                        ui.label(egui::RichText::new(value).monospace().color(theme::VALUE_BLUE));
-                        ui.end_row();
-                    };
-                    single(ui, "Local port", self.server.port.load(Ordering::SeqCst).to_string());
-                    single(ui, "Logged packets", if recording || log.recordings() > 0 { log.recordings().to_string() } else { "--".to_owned() });
-                    single(ui, "Out of Synch", flag(stats.out_of_sync));
-                    single(ui, "Incorrect length", flag(stats.incorrect_length));
-                    single(ui, "Incorrect PID", flag(stats.incorrect_protocol_id));
-                    single(ui, "Return exception", stats.return_exception.map_or_else(|| "Off".to_owned(), |c| format!("Exception {c}")));
-                });
-            });
+        // ---- the window's fixed-size client area ----
+        egui::CentralPanel::default().frame(egui::Frame::new().fill(ui.visuals().panel_fill)).show(ui, |ui| {
+            let (area, _) = ui.allocate_exact_size(egui::vec2(CLIENT_W, CLIENT_H), egui::Sense::hover());
+            self.registers_ui(ui, area);
+            let shifted = area.translate(egui::vec2(-SHIFT_X, 0.0));
+            self.controls_ui(ui, shifted);
+            self.server_ui(ui, shifted);
         });
 
         // ---- floating windows (the original's separate windows) ----
-        let mut show_client = self.show_client;
-        egui::Window::new("Modbus/TCP Client")
-            .open(&mut show_client)
-            .default_size([520.0, 520.0])
-            .show(&ctx, |ui| self.client.ui(ui));
-        self.show_client = show_client;
+        // The client is a window of its own, like in the original, not a panel inside this one.
+        if self.show_client {
+            let classic = self.classic;
+            let client = &mut self.client;
+            let builder = egui::ViewportBuilder::default()
+                .with_title("Modbus/TCP Client")
+                .with_inner_size([CLIENT_WINDOW_W, CLIENT_WINDOW_H])
+                .with_resizable(false)
+                .with_maximize_button(false);
+            let mut close = false;
+            let mut requests = clientview::Requests::default();
+            ctx.show_viewport_immediate(egui::ViewportId::from_hash_of("client"), builder, |ctx, _class| {
+                egui::CentralPanel::default().frame(egui::Frame::new().fill(ctx.global_style().visuals.panel_fill).inner_margin(egui::Margin::same(4))).show(ctx, |ui| {
+                    requests = client.ui(ui, theme::menu_config(classic));
+                });
+                close = ctx.input(|i| i.viewport().close_requested());
+            });
+            if close || requests.hide {
+                self.show_client = false;
+            }
+            if requests.scanner {
+                self.show_scanner = true;
+            }
+        }
 
         let mut show_setval = self.show_setval;
         let regs = self.regs.clone();
@@ -781,7 +898,9 @@ impl eframe::App for App {
         self.scanner.show(&ctx, &mut show_scanner, &self.regs, self.tooltips);
         self.show_scanner = show_scanner;
 
-        self.file.ui(&ctx, &self.regs, self.bank, &mut self.start_address);
+        if let Some(err) = self.file.ui(&self.regs, self.bank, &mut self.start_address) {
+            self.message = Some(err);
+        }
     }
 }
 
@@ -818,18 +937,7 @@ fn next_forced_exception(current: Option<Exception>, chosen: Exception) -> Optio
 
 /// A checkmark menu entry without a shortcut; true when clicked.
 fn check_plain(ui: &mut egui::Ui, on: bool, text: &str) -> bool {
-    let label = if on { format!("\u{2713} {text}") } else { format!("    {text}") };
-    ui.button(label).clicked()
-}
-
-/// A row of the Server status panel: the label and one value per client slot
-/// (`--` while a slot is free or has not sent anything yet).
-fn stats_row(ui: &mut egui::Ui, label: &str, value: impl Fn(usize) -> Option<String>) {
-    ui.monospace(format!("{label}:"));
-    for slot in 0..2 {
-        ui.label(egui::RichText::new(value(slot).unwrap_or_else(|| "--".to_owned())).monospace().color(theme::VALUE_BLUE));
-    }
-    ui.end_row();
+    theme::check_item(ui, on, true, text, None)
 }
 
 /// The register list as tab-separated `address<TAB>value` lines.
@@ -843,18 +951,29 @@ fn list_text(rows: &[(u16, u16)], addr_hex: bool, hex: bool) -> String {
     out
 }
 
+/// A poll interval with its unit; 0 ms while none has been measured.
+fn fmt_ms(ms: Option<u64>) -> String {
+    format!("{} ms", ms.unwrap_or(0))
+}
+
 fn hex16(v: u16) -> String {
     let [hi, lo] = v.to_be_bytes();
     format!("{hi:02X} {lo:02X}  ({v})")
 }
 
+/// Hex byte and decimal value; the decimal lines up with the two-byte fields.
 fn hex8(v: u8) -> String {
-    format!("{v:02X}  ({v})")
+    format!("{v:02X}     ({v})")
+}
+
+fn hex16_plain(v: u16) -> String {
+    let [hi, lo] = v.to_be_bytes();
+    format!("{hi:02X} {lo:02X}")
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{first_free_port, port_changed_text, list_text, next_forced_exception, parse_port, Exception, EXCEPTION_CHOICES, FUNCTION_TOGGLES};
+    use super::{first_free_port, fmt_ms, hex8, hex16, hex16_plain, list_text, next_forced_exception, parse_port, port_changed_text, Exception, EXCEPTION_CHOICES, FUNCTION_TOGGLES};
 
     #[test]
     fn list_text_is_tab_separated_and_honours_hex() {
@@ -906,6 +1025,30 @@ mod tests {
     #[test]
     fn port_changed_text_names_both_ports() {
         assert_eq!(port_changed_text(503, 502), "Port changed to 503. Default port 502 is currently used by other instance of Ananas.");
+    }
+
+    #[test]
+    fn packet_fields_show_hex_then_decimal() {
+        assert_eq!(hex16(0), "00 00  (0)");
+        assert_eq!(hex16(258), "01 02  (258)");
+        assert_eq!(hex8(3), "03     (3)");
+        assert_eq!(hex16_plain(0), "00 00");
+    }
+
+    #[test]
+    fn start_address_and_uid_boxes_do_not_overlap() {
+        let (sx, sw) = super::START_BOX;
+        let (ux, uw) = super::UID_BOX;
+        assert!(ux - (sx + sw) >= 6.0, "gap between the boxes");
+        assert!(sw >= 66.0 + 16.0 && uw >= 20.0 + 16.0, "wide enough for the captions");
+        // The Type Shown box above spans 214..367; both boxes stay inside it.
+        assert!(sx >= 214.0 && ux + uw <= 367.0 + 1.0);
+    }
+
+    #[test]
+    fn poll_interval_always_has_its_unit() {
+        assert_eq!(fmt_ms(None), "0 ms");
+        assert_eq!(fmt_ms(Some(250)), "250 ms");
     }
 
     #[test]

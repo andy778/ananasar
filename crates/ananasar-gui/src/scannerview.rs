@@ -186,14 +186,11 @@ impl ScannerView {
     /// Show the scanner as a fixed-size window. `open` is cleared by the
     /// title-bar close button or the "Close!" menu entry.
     pub fn show(&mut self, ctx: &egui::Context, open: &mut bool, regs: &SharedRegs, tooltips: bool) {
-        let frame = egui::Frame::window(&ctx.global_style()).inner_margin(0.0);
-        let mut still_open = *open;
-        egui::Window::new("Register Scanner")
-            .open(&mut still_open)
-            .resizable(false)
-            .collapsible(false)
-            .frame(frame)
-            .show(ctx, |ui| {
+        if !*open {
+            self.connect_window(ctx);
+            return;
+        }
+        let closed = crate::dialog::show(ctx, "register-scanner", "Register Scanner", [CLIENT.x, CLIENT.y + 26.0], 0, &mut |ui| {
                 let mut close = false;
                 egui::MenuBar::new().ui(ui, |ui| {
                     if ui.button("Close!").clicked() {
@@ -205,7 +202,7 @@ impl ScannerView {
                     *open = false;
                 }
             });
-        if !still_open {
+        if closed {
             *open = false;
         }
         self.connect_window(ctx);

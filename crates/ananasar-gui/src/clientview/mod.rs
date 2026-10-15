@@ -16,9 +16,10 @@ mod worker;
 
 use ananasar_core::registers::RegisterFile;
 use eframe::egui;
+use widgets::Canvas;
 use connection::ConnDialog;
 use lists::RangeDialog;
-use polling::{MAX_READ, MAX_WRITE};
+use polling::{DEFAULT_WRITE, MAX_READ};
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Sender};
@@ -27,17 +28,29 @@ use worker::{spawn_worker, Cmd, Shared};
 
 pub use worker::Mode;
 
+/// What the client window asks of the application around it.
+#[derive(Default)]
+pub struct Requests {
+    /// Edit > Hide Window.
+    pub hide: bool,
+    /// Modbus > Register Scanner.
+    pub scanner: bool,
+}
+
 pub struct ClientView {
     shared: Arc<Shared>,
     tx: Sender<Cmd>,
     host: String,
     port: String,
     keepalive: bool,
-    uid: String,
+    uid: u16,
+    /// Which read list the Read Input/Holding register group edits.
+    read_input_selected: bool,
+    read_addr: u16,
+    write_addr: u16,
     read_holding: Vec<u16>,
     read_input: Vec<u16>,
     write: Vec<u16>,
-    addr_input: String,
     mode: Mode,
     max_read: u16,
     max_write: u16,
@@ -75,14 +88,16 @@ impl ClientView {
             host,
             port,
             keepalive: false,
-            uid: "1".into(),
+            uid: 1,
+            read_input_selected: false,
+            read_addr: 0,
+            write_addr: 0,
             read_holding: vec![],
             read_input: vec![],
             write: vec![],
-            addr_input: String::new(),
             mode: Mode::Pause,
             max_read: MAX_READ,
-            max_write: MAX_WRITE,
+            max_write: DEFAULT_WRITE,
             interval_ms: 1000,
             base_one: false,
             zero_ti: false,
@@ -111,13 +126,32 @@ impl ClientView {
         self.shared.connected.load(Ordering::SeqCst)
     }
 
-    pub fn ui(&mut self, ui: &mut egui::Ui) {
+    /// The window contents: menu bar, then a fixed-size client area laid out
+    /// at absolute positions.
+    pub fn ui(&mut self, ui: &mut egui::Ui, menu: egui::containers::menu::MenuConfig) -> Requests {
         let connected = self.shared.connected.load(Ordering::SeqCst);
-        self.connection_ui(ui, connected);
-        self.polling_ui(ui);
-        self.lists_ui(ui);
+        let mut requests = self.menu_ui(ui, menu, connected);
+        requests.scanner |= self.modbus_shortcuts(ui.ctx(), connected);
+        let c = Canvas::new(ui, 301.0, 522.0);
+        self.connection_ui(ui, &c, connected);
+        self.lists_ui(ui, &c);
+        self.polling_ui(ui, &c);
+        self.log_ui(ui, &c, (6.0, 412.0, 288.0, 106.0));
         self.manual_ui(ui, connected);
-        ui.separator();
-        self.log_ui(ui);
+        requests
+    }
+
+    /// The Edit and Modbus menus: the actions that have no control of their own.
+    fn menu_ui(&mut self, ui: &mut egui::Ui, menu: egui::containers::menu::MenuConfig, connected: bool) -> Requests {
+        let mut requests = Requests::default();
+        egui::MenuBar::new().config(menu).ui(ui, |ui| {
+            ui.menu_button("Edit", |ui| {
+                requests.hide = self.edit_menu(ui);
+            });
+            ui.menu_button("Modbus", |ui| {
+                requests.scanner = self.modbus_menu(ui, connected);
+            });
+        });
+        requests
     }
 }
