@@ -1,0 +1,41 @@
+[package]
+name = "ananasar-dde"
+description = "DDE server for the shared register file (Windows DDEML)"
+version.workspace = true
+edition.workspace = true
+rust-version = "1.92"
+license.workspace = true
+
+[dependencies]
+ananasar-core = { path = "../ananasar-core" }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_System_DataExchange",
+  "Win32_System_Threading",
+  "Win32_UI_WindowsAndMessaging",
+] }
+
+# Same lints as the workspace, except `unsafe_code`: DDEML is a C API, so this
+# crate (and only this crate) talks to it through FFI. `unsafe` is denied
+# everywhere and allowed in exactly one module, `server`; the pure parsing and
+# formatting in `item` has no unsafe and is tested on every platform.
+[lints.rust]
+unsafe_code = "deny"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+uninlined_format_args = "warn"
+manual_let_else = "warn"
+semicolon_if_nothing_returned = "warn"
+explicit_iter_loop = "warn"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+unreachable = "deny"
+indexing_slicing = "deny"
+arithmetic_side_effects = "deny"
