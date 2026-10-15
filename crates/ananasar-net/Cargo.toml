@@ -10,5 +10,8 @@ description = "Blocking Modbus/TCP server and frame reader shared by the Ananasa
 ananasar-core = { path = "../ananasar-core" }
 socket2 = { version = "0.6", features = ["all"] }
 
+[dev-dependencies]
+proptest = { version = "=1.12.0", default-features = false, features = ["std"] }
+
 [lints]
 workspace = true
