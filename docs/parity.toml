@@ -1,0 +1,191 @@
+# Feature parity table: which behaviours of the original Ananas are in Ananasar.
+#
+# Every entry is a [[feature]] with:
+#   id      unique short name
+#   area    server | client | gui | files
+#   feature one line, behavioural wording
+#   status  shipped | partial | missing
+#   tests   "path::test_fn" entries (single-line array); required for shipped
+#   issue   GitHub issue number, required for partial and missing
+#   note    optional, what is not covered
+#
+# `cargo test -p ananasar-core --test parity_table` fails when a shipped entry
+# has no tests, or a named test does not exist as a #[test] fn in that file.
+# GUI behaviour with no automated test is "partial" and says so in the note.
+# Wording stays behavioural: see CLAUDE.md for what must not be used.
+
+[[feature]]
+id = "server-fc-3-4-6-16-22-23"
+area = "server"
+feature = "Server answers function codes 3, 4, 6, 16, 22 and 23 with the specified replies"
+status = "shipped"
+tests = ["crates/ananasar-core/tests/golden.rs::golden_recordings_replay", "crates/ananasar-core/src/lib.rs::read_holding_returns_values", "crates/ananasar-core/src/lib.rs::write_single_then_read_back"]
+
+[[feature]]
+id = "server-exceptions"
+area = "server"
+feature = "Unsupported function codes and out-of-range quantities give exception replies"
+status = "shipped"
+tests = ["crates/ananasar-core/src/lib.rs::unsupported_function_yields_exception", "crates/ananasar-core/src/lib.rs::over_limit_quantity_is_rejected_not_overflowed"]
+
+[[feature]]
+id = "server-unit-filter"
+area = "server"
+feature = "Requests for a non-matching unit id are dropped silently"
+status = "shipped"
+tests = ["crates/ananasar-core/src/lib.rs::uid_mismatch_is_dropped"]
+
+[[feature]]
+id = "frame-validation"
+area = "server"
+feature = "MBAP header checks and whole-frame reading from the stream"
+status = "shipped"
+tests = ["crates/ananasar-core/src/lib.rs::frame_roundtrip_and_header_checks", "crates/ananasar-net/src/lib.rs::reads_a_whole_frame", "crates/ananasar-net/src/lib.rs::rejects_bad_or_truncated_frames"]
+
+[[feature]]
+id = "server-two-clients"
+area = "server"
+feature = "Two client connections at a time, lowest free slot first"
+status = "shipped"
+tests = ["crates/ananasar-net/src/stats.rs::slots_fill_lowest_first_and_free_again"]
+
+[[feature]]
+id = "server-status-panel"
+area = "server"
+feature = "Per-client statistics: last request fields, traffic totals, error flags"
+status = "shipped"
+tests = ["crates/ananasar-net/src/stats.rs::records_request_fields_and_flags", "crates/ananasar-net/src/stats.rs::exception_replies_are_noted"]
+
+[[feature]]
+id = "server-data-log"
+area = "server"
+feature = "Raw and interpretive data log with numbered entries and connections"
+status = "shipped"
+tests = ["crates/ananasar-core/src/log.rs::raw_entry_layout", "crates/ananasar-core/src/log.rs::interpretive_entry_layout", "crates/ananasar-core/src/log.rs::exception_reply_is_decoded", "crates/ananasar-net/src/log.rs::numbers_entries_and_connections", "crates/ananasar-net/src/log.rs::can_start_and_stop_while_connections_stay_numbered"]
+
+[[feature]]
+id = "server-port-dialog"
+area = "gui"
+feature = "Dialog to change the server listening port"
+status = "partial"
+tests = ["crates/ananasar-gui/src/main.rs::port_must_be_1_to_65535"]
+issue = 50
+note = "port validation is tested; the dialog and the rebind are a manual check"
+
+[[feature]]
+id = "client-poll-engine"
+area = "client"
+feature = "Round-robin polling of sorted address lists"
+status = "shipped"
+tests = ["crates/ananasar-core/src/lib.rs::engine_round_robins_and_builds_valid_reads"]
+
+[[feature]]
+id = "client-query-merging"
+area = "client"
+feature = "Consecutive addresses merged into as few queries as possible, up to the transaction limit"
+status = "shipped"
+tests = ["crates/ananasar-core/src/lib.rs::optimizer_coalesces_consecutive_runs", "crates/ananasar-core/src/lib.rs::optimizer_respects_max_per_query"]
+
+[[feature]]
+id = "client-transaction-limits"
+area = "client"
+feature = "Separate read and write transaction limit presets within the protocol maximums"
+status = "shipped"
+tests = ["crates/ananasar-gui/src/clientview.rs::clamps_to_protocol_maximums", "crates/ananasar-gui/src/clientview.rs::presets_fit_their_maximum"]
+
+[[feature]]
+id = "client-register-series"
+area = "client"
+feature = "Add and clear register ranges in the client window"
+status = "shipped"
+tests = ["crates/ananasar-gui/src/clientview.rs::add_range_merges_sorted_and_deduped", "crates/ananasar-gui/src/clientview.rs::add_range_reaches_the_top_address", "crates/ananasar-gui/src/clientview.rs::remove_range_keeps_the_rest", "crates/ananasar-gui/src/clientview.rs::parse_range_rejects_bad_input"]
+
+[[feature]]
+id = "client-zero-txn-id"
+area = "client"
+feature = "Option to always send transaction id 00 00"
+status = "shipped"
+tests = ["crates/ananasar-core/src/lib.rs::force_zero_txn_keeps_transaction_id_at_zero"]
+
+[[feature]]
+id = "client-address-base-one"
+area = "client"
+feature = "Address base option: addresses shown from 1, subtracted on the wire"
+status = "shipped"
+tests = ["crates/ananasar-core/src/lib.rs::address_base_one_subtracts_on_wire"]
+
+[[feature]]
+id = "client-manual-writes"
+area = "client"
+feature = "Manual FC6 and FC22 commands, and the Use Function 16 option for single-register writes"
+status = "shipped"
+tests = ["crates/ananasar-core/src/lib.rs::manual_write_single_fc6_frame", "crates/ananasar-core/src/lib.rs::manual_write_single_as_fc16_frame", "crates/ananasar-core/src/lib.rs::manual_mask_write_frame"]
+
+[[feature]]
+id = "client-connection-dialog"
+area = "client"
+feature = "Host and port input, keepalive option and partner info"
+status = "shipped"
+tests = ["crates/ananasar-net/src/client.rs::parses_valid_endpoint", "crates/ananasar-net/src/client.rs::rejects_bad_endpoints", "crates/ananasar-net/src/client.rs::connects_with_and_without_keepalive", "crates/ananasar-gui/src/clientview.rs::partner_text_shows_ip_and_port"]
+
+[[feature]]
+id = "client-event-log-copy"
+area = "gui"
+feature = "Copy event log lines to the clipboard"
+status = "shipped"
+tests = ["crates/ananasar-gui/src/clientview.rs::join_lines_separates_with_newlines"]
+
+[[feature]]
+id = "register-scanner"
+area = "client"
+feature = "Scan a register range one register at a time"
+status = "shipped"
+tests = ["crates/ananasar-core/src/scanner.rs::scans_a_range_against_the_server_engine", "crates/ananasar-core/src/scanner.rs::counts_exceptions_and_silence_as_failures", "crates/ananasar-core/src/scanner.rs::full_range_and_empty_range"]
+
+[[feature]]
+id = "register-files"
+area = "files"
+feature = "Save and load register values as *.ananas text files"
+status = "shipped"
+tests = ["crates/ananasar-core/src/ananas_file.rs::round_trips_registers_and_lists", "crates/ananasar-core/src/ananas_file.rs::only_nonzero_registers_are_stored", "crates/ananasar-core/src/ananas_file.rs::rejects_bad_lines_with_a_line_number"]
+
+[[feature]]
+id = "gui-menus"
+area = "gui"
+feature = "Menu bar captions, shortcuts, Save As, About and window title like the original"
+status = "partial"
+issue = 38
+note = "no automated test; checked by hand against the original"
+
+[[feature]]
+id = "gui-hex-bit-editor"
+area = "gui"
+feature = "Hex display, inline register editing and bit editor with 32-bit views"
+status = "partial"
+issue = 38
+note = "no automated test; checked by hand"
+
+[[feature]]
+id = "wire-parity"
+area = "server"
+feature = "Same bytes on the wire as the original for the fixed scenarios"
+status = "partial"
+tests = ["crates/ananasar-parity/tests/loopback.rs::scenarios_record_expected_replies_and_repeat_identically"]
+issue = 64
+note = "the comparison against the original needs the original run by hand, see docs/parity-testing.md; only specification-derived recordings run in CI"
+
+[[feature]]
+id = "dde-and-adapter"
+area = "gui"
+feature = "DDE export and network-adapter IP configuration (Windows-only)"
+status = "missing"
+issue = 22
+note = "decision needed whether to port at all"
+
+[[feature]]
+id = "alarm-data"
+area = "server"
+feature = "Alarm data with timestamps over Modbus"
+status = "missing"
+issue = 32
+note = "investigation only; legal status must be settled first"
