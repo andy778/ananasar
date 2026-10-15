@@ -3,7 +3,7 @@
 //! Section names are shown in reports but not compared, so a scenario run can
 //! be compared with a proxied session of the same requests.
 
-use crate::recording::{Entry, Recording};
+use crate::recording::{Entry, Recording, Section};
 
 /// A one-line decoded view of a frame, for reports.
 pub fn describe(bytes: &[u8]) -> String {
@@ -21,11 +21,21 @@ pub fn describe(bytes: &[u8]) -> String {
     s
 }
 
-fn normalize(entry: &Entry) -> Entry {
+/// How strictly two recordings are compared.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Options {
+    /// Compare transaction ids too. Needed for the fault options that change
+    /// the id in a reply; the scenarios send fixed ids, so it is repeatable.
+    pub strict_txn: bool,
+}
+
+fn normalize(entry: &Entry, opts: Options) -> Entry {
     let zero_txn = |b: &[u8]| {
         let mut b = b.to_vec();
-        for byte in b.iter_mut().take(2) {
-            *byte = 0;
+        if !opts.strict_txn {
+            for byte in b.iter_mut().take(2) {
+                *byte = 0;
+            }
         }
         b
     };
@@ -47,6 +57,11 @@ fn show(entry: Option<&Entry>) -> String {
 /// Every difference between `a` and `b`, one report block per difference.
 /// Empty means the recordings are equivalent.
 pub fn diff(a: &Recording, b: &Recording) -> Vec<String> {
+    diff_with(a, b, Options::default())
+}
+
+/// [`diff`] with explicit [`Options`]. Sections are paired by position.
+pub fn diff_with(a: &Recording, b: &Recording, opts: Options) -> Vec<String> {
     let mut out = Vec::new();
     if a.sections.len() != b.sections.len() {
         out.push(format!("section count differs: {} vs {}", a.sections.len(), b.sections.len()));
@@ -57,12 +72,56 @@ pub fn diff(a: &Recording, b: &Recording) -> Vec<String> {
         } else {
             format!("{} / {}", sa.name, sb.name)
         };
-        let n = sa.entries.len().max(sb.entries.len());
-        for i in 0..n {
-            let (ea, eb) = (sa.entries.get(i), sb.entries.get(i));
-            if ea.map(normalize) != eb.map(normalize) {
-                out.push(format!("[{label}] entry {}\n  a: {}\n  b: {}", i + 1, show(ea), show(eb)));
-            }
+        out.extend(section_differences(&label, sa, sb, opts));
+    }
+    out
+}
+
+fn section_differences(label: &str, a: &Section, b: &Section, opts: Options) -> Vec<String> {
+    let n = a.entries.len().max(b.entries.len());
+    (0..n)
+        .filter_map(|i| {
+            let (ea, eb) = (a.entries.get(i), b.entries.get(i));
+            (ea.map(|e| normalize(e, opts)) != eb.map(|e| normalize(e, opts)))
+                .then(|| format!("[{label}] entry {}\n  a: {}\n  b: {}", i + 1, show(ea), show(eb)))
+        })
+        .collect()
+}
+
+/// The outcome for one scenario.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Verdict {
+    /// Scenario (section) name.
+    pub name: String,
+    /// Empty when the two sides agree; otherwise one block per difference,
+    /// or a note that one side lacks the scenario.
+    pub differences: Vec<String>,
+}
+
+impl Verdict {
+    /// Whether both sides agree on this scenario.
+    pub fn matches(&self) -> bool {
+        self.differences.is_empty()
+    }
+}
+
+/// Compare two recordings scenario by scenario, pairing sections by name, in
+/// the order of `a` followed by any sections only `b` has.
+pub fn verdicts(a: &Recording, b: &Recording, opts: Options) -> Vec<Verdict> {
+    let mut out: Vec<Verdict> = a
+        .sections
+        .iter()
+        .map(|sa| {
+            let differences = match b.sections.iter().find(|s| s.name == sa.name) {
+                Some(sb) => section_differences(&sa.name, sa, sb, opts),
+                None => vec![format!("[{}] missing from b", sa.name)],
+            };
+            Verdict { name: sa.name.clone(), differences }
+        })
+        .collect();
+    for sb in &b.sections {
+        if !a.sections.iter().any(|s| s.name == sb.name) {
+            out.push(Verdict { name: sb.name.clone(), differences: vec![format!("[{}] missing from a", sb.name)] });
         }
     }
     out

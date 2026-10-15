@@ -5,6 +5,8 @@
 //!   server address and recorded.
 //! - [`proxy`]: a logging TCP proxy that records any client/server session.
 //! - [`diff`]: compares two recordings, ignoring transaction ids and timing.
+//! - [`golden`]: committed recordings of the original, with deviation notes.
+//! - [`ours`]: Ananasar's server in-process, set up like a scenario profile.
 //! - [`recording`]: the plain-text format they all share.
 #![allow(
     clippy::arithmetic_side_effects,
@@ -13,6 +15,8 @@
 )]
 
 pub mod diff;
+pub mod golden;
+pub mod ours;
 pub mod proxy;
 pub mod recording;
 pub mod runner;
