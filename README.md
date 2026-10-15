@@ -123,7 +123,7 @@ The parsers that read network input are also fuzzed (`cargo +nightly fuzz run fr
 
 ## Not yet implemented
 
-The Windows-only DDE and network-adapter features (not planned).
+The network-adapter features (not planned). The Windows-only DDE server (Options > DDE Server) is implemented in `ananasar-dde`: service `Ananasar`, topics `input` and `holding`, items `r<N>` such as `=Ananasar|holding!r100`; the GUI can read, write (poke) and hot-link registers.
 
 ## About the original
 
