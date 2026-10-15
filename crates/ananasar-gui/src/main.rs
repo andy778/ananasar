@@ -108,6 +108,8 @@ struct App {
     addr_hex: bool,
     classic: bool,
     editing: Option<u16>,
+    /// Value List mode: false = Monitor (read-only, the default), true = Edit.
+    value_list_edit: bool,
     edit_buf: String,
     show_about: bool,
     local_ip: Option<std::net::IpAddr>,
@@ -148,6 +150,7 @@ impl App {
             addr_hex: false,
             classic: true,
             editing: None,
+            value_list_edit: false,
             edit_buf: String::new(),
             show_about: false,
             local_ip: local_ip(),
@@ -303,6 +306,21 @@ impl eframe::App for App {
             let label = if on { format!("\u{2713} {text}") } else { format!("    {text}") };
             ui.add(egui::Button::new(label).shortcut_text(ctx.format_shortcut(sc))).clicked()
         };
+        // Value List shortcuts leave Ctrl+C/E/M to a focused text field.
+        let vl_edit_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::E);
+        let vl_monitor_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::M);
+        let vl_copy_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::C);
+        let mut set_edit: Option<bool> = None;
+        let mut copy_list = false;
+        if !ctx.egui_wants_keyboard_input() {
+            if ctx.input_mut(|i| i.consume_shortcut(&vl_edit_sc)) {
+                set_edit = Some(true);
+            }
+            if ctx.input_mut(|i| i.consume_shortcut(&vl_monitor_sc)) {
+                set_edit = Some(false);
+            }
+            copy_list = ctx.input_mut(|i| i.consume_shortcut(&vl_copy_sc));
+        }
         let title = window_title(&self.local_ip, self.server_port);
         if title != self.title {
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
@@ -333,6 +351,23 @@ impl eframe::App for App {
                 });
                 ui.menu_button("Edit", |ui| {
                     ui.set_min_width(190.0);
+                    ui.menu_button("Value List", |ui| {
+                        ui.set_min_width(190.0);
+                        if check(ui, self.value_list_edit, "Edit", &vl_edit_sc) {
+                            set_edit = Some(true);
+                            ui.close();
+                        }
+                        if check(ui, !self.value_list_edit, "Monitor", &vl_monitor_sc) {
+                            set_edit = Some(false);
+                            ui.close();
+                        }
+                        ui.separator();
+                        if item(ui, "Copy", &vl_copy_sc) {
+                            copy_list = true;
+                            ui.close();
+                        }
+                    });
+                    ui.separator();
                     if item(ui, "Set Register Value", &setreg_sc) {
                         self.show_setval = true;
                         ui.close();
@@ -433,6 +468,22 @@ impl eframe::App for App {
             });
         });
 
+        if let Some(edit) = set_edit {
+            self.value_list_edit = edit;
+            if !edit {
+                self.editing = None;
+            }
+        }
+        if copy_list {
+            let rows: Vec<(u16, u16)> = {
+                let regs = lock(&self.regs);
+                (0..VISIBLE_ROWS)
+                    .filter_map(|i| self.start_address.checked_add(i))
+                    .map(|addr| (addr, regs.get(self.bank, addr)))
+                    .collect()
+            };
+            ctx.copy_text(list_text(&rows, self.addr_hex, self.hex));
+        }
         if toggle_listen {
             self.toggle_listening(&ctx);
         }
@@ -463,7 +514,7 @@ impl eframe::App for App {
                 let step = if scroll > 0.0 { 10i32 } else { -10 };
                 self.start_address = u16::try_from((i32::from(self.start_address).saturating_add(step)).clamp(0, 65535)).unwrap_or(0);
             }
-            let editable = self.bank == Bank::Holding;
+            let editable = self.bank == Bank::Holding && self.value_list_edit;
             let snapshot: Vec<(u16, u16)> = {
                 let regs = lock(&self.regs);
                 (0..VISIBLE_ROWS)
@@ -668,6 +719,17 @@ fn stats_row(ui: &mut egui::Ui, label: &str, value: impl Fn(usize) -> Option<Str
     ui.end_row();
 }
 
+/// The register list as tab-separated `address<TAB>value` lines.
+fn list_text(rows: &[(u16, u16)], addr_hex: bool, hex: bool) -> String {
+    let mut out = String::new();
+    for &(addr, v) in rows {
+        let a = if addr_hex { format!("{addr:04X}") } else { addr.to_string() };
+        let v = if hex { format!("{v:04X}") } else { v.to_string() };
+        out.push_str(&format!("{a}\t{v}\n"));
+    }
+    out
+}
+
 fn hex16(v: u16) -> String {
     let [hi, lo] = v.to_be_bytes();
     format!("{hi:02X} {lo:02X}  ({v})")
@@ -679,7 +741,14 @@ fn hex8(v: u8) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_port;
+    use super::{list_text, parse_port};
+
+    #[test]
+    fn list_text_is_tab_separated_and_honours_hex() {
+        let rows = [(10, 255), (11, 0)];
+        assert_eq!(list_text(&rows, false, false), "10\t255\n11\t0\n");
+        assert_eq!(list_text(&rows, true, true), "000A\t00FF\n000B\t0000\n");
+    }
 
     #[test]
     fn port_must_be_1_to_65535() {
