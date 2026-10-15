@@ -32,6 +32,7 @@ A port of Ananas, the free Modbus/TCP test tool by Tuomio, built with [REA](http
 - **Register scanner**: `ananasar scan host:port --start 0 --end 99` reads a range one register at a time and reports which answer. The GUI has the same sweep under View → Scanner, with a results table and a stoppable run.
 - **Save / load** register values as `*.ananas` text files (File → Open… / Save…, or `ananasar server --load FILE`).
 - **Headless CLI** for scripting, built on the same engine.
+- **MCP server** (`ananasar-mcp`) so an AI assistant such as Claude can read and write Modbus devices and run a simulated server, read-only by default. See [docs/mcp.md](docs/mcp.md).
 
 ## Download
 
@@ -39,7 +40,7 @@ Prebuilt binaries are attached to every [release](https://github.com/andy778/ana
 
 | Platform | Files |
 | --- | --- |
-| Windows x64 | `ananasar.exe` (CLI), `ananasar-gui.exe` (GUI) |
+| Windows x64 | `ananasar.exe` (CLI), `ananasar-mcp.exe` (MCP server), `ananasar-gui.exe` (GUI) |
 | macOS (Apple silicon + Intel) | `ananasar-macos-universal.tar.gz` |
 | Linux x86_64 | `ananasar-linux-x86_64.tar.gz` |
 
@@ -47,7 +48,7 @@ The macOS build is unsigned, so Gatekeeper blocks it on first run. Clear the qua
 
 ```bash
 tar xzf ananasar-macos-universal.tar.gz
-xattr -dr com.apple.quarantine ananasar ananasar-gui
+xattr -dr com.apple.quarantine ananasar ananasar-mcp ananasar-gui
 ./ananasar-gui
 ```
 
@@ -91,6 +92,16 @@ The log file is named `ananasar-<port>-<UTC time>.log`; each entry is numbered a
 
 Run `ananasar --help` or `ananasar client --help` for every option. Shell completions: `ananasar completions bash` (also zsh, fish, powershell, elvish).
 
+## Use it from an AI assistant (MCP)
+
+`ananasar-mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio. It gives an assistant tools to read Modbus/TCP devices, run a simulated server on your machine and inspect its traffic. It is **read-only by default**: writes to remote devices need `--allow-write`.
+
+```bash
+claude mcp add ananasar -- ananasar-mcp
+```
+
+Then ask, for example: *"Start a simulated Modbus server on port 15021, set holding registers 100-103 to 1, 2, 3, 4, then read them back through the client."* Setup for Claude Desktop, the full tool list and the safety model are in [docs/mcp.md](docs/mcp.md).
+
 ## Build from source
 
 Needs Rust 1.92 for the core and CLI, and 1.95 for the GUI (egui 0.36).
@@ -111,6 +122,7 @@ The parsers that read network input are also fuzzed (`cargo +nightly fuzz run fr
   - `log`: raw and interpretive log entry formatting
   - `client`: the poll engine and query builders
 - [`crates/ananasar-cli`](crates/ananasar-cli): the headless `ananasar` binary
+- [`crates/ananasar-mcp`](crates/ananasar-mcp): the `ananasar-mcp` binary, an MCP server for AI assistants, see [docs/mcp.md](docs/mcp.md)
 - [`crates/ananasar-gui`](crates/ananasar-gui): the egui application (`ananasar-gui`)
 - [`crates/ananasar-parity`](crates/ananasar-parity): wire-level scenario runner, recording proxy and diff for comparing servers, see [docs/parity-testing.md](docs/parity-testing.md)
 - [`fuzz`](fuzz): cargo-fuzz targets for the frame parser and the server handler

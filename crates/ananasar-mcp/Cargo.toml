@@ -1,0 +1,19 @@
+[package]
+name = "ananasar-mcp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Model Context Protocol (MCP) server that lets an AI assistant drive Modbus/TCP through Ananasar."
+
+[[bin]]
+name = "ananasar-mcp"
+path = "src/main.rs"
+
+[dependencies]
+ananasar-core = { path = "../ananasar-core" }
+ananasar-net = { path = "../ananasar-net" }
+serde_json = "1"
+
+[lints]
+workspace = true
