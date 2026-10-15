@@ -11,7 +11,7 @@ const HOT_FACE: Color32 = Color32::from_rgb(0xE5, 0xF1, 0xFB);
 const HOT_BORDER: Color32 = Color32::from_rgb(0x00, 0x78, 0xD7);
 const DOWN_FACE: Color32 = Color32::from_rgb(0xCC, 0xE4, 0xF7);
 const DOWN_BORDER: Color32 = Color32::from_rgb(0x00, 0x54, 0x99);
-const HIGHLIGHT: Color32 = Color32::from_rgb(0x00, 0x78, 0xD7);
+pub const HIGHLIGHT: Color32 = Color32::from_rgb(0x00, 0x78, 0xD7);
 
 /// Apply (`classic == true`) or remove the Classic style on the light theme.
 /// The dark theme is never touched.
@@ -98,4 +98,48 @@ fn classic_menu_style(style: &mut egui::Style) {
     style.visuals.widgets.hovered.bg_fill = HOT_FACE;
     style.visuals.widgets.active.weak_bg_fill = DOWN_FACE;
     style.visuals.widgets.open.weak_bg_fill = DOWN_FACE;
+}
+
+/// Blue used for the live values of the Server panel.
+pub const VALUE_BLUE: Color32 = Color32::from_rgb(0x00, 0x00, 0xC8);
+
+/// The 1 px grey border of a register-grid cell.
+pub fn grid_stroke() -> Stroke {
+    Stroke::new(1.0, BTN_SHADOW)
+}
+
+/// A group box with a thin border and its title sitting on the border line.
+pub fn titled_group<R>(ui: &mut egui::Ui, title: &str, add: impl FnOnce(&mut egui::Ui) -> R) -> R {
+    let font = egui::TextStyle::Body.resolve(ui.style());
+    let galley = ui.painter().layout_no_wrap(title.to_owned(), font, ui.visuals().text_color());
+    let half = galley.size().y / 2.0;
+    ui.add_space(half);
+    let framed = egui::Frame::new()
+        .stroke(Stroke::new(1.0, BTN_SHADOW))
+        .inner_margin(egui::Margin::symmetric(8, 6))
+        .show(ui, |ui| {
+            ui.add_space(half);
+            add(ui)
+        });
+    let rect = framed.response.rect;
+    let pos = rect.left_top() + Vec2::new(8.0, -half);
+    let label = egui::Rect::from_min_size(pos, galley.size()).expand2(Vec2::new(3.0, 0.0));
+    ui.painter().rect_filled(label, 0.0, ui.visuals().panel_fill);
+    ui.painter().galley(pos, galley, Color32::BLACK);
+    framed.inner
+}
+
+/// A number box with a drop-down list of preset values next to it.
+/// Returns whether the value changed.
+pub fn combo_u16(ui: &mut egui::Ui, id: &str, value: &mut u16, max: u16, presets: &[u16]) -> bool {
+    let mut changed = ui.add(egui::DragValue::new(value).range(0..=max).speed(1.0)).changed();
+    egui::ComboBox::from_id_salt(id).width(0.0).selected_text("").show_ui(ui, |ui| {
+        for &p in presets {
+            if ui.selectable_label(*value == p, p.to_string()).clicked() {
+                *value = p;
+                changed = true;
+            }
+        }
+    });
+    changed
 }
