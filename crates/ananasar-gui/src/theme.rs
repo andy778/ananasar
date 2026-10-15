@@ -76,3 +76,26 @@ fn classic_style() -> egui::Style {
     style.visuals = v;
     style
 }
+
+/// Menu config for the menu bar: flat white popups with a 1 px grey border,
+/// square corners and roomier rows in the Classic style, egui's own otherwise.
+pub fn menu_config(classic: bool) -> egui::containers::menu::MenuConfig {
+    let config = egui::containers::menu::MenuConfig::new();
+    if classic { config.style(classic_menu_style) } else { config }
+}
+
+fn classic_menu_style(style: &mut egui::Style) {
+    egui::containers::menu::menu_style(style);
+    style.visuals.window_fill = Color32::WHITE;
+    style.visuals.window_stroke = Stroke::new(1.0, BTN_SHADOW);
+    style.visuals.menu_corner_radius = CornerRadius::ZERO;
+    style.visuals.popup_shadow = egui::Shadow::NONE;
+    style.spacing.menu_margin = egui::Margin::same(1);
+    style.spacing.button_padding = Vec2::new(14.0, 3.0);
+    style.spacing.item_spacing = Vec2::new(6.0, 0.0);
+    style.spacing.interact_size.y = 22.0;
+    style.visuals.widgets.hovered.weak_bg_fill = HOT_FACE;
+    style.visuals.widgets.hovered.bg_fill = HOT_FACE;
+    style.visuals.widgets.active.weak_bg_fill = DOWN_FACE;
+    style.visuals.widgets.open.weak_bg_fill = DOWN_FACE;
+}
