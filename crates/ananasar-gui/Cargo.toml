@@ -21,5 +21,10 @@ rfd = "0.17.2"
 [target.'cfg(windows)'.dependencies]
 ananasar-dde = { path = "../ananasar-dde" }
 
+[dev-dependencies]
+# Headless rendering of the README screenshot (docs/screenshots.md). The
+# wgpu renderer prefers a software adapter, so it needs no GPU.
+egui_kittest = { version = "0.36", features = ["eframe", "wgpu"] }
+
 [lints]
 workspace = true

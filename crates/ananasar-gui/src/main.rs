@@ -13,6 +13,8 @@ mod embed;
 mod scannerview;
 mod filewindow;
 mod setvalview;
+#[cfg(test)]
+mod screenshot;
 mod theme;
 
 use ananasar_core::protocol::Exception;
