@@ -1,0 +1,101 @@
+# The menu tree of the original program, as the test in spec_tests.rs expects ours to be.
+#
+# Layout: one entry per line, two spaces of indent per nesting level.
+#   Caption  @ Shortcut  [flags]      an entry; flags: check, checked, disabled
+#   ---                               a separator
+#   + Caption ...                     an intentional addition of ours (allowed only after the
+#                                     original entries of the same menu)
+#   ~ field=value : reason            an intentional deviation, applies to the entry above.
+#                                     field is kind, checked or enabled; ours may then have
+#                                     either the original's value or this one.
+#   !hidden Caption                   an entry the original hides; it must not appear anywhere.
+# Captions are written without '&' mnemonics. "<n>" stands for the port number.
+
+!hidden Set IP…
+!hidden Client…
+
+File
+  Open…  @ Ctrl+O
+  Save As…  @ Ctrl+S
+  ---
+  Exit  @ Alt+F4
+  ---
+  About…
+
+Edit
+  Value List
+    Edit  @ Ctrl+E  [check]
+    Monitor  @ Ctrl+M  [checked]
+    ---
+    Copy  @ Ctrl+C
+  ---
+  Set Register Value  @ Ctrl+R
+  ---
+  Initialize
+    Input Registers
+      All to '0'
+      Ascending
+    Holding Registers
+      All to '0'
+      Ascending
+
+View
+  Registers as Hex  @ Ctrl+Shift+H  [check]
+  Values as Hex  @ Ctrl+H  [check]
+
+Options
+  Modbus
+    Active MB Functions
+      FC3  [checked]
+      FC4  [checked]
+      FC6  [checked]
+      FC7  [checked]
+      FC8  [checked]
+      FC16  [checked]
+      FC22  [checked]
+      FC23  [checked]
+    ---
+    Return Incorrect TI
+      ~ enabled=false : the server cannot send a wrong transaction id yet
+    Return Incorrect Protocol ID
+      ~ enabled=false : the server cannot send a wrong protocol id yet
+    Return Incorrect Length High Byte
+      ~ enabled=false : the server cannot send a wrong length yet
+    Return Exception
+      # Whether the original ticks these is not recorded; ours tick the forced exception.
+      Illegal Function  [check]
+      Illegal Data Address  [check]
+      Illegal Data Value  [check]
+      Slave Device Failure  [check]
+      Acknowledge  [check]
+      Slave Device Busy  [check]
+      Negative Acknowledge  [check]
+      Memory Parity Error  [check]
+      Gateway Path Unavailable  [check]
+      Gateway Target Device Failed to Respond  [check]
+    ---
+    Use Address Offset  @ Ctrl+Alt+O
+      ~ enabled=false : the engine has no address offset yet
+    ---
+    Reply Out of Synch  @ Ctrl+Alt+S
+      ~ enabled=false : the engine cannot reply out of synch yet
+    ---
+    Register Scanner…  @ Ctrl+Alt+C
+  TCP
+    Port
+      Monitor Port <n>  @ Ctrl+P  [checked]
+      Change Port…  @ Ctrl+N
+      ---
+      Purge Port Usage Blocking(s)
+        ~ enabled=false : there is no port usage blocking to purge
+    Disable Nagle
+      Connection #1  [disabled]
+      Connection #2  [disabled]
+    ---
+    Release Connection if Unused >1 min  [checked]
+      ~ enabled=false : the server always releases a connection silent for a minute
+  ---
+  DDE Server…
+    ~ enabled=false : DDE is only available in builds that include the DDE server
+  ---
+  Show Tooltips  @ Ctrl+T  [checked]
