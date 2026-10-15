@@ -5,6 +5,10 @@
 //! `std::net` sockets is simpler than an async runtime. If the client cap is
 //! ever lifted, moving this crate to tokio would be the natural step; the core
 //! crate is I/O-free and would not change.
+#![cfg_attr(
+    test,
+    allow(clippy::arithmetic_side_effects, reason = "test code: a panic is a failed test")
+)]
 
 pub use client::{connect, parse_endpoint, split_host_port};
 pub use log::LogSink;
@@ -44,13 +48,17 @@ pub fn read_frame(r: &mut impl Read) -> io::Result<Vec<u8>> {
 fn read_frame_max(r: &mut impl Read, max: usize) -> io::Result<Vec<u8>> {
     let mut head = [0u8; MBAP_PREFIX + 1];
     r.read_exact(&mut head)?;
-    let total = 6 + usize::from(u16::from_be_bytes([head[4], head[5]]));
+    let declared = protocol::be_u16(&head, 4).map_or(0, usize::from);
+    let total = declared.saturating_add(6);
     if !(head.len()..=max).contains(&total) {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "bad MBAP length"));
     }
     let mut out = head.to_vec();
     out.resize(total, 0);
-    r.read_exact(&mut out[head.len()..])?;
+    let rest = out
+        .get_mut(head.len()..)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "bad MBAP length"))?;
+    r.read_exact(rest)?;
     Ok(out)
 }
 

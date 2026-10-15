@@ -12,7 +12,7 @@
 //! global, so quantities of 253-255 overflowed it. Enforcing the Modbus limits
 //! closes that hole.
 
-use crate::protocol::{build, Exception, Function};
+use crate::protocol::{be_u16, build, Exception, Function};
 use crate::registers::{Bank, RegisterFile};
 use std::collections::BTreeSet;
 
@@ -93,14 +93,7 @@ pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outco
                 return exc(Exception::IllegalDataValue);
             }
             match regs.read_span(bank, addr, count) {
-                Some(words) => {
-                    let mut data = Vec::with_capacity(1 + words.len() * 2);
-                    data.push((words.len() * 2) as u8);
-                    for w in words {
-                        data.extend_from_slice(&w.to_be_bytes());
-                    }
-                    reply(data)
-                }
+                Some(words) => reply(words_reply(words)),
                 None => exc(Exception::IllegalDataAddress),
             }
         }
@@ -110,77 +103,71 @@ pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outco
                 return exc(Exception::IllegalDataValue);
             };
             regs.set_holding(addr, value);
-            reply(pdu[..4].to_vec()) // echo address + value
+            reply(pdu.get(..4).unwrap_or_default().to_vec()) // echo address + value
         }
 
         Function::WriteMultiple => {
-            if pdu.len() < 5 {
+            let (Some(addr), Some(count), Some(&byte_count)) =
+                (be_u16(pdu, 0), be_u16(pdu, 2), pdu.get(4))
+            else {
+                return exc(Exception::IllegalDataValue);
+            };
+            let byte_count = usize::from(byte_count);
+            let Some(data) = pdu.get(5..).and_then(|d| d.get(..byte_count)) else {
+                return exc(Exception::IllegalDataValue);
+            };
+            if count == 0 || count > MAX_WRITE || byte_count != usize::from(count).saturating_mul(2) {
                 return exc(Exception::IllegalDataValue);
             }
-            let addr = u16::from_be_bytes([pdu[0], pdu[1]]);
-            let count = u16::from_be_bytes([pdu[2], pdu[3]]);
-            let byte_count = pdu[4] as usize;
-            if count == 0 || count > MAX_WRITE || byte_count != count as usize * 2
-                || pdu.len() < 5 + byte_count
-            {
-                return exc(Exception::IllegalDataValue);
-            }
-            if (addr as usize) + (count as usize) > crate::registers::BANK_LEN {
+            if !write_words(regs, addr, data) {
                 return exc(Exception::IllegalDataAddress);
             }
-            for i in 0..count as usize {
-                let hi = pdu[5 + i * 2];
-                let lo = pdu[6 + i * 2];
-                regs.set_holding(addr + i as u16, u16::from_be_bytes([hi, lo]));
-            }
-            reply(pdu[..4].to_vec()) // echo address + quantity
+            reply(pdu.get(..4).unwrap_or_default().to_vec()) // echo address + quantity
         }
 
         Function::MaskWrite => {
-            if pdu.len() < 6 {
+            let (Some(addr), Some(and_mask), Some(or_mask)) =
+                (be_u16(pdu, 0), be_u16(pdu, 2), be_u16(pdu, 4))
+            else {
                 return exc(Exception::IllegalDataValue);
-            }
-            let addr = u16::from_be_bytes([pdu[0], pdu[1]]);
-            let and_mask = u16::from_be_bytes([pdu[2], pdu[3]]);
-            let or_mask = u16::from_be_bytes([pdu[4], pdu[5]]);
+            };
             let cur = regs.get(Bank::Holding, addr);
             // result = (current AND and_mask) OR (or_mask AND NOT and_mask)
             regs.set_holding(addr, (cur & and_mask) | (or_mask & !and_mask));
-            reply(pdu[..6].to_vec()) // echo
+            reply(pdu.get(..6).unwrap_or_default().to_vec()) // echo
         }
 
         Function::ReadWriteMultiple => {
             // Write is performed before the read (FC23).
-            if pdu.len() < 9 {
+            let (Some(r_addr), Some(r_count), Some(w_addr), Some(w_count), Some(&w_bytes)) = (
+                be_u16(pdu, 0),
+                be_u16(pdu, 2),
+                be_u16(pdu, 4),
+                be_u16(pdu, 6),
+                pdu.get(8),
+            ) else {
                 return exc(Exception::IllegalDataValue);
-            }
-            let r_addr = u16::from_be_bytes([pdu[0], pdu[1]]);
-            let r_count = u16::from_be_bytes([pdu[2], pdu[3]]);
-            let w_addr = u16::from_be_bytes([pdu[4], pdu[5]]);
-            let w_count = u16::from_be_bytes([pdu[6], pdu[7]]);
-            let w_bytes = pdu[8] as usize;
+            };
+            let w_bytes = usize::from(w_bytes);
+            let Some(data) = pdu.get(9..).and_then(|d| d.get(..w_bytes)) else {
+                return exc(Exception::IllegalDataValue);
+            };
             if r_count == 0 || r_count > MAX_READ || w_count == 0 || w_count > 121
-                || w_bytes != w_count as usize * 2 || pdu.len() < 9 + w_bytes
+                || w_bytes != usize::from(w_count).saturating_mul(2)
             {
                 return exc(Exception::IllegalDataValue);
             }
-            if (w_addr as usize) + (w_count as usize) > crate::registers::BANK_LEN
-                || (r_addr as usize) + (r_count as usize) > crate::registers::BANK_LEN
+            // Validate the read span before writing, so a bad read leaves no side effect.
+            if regs.read_span(Bank::Holding, r_addr, r_count).is_none()
+                || !span_fits(w_addr, w_count)
             {
                 return exc(Exception::IllegalDataAddress);
             }
-            for i in 0..w_count as usize {
-                let hi = pdu[9 + i * 2];
-                let lo = pdu[10 + i * 2];
-                regs.set_holding(w_addr + i as u16, u16::from_be_bytes([hi, lo]));
+            write_words(regs, w_addr, data);
+            match regs.read_span(Bank::Holding, r_addr, r_count) {
+                Some(words) => reply(words_reply(words)),
+                None => exc(Exception::IllegalDataAddress),
             }
-            let words = regs.read_span(Bank::Holding, r_addr, r_count).unwrap();
-            let mut data = Vec::with_capacity(1 + words.len() * 2);
-            data.push((words.len() * 2) as u8);
-            for w in words {
-                data.extend_from_slice(&w.to_be_bytes());
-            }
-            reply(data)
         }
 
         // Serial-line functions the TCP server accepts but has no real data for.
@@ -190,11 +177,36 @@ pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outco
 }
 
 fn read_addr_count(pdu: &[u8]) -> Option<(u16, u16)> {
-    if pdu.len() < 4 {
-        return None;
+    Some((be_u16(pdu, 0)?, be_u16(pdu, 2)?))
+}
+
+/// Whether `count` registers starting at `addr` fit inside a bank.
+fn span_fits(addr: u16, count: u16) -> bool {
+    usize::from(addr).saturating_add(usize::from(count)) <= crate::registers::BANK_LEN
+}
+
+/// Write big-endian words from `data` to consecutive holding registers from
+/// `addr`. Returns `false` (writing nothing) if the span runs past the bank.
+fn write_words(regs: &mut RegisterFile, addr: u16, data: &[u8]) -> bool {
+    let Ok(count) = u16::try_from(data.len() / 2) else {
+        return false;
+    };
+    if !span_fits(addr, count) {
+        return false;
     }
-    Some((
-        u16::from_be_bytes([pdu[0], pdu[1]]),
-        u16::from_be_bytes([pdu[2], pdu[3]]),
-    ))
+    for (a, &pair) in (addr..=u16::MAX).zip(data.as_chunks::<2>().0) {
+        regs.set_holding(a, u16::from_be_bytes(pair));
+    }
+    true
+}
+
+/// Byte count followed by the words, big-endian: the body of a read reply.
+fn words_reply(words: &[u16]) -> Vec<u8> {
+    let bytes = words.len().saturating_mul(2);
+    let mut data = Vec::with_capacity(bytes.saturating_add(1));
+    data.push(u8::try_from(bytes).unwrap_or(u8::MAX));
+    for w in words {
+        data.extend_from_slice(&w.to_be_bytes());
+    }
+    data
 }

@@ -1,4 +1,9 @@
 //! `ananasar-parity`: run, record and diff Modbus/TCP exchanges.
+#![allow(
+    clippy::arithmetic_side_effects,
+    clippy::indexing_slicing,
+    reason = "developer tool, not yet audited for panics (see #59)"
+)]
 
 use ananasar_parity::recording::Recording;
 use ananasar_parity::{diff, proxy, runner, scenarios};

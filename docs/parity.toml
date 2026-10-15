@@ -91,14 +91,14 @@ id = "client-transaction-limits"
 area = "client"
 feature = "Separate read and write transaction limit presets within the protocol maximums"
 status = "shipped"
-tests = ["crates/ananasar-gui/src/clientview.rs::clamps_to_protocol_maximums", "crates/ananasar-gui/src/clientview.rs::presets_fit_their_maximum"]
+tests = ["crates/ananasar-gui/src/clientview/polling.rs::clamps_to_protocol_maximums", "crates/ananasar-gui/src/clientview/polling.rs::presets_fit_their_maximum"]
 
 [[feature]]
 id = "client-register-series"
 area = "client"
 feature = "Add and clear register ranges in the client window"
 status = "shipped"
-tests = ["crates/ananasar-gui/src/clientview.rs::add_range_merges_sorted_and_deduped", "crates/ananasar-gui/src/clientview.rs::add_range_reaches_the_top_address", "crates/ananasar-gui/src/clientview.rs::remove_range_keeps_the_rest", "crates/ananasar-gui/src/clientview.rs::parse_range_rejects_bad_input"]
+tests = ["crates/ananasar-gui/src/clientview/lists.rs::add_range_merges_sorted_and_deduped", "crates/ananasar-gui/src/clientview/lists.rs::add_range_reaches_the_top_address", "crates/ananasar-gui/src/clientview/lists.rs::remove_range_keeps_the_rest", "crates/ananasar-gui/src/clientview/lists.rs::parse_range_rejects_bad_input"]
 
 [[feature]]
 id = "client-zero-txn-id"
@@ -126,14 +126,14 @@ id = "client-connection-dialog"
 area = "client"
 feature = "Host and port input, keepalive option and partner info"
 status = "shipped"
-tests = ["crates/ananasar-net/src/client.rs::parses_valid_endpoint", "crates/ananasar-net/src/client.rs::rejects_bad_endpoints", "crates/ananasar-net/src/client.rs::connects_with_and_without_keepalive", "crates/ananasar-gui/src/clientview.rs::partner_text_shows_ip_and_port"]
+tests = ["crates/ananasar-net/src/client.rs::parses_valid_endpoint", "crates/ananasar-net/src/client.rs::rejects_bad_endpoints", "crates/ananasar-net/src/client.rs::connects_with_and_without_keepalive", "crates/ananasar-gui/src/clientview/connection.rs::partner_text_shows_ip_and_port"]
 
 [[feature]]
 id = "client-event-log-copy"
 area = "gui"
 feature = "Copy event log lines to the clipboard"
 status = "shipped"
-tests = ["crates/ananasar-gui/src/clientview.rs::join_lines_separates_with_newlines"]
+tests = ["crates/ananasar-gui/src/clientview/log.rs::join_lines_separates_with_newlines"]
 
 [[feature]]
 id = "register-scanner"

@@ -66,15 +66,17 @@ impl PollList {
         if self.cursor >= self.addrs.len() {
             self.cursor = 0;
         }
-        let start = self.addrs[self.cursor];
+        let rest = self.addrs.get(self.cursor..)?;
+        let start = *rest.first()?;
         let mut run: u16 = 1;
-        while (run as usize) < self.addrs.len() - self.cursor
-            && run < max
-            && self.addrs[self.cursor + run as usize - 1] + 1 == self.addrs[self.cursor + run as usize]
-        {
-            run += 1;
+        for pair in rest.windows(2) {
+            let [prev, next] = *pair else { break };
+            if run >= max || prev.checked_add(1) != Some(next) {
+                break;
+            }
+            run = run.saturating_add(1);
         }
-        self.cursor += run as usize;
+        self.cursor = self.cursor.saturating_add(usize::from(run));
         if self.cursor >= self.addrs.len() {
             self.cursor = 0;
         }
@@ -159,7 +161,7 @@ impl PollEngine {
             return 0;
         }
         let t = self.txn;
-        self.txn = if self.txn < 0xFFFF { self.txn + 1 } else { 0 };
+        self.txn = self.txn.wrapping_add(1);
         t
     }
 
@@ -183,7 +185,7 @@ impl PollEngine {
                 2 if !self.write.is_empty() => Some(self.build_write(regs)),
                 _ => None,
             };
-            self.state = (self.state + 1) % 3;
+            self.state = self.state.wrapping_add(1) % 3;
             if let Some(frame) = built {
                 return Some(frame);
             }
@@ -197,7 +199,7 @@ impl PollEngine {
             Bank::Holding => (Function::ReadHolding, &mut self.read_holding),
             Bank::Input => (Function::ReadInput, &mut self.read_input),
         };
-        let (start, count) = list.next_run(self.max_read).unwrap();
+        let (start, count) = list.next_run(self.max_read).unwrap_or((0, 0));
         let wire = start.wrapping_sub(self.base.offset());
         let txn = self.next_txn();
         let mut data = Vec::with_capacity(4);
@@ -209,15 +211,15 @@ impl PollEngine {
     /// FC16 write-multiple query. Values come from the shared
     /// holding bank at the listed addresses.
     fn build_write(&mut self, regs: &RegisterFile) -> Vec<u8> {
-        let (start, count) = self.write.next_run(self.max_write).unwrap();
+        let (start, count) = self.write.next_run(self.max_write).unwrap_or((0, 0));
         let wire = start.wrapping_sub(self.base.offset());
         let txn = self.next_txn();
-        let mut data = Vec::with_capacity(5 + count as usize * 2);
+        let mut data = Vec::with_capacity(usize::from(count).saturating_mul(2).saturating_add(5));
         data.extend_from_slice(&wire.to_be_bytes());
         data.extend_from_slice(&count.to_be_bytes());
-        data.push((count * 2) as u8);
+        data.push(u8::try_from(usize::from(count).saturating_mul(2)).unwrap_or(u8::MAX));
         for i in 0..count {
-            let v = regs.get(Bank::Holding, start + i);
+            let v = regs.get(Bank::Holding, start.wrapping_add(i));
             data.extend_from_slice(&v.to_be_bytes());
         }
         build(txn, self.unit_id, Function::WriteMultiple as u8, &data)

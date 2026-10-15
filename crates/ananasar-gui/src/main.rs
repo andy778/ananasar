@@ -460,8 +460,8 @@ impl eframe::App for App {
         egui::Panel::left("registers").resizable(false).exact_size(215.0).show(ui, |ui| {
             let scroll = ui.input(|i| i.smooth_scroll_delta.y);
             if scroll.abs() > 0.0 && ui.ui_contains_pointer() {
-                let step = 10i32 * if scroll > 0.0 { 1 } else { -1 };
-                self.start_address = (self.start_address as i32 + step).clamp(0, 65535) as u16;
+                let step = if scroll > 0.0 { 10i32 } else { -10 };
+                self.start_address = u16::try_from((i32::from(self.start_address).saturating_add(step)).clamp(0, 65535)).unwrap_or(0);
             }
             let editable = self.bank == Bank::Holding;
             let snapshot: Vec<(u16, u16)> = {
@@ -587,7 +587,7 @@ impl eframe::App for App {
             let stats = lock(&self.server.stats).clone();
             theme::titled_group(ui, "Server", |ui| {
                 egui::Grid::new("server_stats").num_columns(3).spacing([14.0, 2.0]).show(ui, |ui| {
-                    let conn = |i: usize| stats.slots[i].as_ref();
+                    let conn = |i: usize| stats.slots.get(i).and_then(Option::as_ref);
                     stats_row(ui, "Connection IP", |i| conn(i).map(|c| c.ip.clone()));
                     stats_row(ui, "Nagle", |i| conn(i).map(|c| if c.nagle { "Enabled" } else { "Disabled" }.to_owned()));
                     stats_row(ui, "Poll interval", |i| conn(i).and_then(|c| c.poll_interval_ms).map(|ms| format!("{ms} ms")));

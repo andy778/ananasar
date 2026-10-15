@@ -6,6 +6,14 @@
 //!
 //! Each file is one session: the register file starts all zero and keeps its
 //! state across the file's sections.
+#![allow(
+    clippy::arithmetic_side_effects,
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    clippy::panic,
+    clippy::unwrap_used,
+    reason = "test code: a panic is a failed test"
+)]
 
 use ananasar_core::registers::RegisterFile;
 use ananasar_core::server::{Outcome, ServerConfig, process};

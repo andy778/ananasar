@@ -170,7 +170,7 @@ pub(super) fn spawn_worker(shared: Arc<Shared>, rx: Receiver<Cmd>) {
                 Mode::Immediate => Duration::from_millis(1),
                 _ => interval,
             };
-            next_poll = Instant::now() + wait;
+            next_poll = Instant::now().checked_add(wait).unwrap_or_else(Instant::now);
         }
     });
 }
@@ -184,7 +184,7 @@ fn poll_once(stream: &mut TcpStream, query: &[u8], shared: &Shared) -> std::io::
             shared.log_line(format!("TI {}: exception FC 0x{:02X} code {}", hdr.transaction_id, f & 0x7F, pdu.first().copied().unwrap_or(0)));
         } else if matches!(Function::from_u8(f), Some(Function::ReadHolding) | Some(Function::ReadInput)) {
             store_read(shared, func, start, pdu);
-            let shown: Vec<String> = pdu.get(1..).unwrap_or(&[]).chunks(2).filter(|c| c.len() == 2).map(|c| u16::from_be_bytes([c[0], c[1]]).to_string()).collect();
+            let shown: Vec<String> = pdu.get(1..).unwrap_or(&[]).as_chunks::<2>().0.iter().map(|&c| u16::from_be_bytes(c).to_string()).collect();
             shared.log_line(format!("TI {}: read @{start} x{count} = [{}]", hdr.transaction_id, shown.join(", ")));
         } else {
             shared.log_line(format!("TI {}: FC 0x{f:02X} ok", hdr.transaction_id));
@@ -208,18 +208,15 @@ fn store_read(shared: &Shared, func: u8, start: u16, pdu: &[u8]) {
         return; // only mirror holding reads into the display regs
     }
     let mut regs = lock(&shared.regs);
-    for (i, c) in pdu[1..].chunks(2).enumerate() {
-        if c.len() < 2 { break; }
-        if let Some(addr) = start.checked_add(i as u16) {
-            regs.set_holding(addr, u16::from_be_bytes([c[0], c[1]]));
-        }
+    let words = pdu.get(1..).unwrap_or_default().as_chunks::<2>().0;
+    for (addr, &c) in (start..=u16::MAX).zip(words) {
+        regs.set_holding(addr, u16::from_be_bytes(c));
     }
 }
 
 fn parse_request(query: &[u8]) -> (u8, u16, u16) {
-    if query.len() >= 12 {
-        (query[7], u16::from_be_bytes([query[8], query[9]]), u16::from_be_bytes([query[10], query[11]]))
-    } else {
-        (0, 0, 0)
+    match query.get(7..12) {
+        Some(&[func, a0, a1, c0, c1]) => (func, u16::from_be_bytes([a0, a1]), u16::from_be_bytes([c0, c1])),
+        _ => (0, 0, 0),
     }
 }

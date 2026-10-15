@@ -1,4 +1,12 @@
 //! Runs the tools against the in-process Ananasar server on loopback.
+#![allow(
+    clippy::arithmetic_side_effects,
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    clippy::panic,
+    clippy::unwrap_used,
+    reason = "test code: a panic is a failed test"
+)]
 
 use ananasar_core::registers::RegisterFile;
 use ananasar_core::server::ServerConfig;

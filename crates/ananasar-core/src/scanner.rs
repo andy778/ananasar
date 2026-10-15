@@ -56,7 +56,7 @@ impl Scanner {
             return None;
         }
         let addr = u16::try_from(self.next).ok()?;
-        self.next += 1;
+        self.next = self.next.saturating_add(1);
         let func = match self.bank {
             Bank::Holding => Function::ReadHolding,
             Bank::Input => Function::ReadInput,
@@ -93,8 +93,10 @@ impl Scanner {
         if func == expected | 0x80 {
             return pdu.first().map_or(ScanResult::NoReply, |&c| ScanResult::Exception(c));
         }
-        if func == expected && pdu.len() == 3 && pdu[0] == 2 {
-            return ScanResult::Value(u16::from_be_bytes([pdu[1], pdu[2]]));
+        if func == expected
+            && let [2, hi, lo] = *pdu
+        {
+            return ScanResult::Value(u16::from_be_bytes([hi, lo]));
         }
         ScanResult::NoReply
     }
@@ -107,7 +109,7 @@ impl Scanner {
     /// Totals so far.
     pub fn summary(&self) -> ScanSummary {
         let succeeded = self.results.iter().filter(|(_, r)| matches!(r, ScanResult::Value(_))).count();
-        ScanSummary { scanned: self.results.len(), succeeded, failed: self.results.len() - succeeded }
+        ScanSummary { scanned: self.results.len(), succeeded, failed: self.results.len().saturating_sub(succeeded) }
     }
 }
 
