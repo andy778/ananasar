@@ -102,6 +102,7 @@ struct App {
     port_dialog: Option<PortDialog>,
     bank: Bank,
     start_address: u16,
+    tooltips: bool,
     hex: bool,
     addr_hex: bool,
     classic: bool,
@@ -140,6 +141,7 @@ impl App {
             port_dialog: None,
             bank: Bank::Holding,
             start_address: 0,
+            tooltips: true,
             hex: false,
             addr_hex: false,
             classic: true,
@@ -208,6 +210,19 @@ impl App {
         self.port_dialog = Some(dlg);
     }
 
+    /// Options → TCP → Port → Monitor Port: stop the listener, or start it again.
+    fn toggle_listening(&mut self, ctx: &egui::Context) {
+        if self.server.listening.load(Ordering::SeqCst) {
+            self.server_stop.store(true, Ordering::SeqCst);
+            return;
+        }
+        self.server_stop.store(false, Ordering::SeqCst);
+        self.status_note = match embed::start(ctx.clone(), self.regs.clone(), self.server.clone(), self.server_port, self.server_stop.clone()) {
+            Ok(()) => String::new(),
+            Err(e) => format!("Cannot listen on port {}: {e}", self.server_port),
+        };
+    }
+
     fn about_ui(&mut self, ctx: &egui::Context) {
         let mut open = self.show_about;
         egui::Window::new("About Ananasar").open(&mut open).collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
@@ -267,6 +282,25 @@ impl eframe::App for App {
         let item = |ui: &mut egui::Ui, text: &str, sc: &egui::KeyboardShortcut| {
             ui.add(egui::Button::new(text).shortcut_text(ctx.format_shortcut(sc))).clicked()
         };
+        let scanner_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND | egui::Modifiers::ALT, egui::Key::C);
+        let offset_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND | egui::Modifiers::ALT, egui::Key::O);
+        let synch_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND | egui::Modifiers::ALT, egui::Key::S);
+        let listen_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::P);
+        let port_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::N);
+        let tips_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::T);
+        // Ctrl+Alt shortcuts first, so Ctrl+Alt+S is not taken as Ctrl+S.
+        if ctx.input_mut(|i| i.consume_shortcut(&scanner_sc)) {
+            self.show_scanner = true;
+        }
+        let mut toggle_listen = ctx.input_mut(|i| i.consume_shortcut(&listen_sc));
+        let mut open_port = ctx.input_mut(|i| i.consume_shortcut(&port_sc));
+        if ctx.input_mut(|i| i.consume_shortcut(&tips_sc)) {
+            self.tooltips = !self.tooltips;
+        }
+        let check = |ui: &mut egui::Ui, on: bool, text: &str, sc: &egui::KeyboardShortcut| {
+            let label = if on { format!("\u{2713} {text}") } else { format!("    {text}") };
+            ui.add(egui::Button::new(label).shortcut_text(ctx.format_shortcut(sc))).clicked()
+        };
         let title = window_title(&self.local_ip, self.server_port);
         if title != self.title {
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
@@ -319,10 +353,6 @@ impl eframe::App for App {
                 });
                 ui.menu_button("View", |ui| {
                     ui.set_min_width(190.0);
-                    let check = |ui: &mut egui::Ui, on: bool, text: &str, sc: &egui::KeyboardShortcut| {
-                        let label = if on { format!("\u{2713} {text}") } else { format!("    {text}") };
-                        ui.add(egui::Button::new(label).shortcut_text(ctx.format_shortcut(sc))).clicked()
-                    };
                     if check(ui, self.hex, "Values as Hex", &hex_sc) {
                         self.hex = !self.hex;
                     }
@@ -341,28 +371,72 @@ impl eframe::App for App {
                     }
                 });
                 ui.menu_button("Options", |ui| {
+                    ui.set_min_width(190.0);
                     let listening = self.server.listening.load(Ordering::SeqCst);
-                    ui.label(format!("Port {}", self.server_port));
-                    if ui.button("Port…").clicked() {
-                        self.port_dialog = Some(PortDialog { input: self.server_port.to_string(), error: String::new() });
-                        ui.close();
-                    }
-                    if listening {
-                        if ui.button("Stop listening").clicked() {
-                            self.server_stop.store(true, Ordering::SeqCst);
+                    // Entries of the original with no counterpart in the engine yet are shown greyed out.
+                    let off = |ui: &mut egui::Ui, text: &str| {
+                        ui.add_enabled(false, egui::Button::new(text));
+                    };
+                    ui.menu_button("Modbus", |ui| {
+                        ui.set_min_width(260.0);
+                        ui.add_enabled_ui(false, |ui| {
+                            ui.menu_button("Active MB Functions", |_| {});
+                        });
+                        ui.separator();
+                        off(ui, "Return Incorrect TI");
+                        off(ui, "Return Incorrect Protocol ID");
+                        off(ui, "Return Incorrect Length High Byte");
+                        ui.add_enabled_ui(false, |ui| {
+                            ui.menu_button("Return Exception", |_| {});
+                        });
+                        ui.separator();
+                        ui.add_enabled(false, egui::Button::new("Use Address Offset").shortcut_text(ctx.format_shortcut(&offset_sc)));
+                        ui.separator();
+                        ui.add_enabled(false, egui::Button::new("Reply Out of Synch").shortcut_text(ctx.format_shortcut(&synch_sc)));
+                        ui.separator();
+                        if item(ui, "Register Scanner…", &scanner_sc) {
+                            self.show_scanner = true;
                             ui.close();
                         }
-                    } else if ui.button("Start listening").clicked() {
-                        self.server_stop.store(false, Ordering::SeqCst);
-                        self.status_note = match embed::start(ctx.clone(), self.regs.clone(), self.server.clone(), self.server_port, self.server_stop.clone()) {
-                            Ok(()) => String::new(),
-                            Err(e) => format!("Cannot listen on port {}: {e}", self.server_port),
-                        };
-                        ui.close();
+                    });
+                    ui.menu_button("TCP", |ui| {
+                        ui.set_min_width(260.0);
+                        ui.menu_button("Port", |ui| {
+                            ui.set_min_width(260.0);
+                            if check(ui, listening, &format!("Monitor Port {}", self.server_port), &listen_sc) {
+                                toggle_listen = true;
+                                ui.close();
+                            }
+                            if item(ui, "Change Port…", &port_sc) {
+                                open_port = true;
+                                ui.close();
+                            }
+                            ui.separator();
+                            off(ui, "Purge Port Usage Blocking(s)");
+                        });
+                        ui.add_enabled_ui(false, |ui| {
+                            ui.menu_button("Disable Nagle", |_| {});
+                        });
+                        ui.separator();
+                        // The server always drops a connection silent for a minute.
+                        ui.add_enabled(false, egui::Button::new("\u{2713} Release Connection if Unused >1 min"));
+                    });
+                    ui.separator();
+                    off(ui, "DDE Server…");
+                    ui.separator();
+                    if check(ui, self.tooltips, "Show Tooltips", &tips_sc) {
+                        self.tooltips = !self.tooltips;
                     }
                 });
             });
         });
+
+        if toggle_listen {
+            self.toggle_listening(&ctx);
+        }
+        if open_port {
+            self.port_dialog = Some(PortDialog { input: self.server_port.to_string(), error: String::new() });
+        }
 
         self.port_dialog_ui(&ctx);
         self.about_ui(&ctx);
@@ -502,7 +576,12 @@ impl eframe::App for App {
                     for slot in 0..2 {
                         match conn(slot).and_then(|c| c.header_check.as_ref()) {
                             Some(Ok(())) => { ui.monospace("Passed"); }
-                            Some(Err(why)) => { ui.monospace("Failed").on_hover_text(why); }
+                            Some(Err(why)) => {
+                                let failed = ui.monospace("Failed");
+                                if self.tooltips {
+                                    failed.on_hover_text(why);
+                                }
+                            }
                             None => { ui.monospace("--"); }
                         }
                     }
