@@ -2,8 +2,7 @@
 //!
 //! Validation order follows the original: header (protocol id / length, done in
 //! [`crate::protocol::frame`]), then UID, then function, then data address.
-//! A UID mismatch is dropped silently (the original sets `local_110 = -1`, which
-//! suppresses the reply); function and address faults produce an exception
+//! A UID mismatch is dropped silently, as the original does; function and address faults produce an exception
 //! response with the function code's MSB set.
 //!
 //! Deviation from the original: we reject out-of-spec quantities
