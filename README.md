@@ -112,6 +112,7 @@ The parsers that read network input are also fuzzed (`cargo +nightly fuzz run fr
   - `client`: the poll engine and query builders
 - [`crates/ananasar-cli`](crates/ananasar-cli): the headless `ananasar` binary
 - [`crates/ananasar-gui`](crates/ananasar-gui): the egui application (`ananasar-gui`)
+- [`crates/ananasar-parity`](crates/ananasar-parity): wire-level scenario runner, recording proxy and diff for comparing servers, see [docs/parity-testing.md](docs/parity-testing.md)
 - [`fuzz`](fuzz): cargo-fuzz targets for the frame parser and the server handler
 
 ## Design notes

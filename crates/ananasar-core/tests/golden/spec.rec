@@ -1,0 +1,42 @@
+# Frames from the Modbus Application Protocol specification (worked examples
+# for FC3, FC6, FC16 and FC22, and the exception rules for quantity limits,
+# address range and unsupported function codes). Unit id 1. The register file
+# starts all zero. Nothing here was recorded from a running program.
+
+## spec
+# Preload registers 107..109 (the spec's FC3 example reads them).
+> 0001 0000 000d 01 10 006b 0003 06 022b 0000 0064
+< 0001 0000 0006 01 10 006b 0003
+# FC3 example: read 3 registers from 107 -> 555, 0, 100.
+> 0002 0000 0006 01 03 006b 0003
+< 0002 0000 0009 01 03 06 022b 0000 0064
+# FC6 example: write 3 to register 1, the reply echoes the request.
+> 0003 0000 0006 01 06 0001 0003
+< 0003 0000 0006 01 06 0001 0003
+# FC16 example: write 0x000A and 0x0102 starting at register 1.
+> 0004 0000 000b 01 10 0001 0002 04 000a 0102
+< 0004 0000 0006 01 10 0001 0002
+# FC22 example: register 4 holds 0x12, AND mask 0xF2, OR mask 0x25 -> 0x17.
+> 0005 0000 0006 01 06 0004 0012
+< 0005 0000 0006 01 06 0004 0012
+> 0006 0000 0008 01 16 0004 00f2 0025
+< 0006 0000 0008 01 16 0004 00f2 0025
+> 0007 0000 0006 01 03 0004 0001
+< 0007 0000 0005 01 03 02 0017
+# FC4 on a fresh input register.
+> 0008 0000 0006 01 04 0000 0001
+< 0008 0000 0005 01 04 02 0000
+# Quantity 126 and 0 are illegal for a read: exception 3.
+> 0009 0000 0006 01 03 0000 007e
+< 0009 0000 0003 01 83 03
+> 000a 0000 0006 01 03 0000 0000
+< 000a 0000 0003 01 83 03
+# Range running past register 65535: exception 2.
+> 000b 0000 0006 01 03 ffff 0002
+< 000b 0000 0003 01 83 02
+# FC16 whose byte count disagrees with the quantity: exception 3.
+> 000c 0000 000b 01 10 0000 0002 03 0001 0002
+< 000c 0000 0003 01 90 03
+# A function code the server does not implement: exception 1.
+> 000d 0000 0006 01 01 0013 0013
+< 000d 0000 0003 01 81 01
