@@ -103,6 +103,7 @@ struct App {
     bank: Bank,
     start_address: u16,
     hex: bool,
+    addr_hex: bool,
     classic: bool,
     editing: Option<u16>,
     edit_buf: String,
@@ -140,6 +141,7 @@ impl App {
             bank: Bank::Holding,
             start_address: 0,
             hex: false,
+            addr_hex: false,
             classic: true,
             editing: None,
             edit_buf: String::new(),
@@ -249,6 +251,22 @@ impl eframe::App for App {
         if ctx.input_mut(|i| i.consume_shortcut(&exit_sc)) {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
+        let setreg_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::R);
+        let hex_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::H);
+        let addr_hex_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND | egui::Modifiers::SHIFT, egui::Key::H);
+        // The more specific shortcut first, so Ctrl+Shift+H is not taken as Ctrl+H.
+        if ctx.input_mut(|i| i.consume_shortcut(&addr_hex_sc)) {
+            self.addr_hex = !self.addr_hex;
+        }
+        if ctx.input_mut(|i| i.consume_shortcut(&hex_sc)) {
+            self.hex = !self.hex;
+        }
+        if ctx.input_mut(|i| i.consume_shortcut(&setreg_sc)) {
+            self.show_setval = true;
+        }
+        let item = |ui: &mut egui::Ui, text: &str, sc: &egui::KeyboardShortcut| {
+            ui.add(egui::Button::new(text).shortcut_text(ctx.format_shortcut(sc))).clicked()
+        };
         let title = window_title(&self.local_ip, self.server_port);
         if title != self.title {
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
@@ -259,9 +277,6 @@ impl eframe::App for App {
             egui::MenuBar::new().config(theme::menu_config(self.classic)).ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     ui.set_min_width(190.0);
-                    let item = |ui: &mut egui::Ui, text: &str, sc: &egui::KeyboardShortcut| {
-                        ui.add(egui::Button::new(text).shortcut_text(ctx.format_shortcut(sc))).clicked()
-                    };
                     if item(ui, "Open…", &open_sc) {
                         self.file.open();
                         ui.close();
@@ -281,23 +296,32 @@ impl eframe::App for App {
                     }
                 });
                 ui.menu_button("Edit", |ui| {
-                    ui.checkbox(&mut self.hex, "Display as hex");
-                    if ui.button("Set register value…").clicked() {
+                    ui.set_min_width(190.0);
+                    if item(ui, "Set Register Value", &setreg_sc) {
                         self.show_setval = true;
                         ui.close();
                     }
-                    ui.menu_button("Initialize holding", |ui| {
-                        if ui.button("All → 0").clicked() {
-                            lock(&self.regs).initialize(Bank::Holding, InitMode::Zero);
-                            ui.close();
-                        }
-                        if ui.button("Ascending").clicked() {
-                            lock(&self.regs).initialize(Bank::Holding, InitMode::Ascending);
-                            ui.close();
+                    ui.separator();
+                    ui.menu_button("Initialize", |ui| {
+                        for (name, bank) in [("Input Registers", Bank::Input), ("Holding Registers", Bank::Holding)] {
+                            ui.menu_button(name, |ui| {
+                                if ui.button("All to '0'").clicked() {
+                                    lock(&self.regs).initialize(bank, InitMode::Zero);
+                                    ui.close();
+                                }
+                                if ui.button("Ascending").clicked() {
+                                    lock(&self.regs).initialize(bank, InitMode::Ascending);
+                                    ui.close();
+                                }
+                            });
                         }
                     });
                 });
                 ui.menu_button("View", |ui| {
+                    ui.set_min_width(190.0);
+                    ui.add(egui::Checkbox::new(&mut self.hex, "Values as Hex"));
+                    ui.add(egui::Checkbox::new(&mut self.addr_hex, "Registers as Hex"));
+                    ui.separator();
                     ui.checkbox(&mut self.show_client, "Client window");
                     ui.checkbox(&mut self.show_setval, "Set value window");
                     ui.checkbox(&mut self.show_scanner, "Scanner");
@@ -376,7 +400,7 @@ impl eframe::App for App {
                 .body(|mut body| {
                     for (addr, value) in snapshot {
                         body.row(20.0, |mut row| {
-                            row.col(|ui| { ui.monospace(format!("{addr}")); });
+                            row.col(|ui| { ui.monospace(if self.addr_hex { format!("{addr:04X}") } else { addr.to_string() }); });
                             row.col(|ui| {
                                 if self.editing == Some(addr) {
                                     let resp = ui.add(egui::TextEdit::singleline(&mut self.edit_buf).desired_width(f32::INFINITY));
