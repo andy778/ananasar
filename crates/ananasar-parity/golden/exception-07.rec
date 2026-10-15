@@ -1,0 +1,47 @@
+# Golden recording of the original Ananas, profile exception-07.
+# Setup: Return Exception: Negative Acknowledge. Unit id filter off, all registers zero before the run.
+# Recorded 2026-10-15 with: ananasar-parity run <host:port> --profile exception-07
+# Notes start with '#!', see crates/ananasar-parity/src/golden.rs.
+
+
+## probe_every_function
+> 0001 0000 000b 01 10 0bb800020401020304
+< 0001 0000 0003 01 90 07
+> 0002 0000 0006 01 03 0bb80002
+< 0002 0000 0003 01 83 07
+> 0003 0000 0006 01 04 0bb80002
+< 0003 0000 0003 01 84 07
+> 0004 0000 0006 01 06 0bba1234
+< 0004 0000 0003 01 86 07
+> 0005 0000 0002 01 07
+< 0005 0000 0003 01 87 07
+> 0006 0000 0006 01 08 0000a537
+< 0006 0000 0003 01 88 07
+> 0007 0000 0008 01 16 0bb800f0000f
+< 0007 0000 0003 01 96 07
+> 0008 0000 000d 01 17 0bb800020bba000102abcd
+< 0008 0000 0003 01 97 07
+> 0009 0000 0005 01 2b 0e0100
+< 0009 0000 0003 01 ab 01
+
+## probe_error_paths
+> 0001 0000 0006 01 03 0bb80000
+< 0001 0000 0003 01 83 07
+> 0002 0000 0006 01 03 0bb8007e
+< 0002 0000 0003 01 83 07
+> 0003 0000 0006 01 03 ffff0002
+< 0003 0000 0003 01 83 02
+> 0004 0000 000b 01 10 0bb800020300010002
+< 0004 0000 0003 01 90 07
+
+## probe_bad_header_then_valid
+#! deviation: the original answers first with the exception when the function is disabled or an exception is forced, echoing the bad protocol id, and always closes the connection; Ananasar ignores the frame and keeps the connection (issue 93)
+> 0001 0001 0006 01 03 0bb80001
+< 0001 0001 0003 01 83 07
+< closed
+
+## probe_pipelined
+> 0001 0000 0006 01 03 0bb8000100020000000601030bb90001
+< 0001 0000 0003 01 83 07
+< 0002 0000 0003 01 83 07
+
