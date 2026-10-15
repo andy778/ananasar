@@ -122,6 +122,7 @@ pub fn titled_group<R>(ui: &mut egui::Ui, title: &str, add: impl FnOnce(&mut egu
             add(ui)
         });
     let rect = framed.response.rect;
+    #[allow(clippy::arithmetic_side_effects, reason = "egui geometry on f32 vectors")]
     let pos = rect.left_top() + Vec2::new(8.0, -half);
     let label = egui::Rect::from_min_size(pos, galley.size()).expand2(Vec2::new(3.0, 0.0));
     ui.painter().rect_filled(label, 0.0, ui.visuals().panel_fill);

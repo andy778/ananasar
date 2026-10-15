@@ -59,7 +59,7 @@ impl Stats {
     /// Claim the lowest free slot for a new client and return its index.
     pub fn connect(&mut self, ip: &str, nagle: bool) -> Option<usize> {
         let slot = self.slots.iter().position(Option::is_none)?;
-        self.slots[slot] = Some(ConnStats { ip: ip.to_owned(), nagle, ..ConnStats::default() });
+        *self.slots.get_mut(slot)? = Some(ConnStats { ip: ip.to_owned(), nagle, ..ConnStats::default() });
         Some(slot)
     }
 
@@ -78,7 +78,7 @@ impl Stats {
         self.return_exception = None;
         let Some(Some(c)) = self.slots.get_mut(slot) else { return };
         c.packet_size = request.len();
-        c.bytes_received += request.len() as u64;
+        c.bytes_received = c.bytes_received.saturating_add(u64::try_from(request.len()).unwrap_or(u64::MAX));
         if interval_ms.is_some() {
             c.poll_interval_ms = interval_ms;
         }
@@ -90,10 +90,10 @@ impl Stats {
                 c.length = Some(hdr.length);
                 c.unit_id = Some(hdr.unit_id);
                 c.function = Some(func);
-                c.start_address = pdu.get(..2).map(|b| u16::from_be_bytes([b[0], b[1]]));
+                c.start_address = protocol::be_u16(pdu, 0);
                 c.word_count = match Function::from_u8(func) {
                     Some(Function::ReadHolding | Function::ReadInput | Function::WriteMultiple) => {
-                        pdu.get(2..4).map(|b| u16::from_be_bytes([b[0], b[1]]))
+                        protocol::be_u16(pdu, 2)
                     }
                     _ => None,
                 };
@@ -112,11 +112,11 @@ impl Stats {
     /// Record the reply sent on `slot` for the last request.
     pub fn record_reply(&mut self, slot: usize, reply: &[u8]) {
         if let Some(Some(c)) = self.slots.get_mut(slot) {
-            c.bytes_sent += reply.len() as u64;
+            c.bytes_sent = c.bytes_sent.saturating_add(u64::try_from(reply.len()).unwrap_or(u64::MAX));
         }
         // The MBAP prefix is followed by the function code; an exception reply
         // has its high bit set and the exception code next.
-        self.return_exception = match reply.get(protocol::MBAP_PREFIX..protocol::MBAP_PREFIX + 2) {
+        self.return_exception = match reply.get(protocol::MBAP_PREFIX..protocol::MBAP_PREFIX.saturating_add(2)) {
             Some([func, code]) if func & 0x80 != 0 => Some(*code),
             _ => None,
         };

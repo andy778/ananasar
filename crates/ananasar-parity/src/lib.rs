@@ -6,6 +6,11 @@
 //! - [`proxy`]: a logging TCP proxy that records any client/server session.
 //! - [`diff`]: compares two recordings, ignoring transaction ids and timing.
 //! - [`recording`]: the plain-text format they all share.
+#![allow(
+    clippy::arithmetic_side_effects,
+    clippy::indexing_slicing,
+    reason = "developer tool, not yet audited for panics (see #59)"
+)]
 
 pub mod diff;
 pub mod proxy;

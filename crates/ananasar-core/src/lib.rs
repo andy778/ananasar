@@ -4,6 +4,10 @@
 //! is `std`-only and platform-agnostic so the same core drives the Linux and
 //! Windows builds; OS-specific features (DDE, adapter IP config) live in the
 //! binary crates, not here.
+#![cfg_attr(
+    test,
+    allow(clippy::arithmetic_side_effects, reason = "test code: a panic is a failed test")
+)]
 
 #![warn(missing_docs)]
 
@@ -195,5 +199,71 @@ mod tests {
         let (_, func, pdu) = frame(&q).unwrap();
         assert_eq!(func, 0x06);
         assert_eq!(pdu, &[0x00, 0x05, 0x12, 0x34]);
+    }
+
+    /// Every truncation of a valid request, for every function, must yield a
+    /// reply or a drop and never a panic.
+    #[test]
+    fn truncated_requests_never_panic() {
+        let cfg = ServerConfig { unit_id: 0, supported: (0..=0x20).collect() };
+        let pdus: [&[u8]; 6] = [
+            &[0, 1, 0, 2],
+            &[0, 1, 0, 2, 4, 0, 1, 0, 2],
+            &[0, 1, 0xFF, 0xFF, 0, 0],
+            &[0, 1, 0, 2, 0, 3, 0, 1, 2, 0xAA, 0xBB],
+            &[],
+            &[0xFF],
+        ];
+        for func in 0..=0x20u8 {
+            for pdu in pdus {
+                for cut in 0..=pdu.len() {
+                    let mut regs = RegisterFile::new();
+                    let req = crate::protocol::build(1, 1, func, &pdu[..cut]);
+                    let _ = process(&cfg, &mut regs, &req);
+                }
+            }
+        }
+        for len in 0..12 {
+            let junk = vec![0u8; len];
+            assert!(frame(&junk).is_err() || len >= 8);
+            let _ = process(&cfg, &mut RegisterFile::new(), &junk);
+        }
+    }
+
+    #[test]
+    fn writes_at_the_top_of_the_address_space() {
+        let cfg = ServerConfig::default();
+        let mut regs = RegisterFile::new();
+        // FC16 for the last register succeeds, one more is an address error.
+        let ok = crate::protocol::build(1, 1, 0x10, &[0xFF, 0xFF, 0, 1, 2, 0x12, 0x34]);
+        assert!(matches!(process(&cfg, &mut regs, &ok), Outcome::Reply(r) if r[7] == 0x10));
+        assert_eq!(regs.get(Bank::Holding, 0xFFFF), 0x1234);
+        let over = crate::protocol::build(1, 1, 0x10, &[0xFF, 0xFF, 0, 2, 4, 0, 1, 0, 2]);
+        assert!(matches!(process(&cfg, &mut regs, &over), Outcome::Reply(r) if r[7] == 0x90 && r[8] == 2));
+    }
+
+    #[test]
+    fn read_write_multiple_with_bad_read_span_writes_nothing() {
+        let cfg = ServerConfig::default();
+        let mut regs = RegisterFile::new();
+        // read 2 at 0xFFFF (out of range), write 1 word at 0.
+        let req = crate::protocol::build(1, 1, 0x17, &[0xFF, 0xFF, 0, 2, 0, 0, 0, 1, 2, 0x12, 0x34]);
+        assert!(matches!(process(&cfg, &mut regs, &req), Outcome::Reply(r) if r[7] == 0x97 && r[8] == 2));
+        assert_eq!(regs.get(Bank::Holding, 0), 0);
+    }
+
+    #[test]
+    fn be_u16_rejects_short_and_overflowing_offsets() {
+        use crate::protocol::be_u16;
+        assert_eq!(be_u16(&[1, 2, 3], 1), Some(0x0203));
+        assert_eq!(be_u16(&[1, 2, 3], 2), None);
+        assert_eq!(be_u16(&[], 0), None);
+        assert_eq!(be_u16(&[1, 2], usize::MAX), None);
+    }
+
+    #[test]
+    fn poll_run_never_overflows_at_the_top_address() {
+        let mut list = PollList::new(vec![0xFFFE, 0xFFFF]);
+        assert_eq!(list.next_run(10), Some((0xFFFE, 2)));
     }
 }

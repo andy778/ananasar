@@ -96,6 +96,8 @@ impl FileWindow {
 }
 
 /// Current UTC time as `YYYY-MM-DD HH:MM:SS UTC` (std has no calendar).
+// `secs / 86_400` is below 2^48, so the date maths cannot overflow an i64.
+#[allow(clippy::arithmetic_side_effects, reason = "bounded date arithmetic, see above")]
 fn utc_stamp() -> String {
     let secs = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
     let (days, rem) = (i64::try_from(secs / 86_400).unwrap_or(0), secs % 86_400);

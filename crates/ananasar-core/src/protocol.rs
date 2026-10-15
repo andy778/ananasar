@@ -138,34 +138,42 @@ impl std::error::Error for FrameError {}
 /// field's upper byte must be 0, and `length` must equal the trailing byte
 /// count (`received - 6`).
 pub fn frame(buf: &[u8]) -> Result<(Mbap, u8, &[u8]), FrameError> {
-    if buf.len() < MBAP_PREFIX + 1 {
+    let (Some(&[t0, t1, p0, p1, l0, l1, unit_id, function]), Some(payload)) =
+        (buf.first_chunk::<8>(), buf.get(8..))
+    else {
         return Err(FrameError::TooShort);
-    }
-    let transaction_id = u16::from_be_bytes([buf[0], buf[1]]);
-    let protocol_id = u16::from_be_bytes([buf[2], buf[3]]);
-    let length = u16::from_be_bytes([buf[4], buf[5]]);
-    let unit_id = buf[6];
-    // protocol id 0 and length high byte 0 (buf[4]) — the original's first checks.
-    if protocol_id != PROTOCOL_ID || buf[4] != 0 {
+    };
+    let transaction_id = u16::from_be_bytes([t0, t1]);
+    let protocol_id = u16::from_be_bytes([p0, p1]);
+    let length = u16::from_be_bytes([l0, l1]);
+    // protocol id 0 and length high byte 0 (l0) — the original's first checks.
+    if protocol_id != PROTOCOL_ID || l0 != 0 {
         return Err(FrameError::BadHeader);
     }
     // length counts unit id + PDU, i.e. everything after the length field.
-    if length as usize != buf.len() - 6 {
+    if usize::from(length) != buf.len().saturating_sub(6) {
         return Err(FrameError::BadLength);
     }
-    let function = buf[7];
     Ok((
         Mbap { transaction_id, protocol_id, length, unit_id },
         function,
-        &buf[8..],
+        payload,
     ))
+}
+
+/// Read a big-endian `u16` at `offset`, or `None` if `buf` is too short.
+pub fn be_u16(buf: &[u8], offset: usize) -> Option<u16> {
+    let end = offset.checked_add(2)?;
+    let b = buf.get(offset..end)?;
+    Some(u16::from_be_bytes([*b.first()?, *b.get(1)?]))
 }
 
 /// Build a complete frame from a PDU (function byte + data), filling in the
 /// MBAP header and the length field automatically.
 pub fn build(transaction_id: u16, unit_id: u8, function: u8, data: &[u8]) -> Vec<u8> {
-    let length = (2 + data.len()) as u16; // unit id + function + data
-    let mut out = Vec::with_capacity(MBAP_PREFIX + 1 + data.len());
+    // unit id + function + data; a PDU never gets near 64 KiB, so saturate.
+    let length = u16::try_from(data.len().saturating_add(2)).unwrap_or(u16::MAX);
+    let mut out = Vec::with_capacity(data.len().saturating_add(MBAP_PREFIX + 1));
     Mbap { transaction_id, protocol_id: PROTOCOL_ID, length, unit_id }.write_prefix(&mut out);
     out.push(function);
     out.extend_from_slice(data);

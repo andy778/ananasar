@@ -57,7 +57,7 @@ pub fn start(
     stop: Arc<AtomicBool>,
 ) -> std::io::Result<()> {
     let listener = TcpListener::bind(("0.0.0.0", port))?;
-    let generation = handle.generation.fetch_add(1, Ordering::SeqCst) + 1;
+    let generation = handle.generation.fetch_add(1, Ordering::SeqCst).wrapping_add(1);
     handle.listening.store(true, Ordering::SeqCst);
     handle.port.store(usize::from(port), Ordering::SeqCst);
     *lock(&handle.status) = "listening".into();

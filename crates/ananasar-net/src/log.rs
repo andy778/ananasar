@@ -113,8 +113,10 @@ impl LogSink {
         let mut st = lock(&self.state);
         match st.used.iter().position(|u| !u) {
             Some(i) => {
-                st.used[i] = true;
-                i as u8 + 1
+                if let Some(u) = st.used.get_mut(i) {
+                    *u = true;
+                }
+                u8::try_from(i).map_or(0, |n| n.saturating_add(1))
             }
             None => 0,
         }
@@ -135,11 +137,11 @@ impl LogSink {
         if st.out.is_none() {
             return;
         }
-        st.number += 1;
+        st.number = st.number.saturating_add(1);
         let elapsed_ms = u64::try_from(st.started.elapsed().as_millis()).unwrap_or(u64::MAX);
         let entry = Entry { number: st.number, elapsed_ms, connection, query, response };
         let text = format_entry(&entry, st.mode);
-        st.bytes += text.len() as u64;
+        st.bytes = st.bytes.saturating_add(u64::try_from(text.len()).unwrap_or(u64::MAX));
         if let Some(out) = st.out.as_mut() {
             let _ = out.write_all(text.as_bytes());
             let _ = out.flush();
