@@ -77,15 +77,16 @@ pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outco
         ))
     };
 
-    if let Some(forced) = cfg.forced_exception {
-        return exc(forced);
-    }
-    if !cfg.supported.contains(&func_byte) {
-        return exc(Exception::IllegalFunction);
-    }
-    let Some(func) = Function::from_u8(func_byte) else {
+    // An unsupported or disabled function is reported as such even when an
+    // exception is forced, as the original does.
+    let Some(func) = Function::from_u8(func_byte).filter(|_| cfg.supported.contains(&func_byte)) else {
         return exc(Exception::IllegalFunction);
     };
+    if let Some(forced) = cfg.forced_exception {
+        // A span that runs past the register file still gets illegal data
+        // address; everything else gets the forced code.
+        return exc(if address_fault(func, pdu) { Exception::IllegalDataAddress } else { forced });
+    }
 
     let reply = |data: Vec<u8>| Outcome::Reply(build(hdr.transaction_id, hdr.unit_id, func_byte, &data));
 
@@ -215,4 +216,19 @@ fn words_reply(words: &[u16]) -> Vec<u8> {
         data.extend_from_slice(&w.to_be_bytes());
     }
     data
+}
+
+/// Whether the request addresses registers beyond the end of the bank. Only
+/// the functions with a start address and a quantity can; malformed or short
+/// PDUs are not an address fault.
+fn address_fault(func: Function, pdu: &[u8]) -> bool {
+    let span_bad = |addr_at: usize| match (be_u16(pdu, addr_at), be_u16(pdu, addr_at.saturating_add(2))) {
+        (Some(addr), Some(count)) => !span_fits(addr, count),
+        _ => false,
+    };
+    match func {
+        Function::ReadHolding | Function::ReadInput | Function::WriteMultiple => span_bad(0),
+        Function::ReadWriteMultiple => span_bad(0) || span_bad(4),
+        _ => false,
+    }
 }
