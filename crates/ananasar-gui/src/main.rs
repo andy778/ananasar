@@ -12,6 +12,7 @@ mod filewindow;
 mod setvalview;
 mod theme;
 
+use ananasar_core::protocol::Exception;
 use ananasar_core::registers::{Bank, InitMode, RegisterFile};
 use ananasar_core::log::LogMode;
 use ananasar_core::sync::lock;
@@ -416,15 +417,28 @@ impl eframe::App for App {
                     };
                     ui.menu_button("Modbus", |ui| {
                         ui.set_min_width(260.0);
-                        ui.add_enabled_ui(false, |ui| {
-                            ui.menu_button("Active MB Functions", |_| {});
+                        ui.menu_button("Active MB Functions", |ui| {
+                            for (fc, name) in FUNCTION_TOGGLES {
+                                let on = lock(&self.server.cfg).supported.contains(&fc);
+                                if check_plain(ui, on, name) {
+                                    let mut cfg = lock(&self.server.cfg);
+                                    if !cfg.supported.remove(&fc) {
+                                        cfg.supported.insert(fc);
+                                    }
+                                }
+                            }
                         });
                         ui.separator();
                         off(ui, "Return Incorrect TI");
                         off(ui, "Return Incorrect Protocol ID");
                         off(ui, "Return Incorrect Length High Byte");
-                        ui.add_enabled_ui(false, |ui| {
-                            ui.menu_button("Return Exception", |_| {});
+                        ui.menu_button("Return Exception", |ui| {
+                            for (exc, name) in EXCEPTION_CHOICES {
+                                let current = lock(&self.server.cfg).forced_exception;
+                                if check_plain(ui, current == Some(exc), name) {
+                                    lock(&self.server.cfg).forced_exception = next_forced_exception(current, exc);
+                                }
+                            }
                         });
                         ui.separator();
                         ui.add_enabled(false, egui::Button::new("Use Address Offset").shortcut_text(ctx.format_shortcut(&offset_sc)));
@@ -451,8 +465,11 @@ impl eframe::App for App {
                             ui.separator();
                             off(ui, "Purge Port Usage Blocking(s)");
                         });
-                        ui.add_enabled_ui(false, |ui| {
-                            ui.menu_button("Disable Nagle", |_| {});
+                        // The original enables these per connected client; the server
+                        // does not switch TCP_NODELAY on a live connection yet.
+                        ui.menu_button("Disable Nagle", |ui| {
+                            off(ui, "Connection #1");
+                            off(ui, "Connection #2");
                         });
                         ui.separator();
                         // The server always drops a connection silent for a minute.
@@ -709,6 +726,43 @@ impl eframe::App for App {
     }
 }
 
+/// Function codes of Options > Modbus > Active MB Functions, with their captions.
+const FUNCTION_TOGGLES: [(u8, &str); 8] = [
+    (0x03, "FC3"),
+    (0x04, "FC4"),
+    (0x06, "FC6"),
+    (0x07, "FC7"),
+    (0x08, "FC8"),
+    (0x10, "FC16"),
+    (0x16, "FC22"),
+    (0x17, "FC23"),
+];
+
+/// Entries of Options > Modbus > Return Exception. There is no entry for code 9.
+const EXCEPTION_CHOICES: [(Exception, &str); 10] = [
+    (Exception::IllegalFunction, "Illegal Function"),
+    (Exception::IllegalDataAddress, "Illegal Data Address"),
+    (Exception::IllegalDataValue, "Illegal Data Value"),
+    (Exception::SlaveDeviceFailure, "Slave Device Failure"),
+    (Exception::Acknowledge, "Acknowledge"),
+    (Exception::SlaveDeviceBusy, "Slave Device Busy"),
+    (Exception::NegativeAcknowledge, "Negative Acknowledge"),
+    (Exception::MemoryParityError, "Memory Parity Error"),
+    (Exception::GatewayPathUnavailable, "Gateway Path Unavailable"),
+    (Exception::GatewayTargetFailed, "Gateway Target Device Failed to Respond"),
+];
+
+/// The forced exception after choosing `chosen`: choosing the active one again turns it off.
+fn next_forced_exception(current: Option<Exception>, chosen: Exception) -> Option<Exception> {
+    (current != Some(chosen)).then_some(chosen)
+}
+
+/// A checkmark menu entry without a shortcut; true when clicked.
+fn check_plain(ui: &mut egui::Ui, on: bool, text: &str) -> bool {
+    let label = if on { format!("\u{2713} {text}") } else { format!("    {text}") };
+    ui.button(label).clicked()
+}
+
 /// A row of the Server status panel: the label and one value per client slot
 /// (`--` while a slot is free or has not sent anything yet).
 fn stats_row(ui: &mut egui::Ui, label: &str, value: impl Fn(usize) -> Option<String>) {
@@ -741,7 +795,7 @@ fn hex8(v: u8) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{list_text, parse_port};
+    use super::{list_text, next_forced_exception, parse_port, Exception, EXCEPTION_CHOICES, FUNCTION_TOGGLES};
 
     #[test]
     fn list_text_is_tab_separated_and_honours_hex() {
@@ -758,5 +812,21 @@ mod tests {
         assert!(parse_port("65536").is_err());
         assert!(parse_port("abc").is_err());
         assert!(parse_port("").is_err());
+    }
+
+    #[test]
+    fn choosing_the_active_exception_again_turns_it_off() {
+        let busy = Exception::SlaveDeviceBusy;
+        assert_eq!(next_forced_exception(None, busy), Some(busy));
+        assert_eq!(next_forced_exception(Some(busy), busy), None);
+        assert_eq!(next_forced_exception(Some(Exception::Acknowledge), busy), Some(busy));
+    }
+
+    #[test]
+    fn option_menus_match_the_original_entries() {
+        let fcs: Vec<u8> = FUNCTION_TOGGLES.iter().map(|&(fc, _)| fc).collect();
+        assert_eq!(fcs, [0x03, 0x04, 0x06, 0x07, 0x08, 0x10, 0x16, 0x17]);
+        let codes: Vec<u8> = EXCEPTION_CHOICES.iter().map(|&(e, _)| e as u8).collect();
+        assert_eq!(codes, [1, 2, 3, 4, 5, 6, 7, 8, 10, 11]);
     }
 }
