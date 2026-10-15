@@ -27,6 +27,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 const VISIBLE_ROWS: u16 = 26;
+/// The original's port on Windows; elsewhere ports below 1024 need privileges.
+#[cfg(windows)]
+const DEFAULT_PORT: u16 = 502;
+#[cfg(not(windows))]
 const DEFAULT_PORT: u16 = 15020;
 
 /// The port from `--port N` / `-p N` on the command line, if given.
