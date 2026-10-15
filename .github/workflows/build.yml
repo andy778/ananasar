@@ -23,6 +23,15 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       - run: cargo test --workspace --locked
       - run: cargo clippy --workspace -- -D warnings
+      # The tag build stamps the version with this script and then builds with
+      # --locked, so check in a throwaway copy that the two still agree.
+      - name: Check version stamping keeps Cargo.lock in sync
+        run: |
+          tmp="$(mktemp -d)"
+          git ls-files -z | xargs -0 cp --parents -t "$tmp"
+          cd "$tmp"
+          GITHUB_REF=refs/tags/v9.9.9 GITHUB_REF_NAME=v9.9.9 ./scripts/stamp-version.sh
+          cargo metadata --locked --format-version 1 > /dev/null
 
   msrv:
     name: msrv (rust 1.92)
