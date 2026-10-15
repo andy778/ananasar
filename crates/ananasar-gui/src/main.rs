@@ -12,16 +12,18 @@ mod dialog;
 mod embed;
 mod scannerview;
 mod filewindow;
+mod menu;
 mod setvalview;
 mod theme;
 
 use ananasar_core::protocol::Exception;
-use ananasar_core::registers::{Bank, InitMode, RegisterFile};
+use ananasar_core::registers::{Bank, RegisterFile};
 use ananasar_core::log::LogMode;
 use ananasar_core::sync::lock;
 use clientview::ClientView;
 use eframe::egui;
 use embed::{ServerHandle, SharedRegs};
+use menu::{sc, Action};
 use scannerview::ScannerView;
 use filewindow::FileWindow;
 use setvalview::SetValView;
@@ -600,66 +602,45 @@ impl eframe::App for App {
         let ctx = ui.ctx().clone();
 
         // ---- menu bar ----
-        let open_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::O);
-        let save_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::S);
-        let exit_sc = egui::KeyboardShortcut::new(egui::Modifiers::ALT, egui::Key::F4);
-        if ctx.input_mut(|i| i.consume_shortcut(&open_sc)) {
+        if ctx.input_mut(|i| i.consume_shortcut(&sc::OPEN)) {
             self.file.open();
         }
-        if ctx.input_mut(|i| i.consume_shortcut(&save_sc)) {
+        if ctx.input_mut(|i| i.consume_shortcut(&sc::SAVE)) {
             self.file.save();
         }
-        if ctx.input_mut(|i| i.consume_shortcut(&exit_sc)) {
+        if ctx.input_mut(|i| i.consume_shortcut(&sc::EXIT)) {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
-        let setreg_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::R);
-        let hex_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::H);
-        let addr_hex_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND | egui::Modifiers::ALT, egui::Key::H);
         // The more specific shortcut first, so Ctrl+Alt+H is not taken as Ctrl+H.
-        if ctx.input_mut(|i| i.consume_shortcut(&addr_hex_sc)) {
+        if ctx.input_mut(|i| i.consume_shortcut(&sc::ADDR_HEX)) {
             self.addr_hex = !self.addr_hex;
         }
-        if ctx.input_mut(|i| i.consume_shortcut(&hex_sc)) {
+        if ctx.input_mut(|i| i.consume_shortcut(&sc::HEX)) {
             self.hex = !self.hex;
         }
-        if ctx.input_mut(|i| i.consume_shortcut(&setreg_sc)) {
+        if ctx.input_mut(|i| i.consume_shortcut(&sc::SET_REGISTER)) {
             self.show_setval = true;
         }
-        let item = |ui: &mut egui::Ui, text: &str, sc: &egui::KeyboardShortcut| {
-            ui.add(egui::Button::new(text).shortcut_text(ctx.format_shortcut(sc))).clicked()
-        };
-        let scanner_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND | egui::Modifiers::ALT, egui::Key::C);
-        let offset_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND | egui::Modifiers::ALT, egui::Key::O);
-        let synch_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND | egui::Modifiers::ALT, egui::Key::S);
-        let listen_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::P);
-        let port_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::N);
-        let tips_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::T);
         // Ctrl+Alt shortcuts first, so Ctrl+Alt+S is not taken as Ctrl+S.
-        if ctx.input_mut(|i| i.consume_shortcut(&scanner_sc)) {
+        if ctx.input_mut(|i| i.consume_shortcut(&sc::SCANNER)) {
             self.show_scanner = true;
         }
-        let mut toggle_listen = ctx.input_mut(|i| i.consume_shortcut(&listen_sc));
-        let mut open_port = ctx.input_mut(|i| i.consume_shortcut(&port_sc));
-        if ctx.input_mut(|i| i.consume_shortcut(&tips_sc)) {
+        let mut toggle_listen = ctx.input_mut(|i| i.consume_shortcut(&sc::LISTEN));
+        let mut open_port = ctx.input_mut(|i| i.consume_shortcut(&sc::CHANGE_PORT));
+        if ctx.input_mut(|i| i.consume_shortcut(&sc::TOOLTIPS)) {
             self.tooltips = !self.tooltips;
         }
-        let check = |ui: &mut egui::Ui, on: bool, text: &str, sc: &egui::KeyboardShortcut| {
-            theme::check_item(ui, on, true, text, Some(ctx.format_shortcut(sc)))
-        };
         // Value List shortcuts leave Ctrl+C/E/M to a focused text field.
-        let vl_edit_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::E);
-        let vl_monitor_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::M);
-        let vl_copy_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::C);
         let mut set_edit: Option<bool> = None;
         let mut copy_list = false;
         if !ctx.egui_wants_keyboard_input() {
-            if ctx.input_mut(|i| i.consume_shortcut(&vl_edit_sc)) {
+            if ctx.input_mut(|i| i.consume_shortcut(&sc::VL_EDIT)) {
                 set_edit = Some(true);
             }
-            if ctx.input_mut(|i| i.consume_shortcut(&vl_monitor_sc)) {
+            if ctx.input_mut(|i| i.consume_shortcut(&sc::VL_MONITOR)) {
                 set_edit = Some(false);
             }
-            copy_list = ctx.input_mut(|i| i.consume_shortcut(&vl_copy_sc));
+            copy_list = ctx.input_mut(|i| i.consume_shortcut(&sc::VL_COPY));
         }
         let title = window_title(&self.local_ip, self.server_port);
         if title != self.title {
@@ -667,158 +648,55 @@ impl eframe::App for App {
             self.title = title;
         }
 
+        let menus = {
+            let cfg = lock(&self.server.cfg);
+            menu::build(&menu::MenuState {
+                value_list_edit: self.value_list_edit,
+                addr_hex: self.addr_hex,
+                hex: self.hex,
+                listening: self.server.listening.load(Ordering::SeqCst),
+                port: self.server_port,
+                tooltips: self.tooltips,
+                supported: &cfg.supported,
+                forced_exception: cfg.forced_exception,
+            })
+        };
+        let mut chosen = None;
         egui::Panel::top("menubar").show(ui, |ui| {
             egui::MenuBar::new().config(theme::menu_config(self.classic)).ui(ui, |ui| {
-                ui.menu_button("File", |ui| {
-                    ui.set_min_width(190.0);
-                    if item(ui, "Open…", &open_sc) {
-                        self.file.open();
-                        ui.close();
-                    }
-                    if item(ui, "Save As…", &save_sc) {
-                        self.file.save();
-                        ui.close();
-                    }
-                    ui.separator();
-                    if item(ui, "Exit", &exit_sc) {
-                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                    }
-                    ui.separator();
-                    if ui.button("About…").clicked() {
-                        self.show_about = true;
-                        ui.close();
-                    }
-                });
-                ui.menu_button("Edit", |ui| {
-                    ui.set_min_width(190.0);
-                    ui.menu_button("Value List", |ui| {
-                        ui.set_min_width(190.0);
-                        if check(ui, self.value_list_edit, "Edit", &vl_edit_sc) {
-                            set_edit = Some(true);
-                            ui.close();
-                        }
-                        if check(ui, !self.value_list_edit, "Monitor", &vl_monitor_sc) {
-                            set_edit = Some(false);
-                            ui.close();
-                        }
-                        ui.separator();
-                        if item(ui, "Copy", &vl_copy_sc) {
-                            copy_list = true;
-                            ui.close();
-                        }
-                    });
-                    ui.separator();
-                    if item(ui, "Set Register Value", &setreg_sc) {
-                        self.show_setval = true;
-                        ui.close();
-                    }
-                    ui.separator();
-                    ui.menu_button("Initialize", |ui| {
-                        for (name, bank) in [("Input Registers", Bank::Input), ("Holding Registers", Bank::Holding)] {
-                            ui.menu_button(name, |ui| {
-                                if ui.button("All to '0'").clicked() {
-                                    lock(&self.regs).initialize(bank, InitMode::Zero);
-                                    ui.close();
-                                }
-                                if ui.button("Ascending").clicked() {
-                                    lock(&self.regs).initialize(bank, InitMode::Ascending);
-                                    ui.close();
-                                }
-                            });
-                        }
-                    });
-                });
-                ui.menu_button("View", |ui| {
-                    ui.set_min_width(190.0);
-                    if check(ui, self.addr_hex, "Registers as Hex", &addr_hex_sc) {
-                        self.addr_hex = !self.addr_hex;
-                    }
-                    if check(ui, self.hex, "Values as Hex", &hex_sc) {
-                        self.hex = !self.hex;
-                    }
-                });
-                ui.menu_button("Options", |ui| {
-                    ui.set_min_width(190.0);
-                    let listening = self.server.listening.load(Ordering::SeqCst);
-                    // Entries of the original with no counterpart in the engine yet are shown greyed out.
-                    let off = |ui: &mut egui::Ui, text: &str| {
-                        ui.add_enabled(false, egui::Button::new(text));
-                    };
-                    ui.menu_button("Modbus", |ui| {
-                        ui.set_min_width(260.0);
-                        ui.menu_button("Active MB Functions", |ui| {
-                            for (fc, name) in FUNCTION_TOGGLES {
-                                let on = lock(&self.server.cfg).supported.contains(&fc);
-                                if check_plain(ui, on, name) {
-                                    let mut cfg = lock(&self.server.cfg);
-                                    if !cfg.supported.remove(&fc) {
-                                        cfg.supported.insert(fc);
-                                    }
-                                }
-                            }
-                        });
-                        ui.separator();
-                        off(ui, "Return Incorrect TI");
-                        off(ui, "Return Incorrect Protocol ID");
-                        off(ui, "Return Incorrect Length High Byte");
-                        ui.menu_button("Return Exception", |ui| {
-                            for (exc, name) in EXCEPTION_CHOICES {
-                                let current = lock(&self.server.cfg).forced_exception;
-                                if check_plain(ui, current == Some(exc), name) {
-                                    lock(&self.server.cfg).forced_exception = next_forced_exception(current, exc);
-                                }
-                            }
-                        });
-                        ui.separator();
-                        ui.add_enabled(false, egui::Button::new("Use Address Offset").shortcut_text(ctx.format_shortcut(&offset_sc)));
-                        ui.separator();
-                        ui.add_enabled(false, egui::Button::new("Reply Out of Synch").shortcut_text(ctx.format_shortcut(&synch_sc)));
-                        ui.separator();
-                        if item(ui, "Register Scanner…", &scanner_sc) {
-                            self.show_scanner = true;
-                            ui.close();
-                        }
-                    });
-                    ui.menu_button("TCP", |ui| {
-                        ui.set_min_width(260.0);
-                        ui.menu_button("Port", |ui| {
-                            ui.set_min_width(260.0);
-                            if check(ui, listening, &format!("Monitor Port {}", self.server_port), &listen_sc) {
-                                toggle_listen = true;
-                                ui.close();
-                            }
-                            if item(ui, "Change Port…", &port_sc) {
-                                open_port = true;
-                                ui.close();
-                            }
-                            ui.separator();
-                            off(ui, "Purge Port Usage Blocking(s)");
-                        });
-                        // The original enables these per connected client; the server
-                        // does not switch TCP_NODELAY on a live connection yet.
-                        ui.menu_button("Disable Nagle", |ui| {
-                            off(ui, "Connection #1");
-                            off(ui, "Connection #2");
-                        });
-                        ui.separator();
-                        // The server always drops a connection silent for a minute.
-                        theme::check_item(ui, true, false, "Release Connection if Unused >1 min", None);
-                    });
-                    ui.separator();
-                    #[cfg(windows)]
-                    if ui.button("DDE Server…").clicked() {
-                        self.dde.open();
-                        ui.close();
-                    }
-                    #[cfg(not(windows))]
-                    off(ui, "DDE Server…");
-                    ui.separator();
-                    if check(ui, self.tooltips, "Show Tooltips", &tips_sc) {
-                        self.tooltips = !self.tooltips;
-                    }
-                });
+                chosen = menu::show(ui, &menus);
             });
         });
+        match chosen {
+            Some(Action::Open) => self.file.open(),
+            Some(Action::SaveAs) => self.file.save(),
+            Some(Action::Exit) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+            Some(Action::About) => self.show_about = true,
+            Some(Action::ValueListEdit) => set_edit = Some(true),
+            Some(Action::ValueListMonitor) => set_edit = Some(false),
+            Some(Action::CopyList) => copy_list = true,
+            Some(Action::SetRegister) => self.show_setval = true,
+            Some(Action::Initialize(bank, mode)) => lock(&self.regs).initialize(bank, mode),
+            Some(Action::AddrHex) => self.addr_hex = !self.addr_hex,
+            Some(Action::Hex) => self.hex = !self.hex,
+            Some(Action::ToggleFunction(fc)) => {
+                let mut cfg = lock(&self.server.cfg);
+                if !cfg.supported.remove(&fc) {
+                    cfg.supported.insert(fc);
+                }
+            }
+            Some(Action::ForceException(exc)) => {
+                let mut cfg = lock(&self.server.cfg);
+                cfg.forced_exception = next_forced_exception(cfg.forced_exception, exc);
+            }
+            Some(Action::Scanner) => self.show_scanner = true,
+            Some(Action::MonitorPort) => toggle_listen = true,
+            Some(Action::ChangePort) => open_port = true,
+            #[cfg(windows)]
+            Some(Action::DdeServer) => self.dde.open(),
+            Some(Action::Tooltips) => self.tooltips = !self.tooltips,
+            None => {}
+        }
 
         if let Some(edit) = set_edit {
             self.value_list_edit = edit;
@@ -918,40 +796,9 @@ impl eframe::App for App {
     }
 }
 
-/// Function codes of Options > Modbus > Active MB Functions, with their captions.
-const FUNCTION_TOGGLES: [(u8, &str); 8] = [
-    (0x03, "FC3"),
-    (0x04, "FC4"),
-    (0x06, "FC6"),
-    (0x07, "FC7"),
-    (0x08, "FC8"),
-    (0x10, "FC16"),
-    (0x16, "FC22"),
-    (0x17, "FC23"),
-];
-
-/// Entries of Options > Modbus > Return Exception. There is no entry for code 9.
-const EXCEPTION_CHOICES: [(Exception, &str); 10] = [
-    (Exception::IllegalFunction, "Illegal Function"),
-    (Exception::IllegalDataAddress, "Illegal Data Address"),
-    (Exception::IllegalDataValue, "Illegal Data Value"),
-    (Exception::SlaveDeviceFailure, "Slave Device Failure"),
-    (Exception::Acknowledge, "Acknowledge"),
-    (Exception::SlaveDeviceBusy, "Slave Device Busy"),
-    (Exception::NegativeAcknowledge, "Negative Acknowledge"),
-    (Exception::MemoryParityError, "Memory Parity Error"),
-    (Exception::GatewayPathUnavailable, "Gateway Path Unavailable"),
-    (Exception::GatewayTargetFailed, "Gateway Target Device Failed to Respond"),
-];
-
 /// The forced exception after choosing `chosen`: choosing the active one again turns it off.
 fn next_forced_exception(current: Option<Exception>, chosen: Exception) -> Option<Exception> {
     (current != Some(chosen)).then_some(chosen)
-}
-
-/// A checkmark menu entry without a shortcut; true when clicked.
-fn check_plain(ui: &mut egui::Ui, on: bool, text: &str) -> bool {
-    theme::check_item(ui, on, true, text, None)
 }
 
 /// The register list as tab-separated `address<TAB>value` lines.
@@ -987,7 +834,8 @@ fn hex16_plain(v: u16) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{first_free_port, fmt_ms, hex8, hex16, hex16_plain, list_text, next_forced_exception, parse_port, port_changed_text, Exception, EXCEPTION_CHOICES, FUNCTION_TOGGLES};
+    use super::{first_free_port, fmt_ms, hex8, hex16, hex16_plain, list_text, next_forced_exception, parse_port, port_changed_text, Exception};
+    use crate::menu::{EXCEPTION_CHOICES, FUNCTION_TOGGLES};
 
     #[test]
     fn list_text_is_tab_separated_and_honours_hex() {
