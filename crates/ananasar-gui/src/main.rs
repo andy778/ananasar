@@ -186,22 +186,23 @@ impl App {
     fn port_dialog_ui(&mut self, ctx: &egui::Context) {
         let Some(mut dlg) = self.port_dialog.take() else { return };
         let (mut ok, mut cancel) = (false, false);
-        egui::Window::new("Port").collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
-            ui.label(format!("Current port: {}", self.server_port));
-            ui.horizontal(|ui| {
-                ui.label("New port:");
-                let r = ui.text_edit_singleline(&mut dlg.input);
-                if r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                    ok = true;
-                }
-            });
-            if !dlg.error.is_empty() {
-                ui.colored_label(ui.visuals().error_fg_color, &dlg.error);
+        egui::Window::new("Server port").collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+            // Fixed 223x109 client area; controls sit at explicit offsets.
+            let (area, _) = ui.allocate_exact_size(egui::vec2(223.0, 109.0), egui::Sense::hover());
+            let at = |x: f32, y: f32, w: f32, h: f32| setvalview::client_rect(area, x, y, w, h);
+            setvalview::group_box(ui, at(8.0, 8.0, 96.0, 57.0), "Port to use");
+            let r = ui.put(at(20.0, 28.0, 65.0, 22.0), egui::TextEdit::singleline(&mut dlg.input)).on_hover_text("Select port used by server");
+            if r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                ok = true;
             }
-            ui.horizontal(|ui| {
-                ok |= ui.button("OK").clicked();
-                cancel = ui.button("Cancel").clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape));
-            });
+            let (text, color) = if dlg.error.is_empty() {
+                (format!("Port currently used: {}", self.server_port), egui::Color32::BLACK)
+            } else {
+                (dlg.error.clone(), ui.visuals().error_fg_color)
+            };
+            ui.put(at(8.0, 75.0, 207.0, 28.0), egui::Label::new(egui::RichText::new(text).color(color)).wrap());
+            ok |= ui.put(at(120.0, 8.0, 96.0, 33.0), egui::Button::new("OK")).clicked();
+            cancel = ui.put(at(120.0, 47.0, 96.0, 33.0), egui::Button::new("Cancel")).clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape));
         });
         if cancel {
             return;
@@ -693,9 +694,7 @@ impl eframe::App for App {
 
         let mut show_setval = self.show_setval;
         let regs = self.regs.clone();
-        egui::Window::new("Set value")
-            .open(&mut show_setval)
-            .show(&ctx, |ui| self.setval.ui(ui, &regs));
+        self.setval.show(&ctx, &mut show_setval, &regs, theme::menu_config(self.classic));
         self.show_setval = show_setval;
 
         let mut show_scanner = self.show_scanner;
