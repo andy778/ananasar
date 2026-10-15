@@ -225,7 +225,7 @@ followed by the reply (and, in interpretive mode, the descriptions). The same lo
 
 These entries exist in the menus, to match the original's layout, but are greyed out because the server does not support them yet:
 
-- Options > Modbus: Return Incorrect TI, Return Incorrect Protocol ID, Return Incorrect Length High Byte, Use Address Offset (server side) and Reply Out of Synch. (The *client* has a working Use address offset; see [Polling](#polling).)
+- Options > Modbus (see [known gaps](../README.md#known-gaps) for the issues): Return Incorrect TI, Return Incorrect Protocol ID, Return Incorrect Length High Byte, Use Address Offset (server side) and Reply Out of Synch. (The *client* has a working Use address offset; see [Polling](#polling).)
 - Options > TCP: Port > Purge Port Usage Blocking(s) and Disable Nagle > Connection #1 / #2.
 - Options > DDE Server… on platforms other than Windows.
 

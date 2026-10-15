@@ -163,9 +163,25 @@ The README screenshot is rendered headlessly from the real window; see [docs/scr
 - The optimizer only merges addresses that are already consecutive in the sorted list, capped by the max-per-query setting, matching the original's greedy coalescing.
 - **Intentional fix:** the original validated only `start + count <= 65536` and built FC3/FC4 replies in a fixed 513-byte buffer, so quantities of 253–255 overflowed it. This port enforces the Modbus limits (125 read / 123 write) and returns `IllegalDataValue` instead.
 
-## Not implemented
+## Known gaps
 
-The network-adapter features of the original are not planned. Some Options entries of the original are shown greyed out because the server does not support them yet; [the GUI manual](docs/gui.md#not-implemented) lists them.
+What is not done or differs from the original, stated plainly. Greyed-out entries in the Options menu are listed in the [GUI manual](docs/gui.md#not-implemented).
+
+| Area | Gap | Issue |
+| --- | --- | --- |
+| Server options | Return Incorrect TI, Return Incorrect Protocol ID and Return Incorrect Length High Byte are greyed out. | [#88](https://github.com/andy778/ananasar/issues/88) |
+| Server options | Reply Out of Synch is greyed out. | [#89](https://github.com/andy778/ananasar/issues/89) |
+| Server options | Use Address Offset on the server is greyed out (the client and the scanner have their own working offset). | [#90](https://github.com/andy778/ananasar/issues/90) |
+| Server | FC8 (diagnostics) echoes the request for every sub-function; the original answers per sub-function. | [#91](https://github.com/andy778/ananasar/issues/91) |
+| Server | FC7 (exception status) always returns 0; the original's value follows register contents. | [#92](https://github.com/andy778/ananasar/issues/92) |
+| Server | A frame with a bad protocol id or length high byte is ignored; the original closes the connection. | [#93](https://github.com/andy778/ananasar/issues/93) |
+| Server options | Disable Nagle per connection and Purge Port Usage Blocking(s) are greyed out. | none |
+| Stress mode | CLI only (`ananasar stress`); there is no GUI panel yet. | [#86](https://github.com/andy778/ananasar/issues/86) |
+| CLI | `ananasar client --write` writes zeros only, and there is no option for the address offset, the function code set or a forced exception. | none |
+| Alarm data | Alarm data with timestamps over Modbus is under investigation only. | [#32](https://github.com/andy778/ananasar/issues/32) |
+| Original's network-adapter features | Not planned. | none |
+
+Places where Ananasar deliberately differs from the original (for example, it enforces the Modbus quantity limits) are recorded in [#94](https://github.com/andy778/ananasar/issues/94).
 
 ## About the original
 
