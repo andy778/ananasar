@@ -179,9 +179,9 @@ id = "wire-parity"
 area = "server"
 feature = "Same bytes on the wire as the original for the fixed scenarios"
 status = "partial"
-tests = ["crates/ananasar-parity/tests/loopback.rs::scenarios_record_expected_replies_and_repeat_identically"]
+tests = ["crates/ananasar-parity/tests/loopback.rs::scenarios_record_expected_replies_and_repeat_identically", "crates/ananasar-parity/tests/golden.rs::ananasar_matches_the_original_except_listed_deviations"]
 issue = 64
-note = "the comparison against the original needs the original run by hand, see docs/parity-testing.md; only specification-derived recordings run in CI"
+note = "recordings of the original for every profile run in CI against Ananasar; the known differences are listed as deviations in the golden files (issues 88 to 94); refreshing a golden needs the original run by hand, see docs/parity-testing.md"
 
 [[feature]]
 id = "dde-and-adapter"
@@ -220,3 +220,62 @@ feature = "Disable Nagle's algorithm on a connected client from the Options menu
 status = "missing"
 issue = 38
 note = "the menu entries Connection #1 and #2 are shown greyed out; the server does not change TCP_NODELAY on a live connection yet"
+
+[[feature]]
+id = "wire-scenario-catalog"
+area = "server"
+feature = "Data-driven catalog of wire scenarios for every function code, exception, fault option and malformed frame, runnable against any server"
+status = "shipped"
+tests = ["crates/ananasar-parity/src/scenarios/mod.rs::names_are_unique_per_profile_and_steps_non_empty", "crates/ananasar-parity/src/scenarios/mod.rs::every_scenario_belongs_to_a_listed_profile", "crates/ananasar-parity/tests/golden.rs::goldens_cover_exactly_the_catalog"]
+
+[[feature]]
+id = "wire-cross-run"
+area = "server"
+feature = "Local-only cross-run of the scenarios against the original, with a per-scenario verdict, skipped when no target is given"
+status = "shipped"
+tests = ["crates/ananasar-parity/tests/cli.rs::cross_run_is_skipped_without_a_target", "crates/ananasar-parity/tests/cli.rs::cross_run_reads_the_target_from_the_environment_variable", "crates/ananasar-parity/tests/cli.rs::diff_prints_one_verdict_per_scenario_and_sets_the_exit_status"]
+
+[[feature]]
+id = "wire-golden-fixtures"
+area = "server"
+feature = "Committed recordings of the original per profile, replayed against Ananasar in CI with listed deviations"
+status = "shipped"
+tests = ["crates/ananasar-parity/tests/golden.rs::ananasar_matches_the_original_except_listed_deviations", "crates/ananasar-parity/tests/golden.rs::every_profile_has_a_golden_file_and_nothing_else_is_there", "crates/ananasar-parity/tests/golden.rs::deviations_and_quirks_carry_a_reason", "crates/ananasar-parity/src/golden.rs::listed_deviation_is_allowed_but_must_still_differ"]
+
+[[feature]]
+id = "property-tests"
+area = "server"
+feature = "Property tests for the frame codec, the register file and the server engine"
+status = "shipped"
+tests = ["crates/ananasar-core/tests/properties.rs::frame_round_trips_every_build", "crates/ananasar-core/tests/properties.rs::arbitrary_bytes_never_panic_frame_or_engine", "crates/ananasar-core/tests/properties.rs::fc16_then_fc3_returns_the_written_values", "crates/ananasar-core/tests/properties.rs::fc22_matches_the_reference_formula", "crates/ananasar-core/tests/properties.rs::fc23_applies_the_write_before_the_read", "crates/ananasar-net/tests/properties.rs::arbitrary_bytes_never_panic_the_frame_reader"]
+
+[[feature]]
+id = "server-forced-exception-precedence"
+area = "server"
+feature = "A forced exception leaves illegal function for unsupported codes and illegal data address for spans past the end"
+status = "shipped"
+tests = ["crates/ananasar-core/src/lib.rs::forced_exception_keeps_illegal_function_and_illegal_address", "crates/ananasar-core/tests/properties.rs::forced_exception_keeps_illegal_function_for_unsupported_codes"]
+
+[[feature]]
+id = "server-fault-options"
+area = "server"
+feature = "Return Incorrect TI, Protocol ID and Length High Byte, Reply Out of Synch, Use Address Offset"
+status = "missing"
+issue = 88
+note = "greyed out in the menu; the original's replies are recorded in the fault-*, fault-out-of-synch and address-offset goldens (issues 88, 89, 90)"
+
+[[feature]]
+id = "server-fc8-fc7-values"
+area = "server"
+feature = "FC8 sub-functions with their own answers and counters, FC7 status byte that follows register contents"
+status = "missing"
+issue = 91
+note = "Ananasar echoes FC8 and always answers FC7 with 0; see issues 91 and 92"
+
+[[feature]]
+id = "server-bad-header-close"
+area = "server"
+feature = "Close the connection on a bad protocol id or length high byte, as the original does"
+status = "missing"
+issue = 93
+note = "decision needed whether to match; Ananasar ignores the frame and keeps serving"
