@@ -24,3 +24,7 @@ callback, so some FFI is unavoidable. To keep the risk small:
 
 Service `Ananasar`; topics `input` and `holding`; items `r<N>` with N in
 0..=65535, for example `=Ananasar|holding!r100` in a spreadsheet.
+
+## See also
+
+- [DDE manual](../../docs/dde.md) for how to use the server from Excel and other DDE clients

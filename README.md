@@ -13,7 +13,7 @@ A port of Ananas, the free Modbus/TCP test tool by Tuomio, built with [REA](http
 [![License](https://img.shields.io/github/license/andy778/ananasar?cacheSeconds=300)](LICENSE)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/andy778/ananasar/badge)](https://securityscorecards.dev/viewer/?uri=github.com/andy778/ananasar)
 
-[Download](#download) · [Quick start](#quick-start) · [Build](#build-from-source) · [Layout](#project-layout)
+[Download](#download) · [Quick start](#quick-start) · [Documentation](#documentation) · [Build](#build-from-source)
 
 <img src="assets/screenshot.png" width="820" alt="Ananasar: the register list, the Server status panel with a client polling, and the logging controls">
 
@@ -21,19 +21,33 @@ A port of Ananas, the free Modbus/TCP test tool by Tuomio, built with [REA](http
 
 </div>
 
-## Features
+## At a glance
 
-- **Server** answering function codes 3, 4, 6, 16, 22 and 23, with proper exception responses and unit-id filtering. Two clients at a time, as in the original.
-- **Server data log** (CLI: `--log-dir`, `--interpretive`; GUI: the Logging panel with start/stop and a packet count): every request and reply per connection, as hex or with decoded descriptions, plus detected errors.
-- **Client** poll engine: sorted address lists, consecutive addresses merged into as few queries as possible, Cycle / Wait / Immediate trigger modes and manual FC6 / FC22 / FC7 commands.
-- **One shared register model** (holding and input, 65 536 registers each) used by the server, the client and the editors.
-- **Server status panel** like the original's: per-client IP, poll interval, last request fields, traffic totals and error flags, live.
-- **Register list** with hex display, inline editing and a **bit editor** with 32-bit Uint/Float views.
-- **Register scanner**: `ananasar scan host:port --start 0 --end 99` reads a range one register at a time and reports which answer. The GUI has the same sweep under View → Scanner, with a results table and a stoppable run.
-- **Save / load** register values as `*.ananas` text files (File → Open… / Save…, or `ananasar server --load FILE`).
-- **Headless CLI** for scripting, built on the same engine.
-- **MCP server** (`ananasar-mcp`) so an AI assistant such as Claude can read and write Modbus devices and run a simulated server, read-only by default. See [docs/mcp.md](docs/mcp.md).
-- **Stress mode** (`ananasar stress host:port`) for load and robustness checks of equipment you are authorised to test: parallel connections, rate ramps, fault injection, connection churn, latency percentiles and a JSON/CSV report. Not a link-level storm generator. See [docs/stress-testing.md](docs/stress-testing.md).
+| Area | Feature | What it does | Read more |
+| --- | --- | --- | --- |
+| Server | Function codes | Answers FC 3, 4, 6, 7, 8, 16, 22 and 23; each can be switched off. Proper exception replies, unit-id filtering, two clients at a time. | [GUI manual](docs/gui.md#modbus-options) |
+| Server | Fault injection | Answer every request with a chosen exception code (1-8, 10, 11). | [GUI manual](docs/gui.md#modbus-options) |
+| Server | Status panel | Live per-client IP, poll interval, last request fields, traffic totals and error flags. | [GUI manual](docs/gui.md#server-panel) |
+| Client | Poll engine | Sorted address lists, consecutive addresses merged into few queries, Cycle / Wait / Immediate modes. | [GUI manual](docs/gui.md#client-window) |
+| Client | Manual writes | FC6, FC16 and FC22 (mask write) from a dialog, plus FC7 exception status. | [GUI manual](docs/gui.md#manual-commands) |
+| Tools | Register scanner | Reads a range one register at a time and reports which answer (GUI and `ananasar scan`). | [GUI](docs/gui.md#register-scanner), [CLI](docs/cli.md#ananasar-scan) |
+| Tools | Data log | Every request and reply per connection as hex, optionally with decoded descriptions. | [GUI](docs/gui.md#data-log), [CLI](docs/cli.md#ananasar-server) |
+| Tools | Stress mode | `ananasar stress`: parallel connections, rate ramps, fault injection, connection churn, latency percentiles and a JSON/CSV report, for equipment you are authorised to test. Modbus-level, not a link-level storm generator. | [Stress testing](docs/stress-testing.md) |
+| Tools | Register editing | Hex or decimal list, inline editing, bit editor, 32-bit Uint/Float views with four byte orders. | [GUI manual](docs/gui.md#set-register-value) |
+| Tools | Save / load | Register values as `*.ananas` text files. | [GUI manual](docs/gui.md#file-menu) |
+| Integrations | CLI | Headless `server`, `client`, `scan` and shell completions. | [CLI manual](docs/cli.md) |
+| Integrations | MCP server | Lets an AI assistant read devices and run a simulated server; read-only by default. | [MCP manual](docs/mcp.md) |
+| Integrations | DDE server (Windows) | Serves registers to Excel and other DDE clients, with hot links. | [DDE manual](docs/dde.md) |
+| Quality | Fuzzing | The parsers that read network input are fuzzed. | [Build](#build-from-source) |
+| Quality | Parity testing | Wire-level comparison with the original's replies. | [Parity testing](docs/parity-testing.md) |
+| Quality | Signed releases | Release files are signed with cosign; binaries embed their dependency list (cargo-auditable). | [Verify a download](#verify-a-download) |
+
+## Why Ananasar
+
+- **One engine, three front ends.** The GUI, the CLI and the MCP server share the same register model and protocol code, so they behave the same way.
+- **Runs where you work.** The original is a Windows program whose download site no longer exists. Ananasar builds for Windows, macOS and Linux and is MIT licensed.
+- **Familiar, with the sharp edges filed off.** The menus, dialogs and Server panel follow the original's, while the server enforces the Modbus size limits instead of overflowing a buffer (see [design notes](#design-notes)).
+- **Checkable.** Releases are signed, parsers are fuzzed and the replies are compared with the original's at wire level. It is still a hobby project, provided as is with no support commitment ([SECURITY.md](SECURITY.md)).
 
 ## Download
 
@@ -73,25 +87,20 @@ The binaries are built with [cargo-auditable](https://github.com/rust-secure-cod
 
 ## Quick start
 
-Run the GUI (`ananasar-gui`). It starts a server on port 502 on Windows (15020 on other platforms, where ports below 1024 need privileges). If the default port is already used by another instance, it moves to the next free port and shows a notice; open **View → Client window** to poll it, or point the client at any other Modbus/TCP device.
+**GUI.** Run `ananasar-gui`. It starts a server on port 502 on Windows (15020 on other platforms, where ports below 1024 need privileges). If that port is taken, it moves to the next free port and shows a notice. Press **Show** in the Client box to open the client window and poll the server, or point the client at any other Modbus/TCP device.
 
-Or use the headless CLI:
+**CLI.** Two terminals:
 
 ```bash
-# server (port 502 needs root, so use a high port)
+# terminal 1: a server on a high port
 ananasar server --port 15020
 
-# client: poll holding registers, or write a block
-ananasar client 127.0.0.1:15020 --read-holding 10,11,12,100 -n 4
-ananasar client 127.0.0.1:15020 --write 42,43,44 -n 1
-
-# server with a data log (add --interpretive for decoded entries)
-ananasar server --port 15020 --log-dir logs
+# terminal 2: scan which registers answer, then poll some of them
+ananasar scan 127.0.0.1:15020 --start 0 --end 9
+ananasar client 127.0.0.1:15020 --read-holding 0,1,2 -n 3
 ```
 
-The log file is named `ananasar-<port>-<UTC time>.log`; each entry is numbered and shows the elapsed milliseconds, the connection (1 or 2), the query and the reply.
-
-Run `ananasar --help` or `ananasar client --help` for every option. Shell completions: `ananasar completions bash` (also zsh, fish, powershell, elvish).
+More in [Getting started](docs/getting-started.md), the [GUI manual](docs/gui.md) and the [CLI manual](docs/cli.md).
 
 ## Use it from an AI assistant (MCP)
 
@@ -101,7 +110,23 @@ Run `ananasar --help` or `ananasar client --help` for every option. Shell comple
 claude mcp add ananasar -- ananasar-mcp
 ```
 
-Then ask, for example: *"Start a simulated Modbus server on port 15021, set holding registers 100-103 to 1, 2, 3, 4, then read them back through the client."* Setup for Claude Desktop, the full tool list and the safety model are in [docs/mcp.md](docs/mcp.md).
+Then ask, for example: *"Start a simulated Modbus server on port 15021, set holding registers 100-103 to 1, 2, 3, 4, then read them back through the client."* Setup for Claude Desktop, the full tool list and the safety model are in the [MCP manual](docs/mcp.md).
+
+## Documentation
+
+| Page | Contents |
+| --- | --- |
+| [Getting started](docs/getting-started.md) | Install, first run, default ports, a first client/server session |
+| [GUI manual](docs/gui.md) | Every window, menu and option of `ananasar-gui` |
+| [CLI manual](docs/cli.md) | `ananasar server`, `client`, `scan`, `stress` and `completions` |
+| [Stress testing](docs/stress-testing.md) | Load and robustness checks with `ananasar stress` |
+| [MCP manual](docs/mcp.md) | Using Ananasar from an AI assistant |
+| [DDE manual](docs/dde.md) | Serving registers to Excel and other DDE clients (Windows) |
+| [Troubleshooting](docs/troubleshooting.md) | Ports, firewalls, no reply, exceptions, reporting a bug |
+| [Parity testing](docs/parity-testing.md) | Comparing Ananasar with the original at wire level |
+| [Releasing](docs/releasing.md) | How releases are made |
+
+The full index is [docs/README.md](docs/README.md).
 
 ## Build from source
 
@@ -127,6 +152,7 @@ The README screenshot is rendered headlessly from the real window; see [docs/scr
 - [`crates/ananasar-cli`](crates/ananasar-cli): the headless `ananasar` binary
 - [`crates/ananasar-stress`](crates/ananasar-stress): the library behind `ananasar stress`, see [docs/stress-testing.md](docs/stress-testing.md)
 - [`crates/ananasar-mcp`](crates/ananasar-mcp): the `ananasar-mcp` binary, an MCP server for AI assistants, see [docs/mcp.md](docs/mcp.md)
+- [`crates/ananasar-dde`](crates/ananasar-dde): the Windows DDE server used by the GUI, see [docs/dde.md](docs/dde.md)
 - [`crates/ananasar-gui`](crates/ananasar-gui): the egui application (`ananasar-gui`)
 - [`crates/ananasar-parity`](crates/ananasar-parity): wire-level scenario runner, recording proxy and diff for comparing servers, see [docs/parity-testing.md](docs/parity-testing.md)
 - [`fuzz`](fuzz): cargo-fuzz targets for the frame parser and the server handler
@@ -137,9 +163,9 @@ The README screenshot is rendered headlessly from the real window; see [docs/scr
 - The optimizer only merges addresses that are already consecutive in the sorted list, capped by the max-per-query setting, matching the original's greedy coalescing.
 - **Intentional fix:** the original validated only `start + count <= 65536` and built FC3/FC4 replies in a fixed 513-byte buffer, so quantities of 253–255 overflowed it. This port enforces the Modbus limits (125 read / 123 write) and returns `IllegalDataValue` instead.
 
-## Not yet implemented
+## Not implemented
 
-The network-adapter features (not planned). The Windows-only DDE server (Options > DDE Server) is implemented in `ananasar-dde`: service `Ananasar`, topics `input` and `holding`, items `r<N>` such as `=Ananasar|holding!r100`; the GUI can read, write (poke) and hot-link registers.
+The network-adapter features of the original are not planned. Some Options entries of the original are shown greyed out because the server does not support them yet; [the GUI manual](docs/gui.md#not-implemented) lists them.
 
 ## About the original
 
