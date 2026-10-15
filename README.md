@@ -113,6 +113,8 @@ cargo test                 # protocol and optimizer tests
 
 The parsers that read network input are also fuzzed (`cargo +nightly fuzz run frame` from the repository root, using [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz)). CI builds and releases the Windows, macOS and Linux binaries.
 
+The README screenshot is rendered headlessly from the real window; see [docs/screenshots.md](docs/screenshots.md) to regenerate it.
+
 ## Project layout
 
 - [`crates/ananasar-core`](crates/ananasar-core): `std`-only, I/O-free protocol engine

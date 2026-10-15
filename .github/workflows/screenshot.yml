@@ -1,0 +1,32 @@
+name: screenshot
+
+# Renders the README screenshot (assets/screenshot.png) headlessly and uploads
+# it as an artifact for review. Run by hand; see docs/screenshots.md.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  render:
+    name: render assets/screenshot.png
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+      # The runner has no GPU: lavapipe is a software Vulkan driver, which the
+      # test harness prefers over any hardware adapter.
+      - name: Install a software Vulkan driver
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mesa-vulkan-drivers libvulkan1
+      - name: Render the screenshot
+        run: cargo test --locked -p ananasar-gui render_readme_screenshot -- --ignored --nocapture
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screenshot
+          path: assets/screenshot.png
+          if-no-files-found: error
