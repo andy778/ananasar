@@ -611,7 +611,7 @@ impl eframe::App for App {
         if ctx.input_mut(|i| i.consume_shortcut(&sc::EXIT)) {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
-        // The more specific shortcut first, so Ctrl+Alt+H is not taken as Ctrl+H.
+        // The more specific shortcut first, so Ctrl+Shift+H is not taken as Ctrl+H.
         if ctx.input_mut(|i| i.consume_shortcut(&sc::ADDR_HEX)) {
             self.addr_hex = !self.addr_hex;
         }
