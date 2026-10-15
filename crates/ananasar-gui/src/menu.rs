@@ -22,7 +22,7 @@ pub mod sc {
     pub const VL_COPY: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::C);
     pub const SET_REGISTER: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::R);
     pub const HEX: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::H);
-    pub const ADDR_HEX: KeyboardShortcut = KeyboardShortcut::new(CMD_ALT, Key::H);
+    pub const ADDR_HEX: KeyboardShortcut = KeyboardShortcut::new(Modifiers { shift: true, ..Modifiers::COMMAND }, Key::H);
     pub const ADDRESS_OFFSET: KeyboardShortcut = KeyboardShortcut::new(CMD_ALT, Key::O);
     pub const OUT_OF_SYNCH: KeyboardShortcut = KeyboardShortcut::new(CMD_ALT, Key::S);
     pub const SCANNER: KeyboardShortcut = KeyboardShortcut::new(CMD_ALT, Key::C);
