@@ -43,7 +43,7 @@ jobs:
           toolchain: "1.92"
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       # The GUI needs a newer Rust (egui 0.36), so only the other crates are checked.
-      - run: cargo test --locked -p ananasar-core -p ananasar-net -p ananasar-cli -p ananasar-mcp
+      - run: cargo test --locked -p ananasar-core -p ananasar-net -p ananasar-cli -p ananasar-mcp -p ananasar-stress
 
   deny:
     name: cargo-deny (supply chain)

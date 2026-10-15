@@ -1,0 +1,14 @@
+[package]
+name = "ananasar-stress"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Modbus/TCP stress generator for load and robustness checks of equipment you are authorised to test."
+
+[dependencies]
+ananasar-core = { path = "../ananasar-core" }
+ananasar-net = { path = "../ananasar-net" }
+
+[lints]
+workspace = true

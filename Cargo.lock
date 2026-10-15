@@ -162,6 +162,7 @@ version = "0.1.0"
 dependencies = [
  "ananasar-core",
  "ananasar-net",
+ "ananasar-stress",
  "clap",
  "clap_complete",
 ]
@@ -210,6 +211,14 @@ dependencies = [
 
 [[package]]
 name = "ananasar-parity"
+version = "0.1.0"
+dependencies = [
+ "ananasar-core",
+ "ananasar-net",
+]
+
+[[package]]
+name = "ananasar-stress"
 version = "0.1.0"
 dependencies = [
  "ananasar-core",
