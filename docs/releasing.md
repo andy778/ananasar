@@ -21,3 +21,8 @@ The tag has to be pushed with a GitHub App token. A push made with the default `
 6. If the first run reports that it cannot push, add the app as a bypass actor on the `protect-main` ruleset (Settings → Rules → Rulesets). Tags are not covered by that ruleset, but semantic-release also checks push access on the branch.
 
 Without the two secrets the `semantic-release` workflow fails at its first step and nothing is released.
+
+## See also
+
+- [Documentation index](README.md)
+- [Project README](../README.md)
