@@ -58,6 +58,21 @@ fn parse_port(s: &str) -> Result<u16, String> {
     }
 }
 
+/// The local address that outbound traffic would leave from. A UDP "connect"
+/// only selects a route and sends nothing.
+fn local_ip() -> Option<std::net::IpAddr> {
+    let sock = std::net::UdpSocket::bind("0.0.0.0:0").ok()?;
+    sock.connect("192.0.2.1:9").ok()?;
+    Some(sock.local_addr().ok()?.ip())
+}
+
+fn window_title(ip: &Option<std::net::IpAddr>, port: u16) -> String {
+    match ip {
+        Some(ip) => format!("Ananasar - Modbus/TCP server at [{ip}]"),
+        None => format!("Ananasar - Modbus/TCP server on port {port}"),
+    }
+}
+
 /// State of the Options → Port… dialog.
 struct PortDialog {
     input: String,
@@ -65,7 +80,7 @@ struct PortDialog {
 }
 
 fn main() -> eframe::Result<()> {
-    let mut viewport = egui::ViewportBuilder::default().with_inner_size([820.0, 700.0]);
+    let mut viewport = egui::ViewportBuilder::default().with_inner_size([820.0, 700.0]).with_title(window_title(&local_ip(), cli_port()));
     // Window/taskbar icon — the two-pineapple logo (assets/icon.png).
     if let Ok(icon) = eframe::icon_data::from_png_bytes(include_bytes!("../../../assets/icon.png")) {
         viewport = viewport.with_icon(std::sync::Arc::new(icon));
@@ -91,6 +106,9 @@ struct App {
     classic: bool,
     editing: Option<u16>,
     edit_buf: String,
+    show_about: bool,
+    local_ip: Option<std::net::IpAddr>,
+    title: String,
     show_client: bool,
     show_setval: bool,
     show_scanner: bool,
@@ -125,6 +143,9 @@ impl App {
             classic: true,
             editing: None,
             edit_buf: String::new(),
+            show_about: false,
+            local_ip: local_ip(),
+            title: String::new(),
             show_client: false,
             show_setval: false,
             show_scanner: false,
@@ -185,6 +206,19 @@ impl App {
         self.port_dialog = Some(dlg);
     }
 
+    fn about_ui(&mut self, ctx: &egui::Context) {
+        let mut open = self.show_about;
+        egui::Window::new("About Ananasar").open(&mut open).collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+            ui.heading("Ananasar");
+            ui.label(format!("Version {}", env!("CARGO_PKG_VERSION")));
+            ui.label("Modbus/TCP server and client");
+            ui.label("Licensed under the MIT licence.");
+            ui.separator();
+            ui.label("A port of Ananas, the free Modbus/TCP tool by Tuomio, built with REA.");
+        });
+        self.show_about = open;
+    }
+
     fn fmt(&self, v: u16) -> String {
         if self.hex { format!("{v:04X}") } else { v.to_string() }
     }
@@ -203,20 +237,47 @@ impl eframe::App for App {
         let ctx = ui.ctx().clone();
 
         // ---- menu bar ----
+        let open_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::O);
+        let save_sc = egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::S);
+        let exit_sc = egui::KeyboardShortcut::new(egui::Modifiers::ALT, egui::Key::F4);
+        if ctx.input_mut(|i| i.consume_shortcut(&open_sc)) {
+            self.file.open();
+        }
+        if ctx.input_mut(|i| i.consume_shortcut(&save_sc)) {
+            self.file.save();
+        }
+        if ctx.input_mut(|i| i.consume_shortcut(&exit_sc)) {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        }
+        let title = window_title(&self.local_ip, self.server_port);
+        if title != self.title {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
+            self.title = title;
+        }
+
         egui::Panel::top("menubar").show(ui, |ui| {
-            egui::MenuBar::new().ui(ui, |ui| {
+            egui::MenuBar::new().config(theme::menu_config(self.classic)).ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
-                    if ui.button("Open…").clicked() {
+                    ui.set_min_width(190.0);
+                    let item = |ui: &mut egui::Ui, text: &str, sc: &egui::KeyboardShortcut| {
+                        ui.add(egui::Button::new(text).shortcut_text(ctx.format_shortcut(sc))).clicked()
+                    };
+                    if item(ui, "Open…", &open_sc) {
                         self.file.open();
                         ui.close();
                     }
-                    if ui.button("Save…").clicked() {
+                    if item(ui, "Save As…", &save_sc) {
                         self.file.save();
                         ui.close();
                     }
                     ui.separator();
-                    if ui.button("Exit").clicked() {
+                    if item(ui, "Exit", &exit_sc) {
                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
+                    ui.separator();
+                    if ui.button("About…").clicked() {
+                        self.show_about = true;
+                        ui.close();
                     }
                 });
                 ui.menu_button("Edit", |ui| {
@@ -272,6 +333,7 @@ impl eframe::App for App {
         });
 
         self.port_dialog_ui(&ctx);
+        self.about_ui(&ctx);
 
         // ---- status bar ----
         egui::Panel::bottom("statusbar").show(ui, |ui| {
