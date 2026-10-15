@@ -104,6 +104,7 @@ struct App {
     start_address: u16,
     tooltips: bool,
     hex: bool,
+    selected: Option<u16>,
     addr_hex: bool,
     classic: bool,
     editing: Option<u16>,
@@ -143,6 +144,7 @@ impl App {
             start_address: 0,
             tooltips: true,
             hex: false,
+            selected: None,
             addr_hex: false,
             classic: true,
             editing: None,
@@ -469,21 +471,32 @@ impl eframe::App for App {
                     .map(|addr| (addr, regs.get(self.bank, addr)))
                     .collect()
             };
+            let cell = |ui: &mut egui::Ui, selected: bool| {
+                if selected {
+                    ui.painter().rect_filled(ui.max_rect(), 0.0, theme::HIGHLIGHT);
+                }
+                ui.painter().rect_stroke(ui.max_rect(), 0.0, theme::grid_stroke(), egui::StrokeKind::Inside);
+            };
             TableBuilder::new(ui)
-                .striped(true)
+                .striped(false)
                 .column(Column::exact(60.0))
                 .column(Column::exact(80.0))
                 .column(Column::exact(30.0))
                 .header(22.0, |mut h| {
-                    h.col(|ui| { ui.strong("Register"); });
-                    h.col(|ui| { ui.strong("Value"); });
-                    h.col(|ui| { ui.strong("R/W"); });
+                    h.col(|ui| { cell(ui, false); ui.strong("Register"); });
+                    h.col(|ui| { cell(ui, false); ui.strong("Value"); });
+                    h.col(|ui| { cell(ui, false); ui.strong("R/W"); });
                 })
                 .body(|mut body| {
                     for (addr, value) in snapshot {
                         body.row(20.0, |mut row| {
-                            row.col(|ui| { ui.monospace(if self.addr_hex { format!("{addr:04X}") } else { addr.to_string() }); });
                             row.col(|ui| {
+                                cell(ui, false);
+                                ui.monospace(if self.addr_hex { format!("{addr:04X}") } else { addr.to_string() });
+                            });
+                            row.col(|ui| {
+                                let selected = self.selected == Some(addr) && self.editing != Some(addr);
+                                cell(ui, selected);
                                 if self.editing == Some(addr) {
                                     let resp = ui.add(egui::TextEdit::singleline(&mut self.edit_buf).desired_width(f32::INFINITY));
                                     resp.request_focus();
@@ -494,14 +507,24 @@ impl eframe::App for App {
                                         self.editing = None;
                                     }
                                 } else {
-                                    let label = ui.add(egui::Label::new(egui::RichText::new(self.fmt(value)).monospace()).sense(egui::Sense::click()));
+                                    let mut text = egui::RichText::new(self.fmt(value)).monospace();
+                                    if selected {
+                                        text = text.color(egui::Color32::WHITE);
+                                    }
+                                    let label = ui.add(egui::Label::new(text).sense(egui::Sense::click()));
+                                    if label.clicked() || label.double_clicked() {
+                                        self.selected = Some(addr);
+                                    }
                                     if editable && label.double_clicked() {
                                         self.editing = Some(addr);
                                         self.edit_buf = self.fmt(value);
                                     }
                                 }
                             });
-                            row.col(|ui| { ui.monospace("-"); });
+                            row.col(|ui| {
+                                cell(ui, false);
+                                ui.monospace("-/-");
+                            });
                         });
                     }
                 });
@@ -513,39 +536,38 @@ impl eframe::App for App {
             let listening = self.server.listening.load(Ordering::SeqCst);
             let recording = log.is_recording();
             ui.horizontal_top(|ui| {
-                ui.group(|ui| {
+                theme::titled_group(ui, "Type Shown", |ui| {
                     ui.vertical(|ui| {
-                        ui.label("Type Shown");
                         ui.radio_value(&mut self.bank, Bank::Input, "Input");
                         ui.radio_value(&mut self.bank, Bank::Holding, "Holding");
                         ui.horizontal(|ui| {
                             ui.label("Start Address");
-                            ui.add(egui::DragValue::new(&mut self.start_address).range(0..=65535).speed(1.0));
+                            theme::combo_u16(ui, "start_address", &mut self.start_address, 65535, &[0, 10, 20, 50, 100, 200, 500, 1000, 10000]);
                         });
                         ui.horizontal(|ui| {
                             ui.label("UID");
                             let mut uid = lock(&self.server.cfg).unit_id;
-                            if ui.add(egui::DragValue::new(&mut uid).range(0..=255)).changed() {
+                            let mut uid_wide = u16::from(uid);
+                            if theme::combo_u16(ui, "uid", &mut uid_wide, 255, &[0, 1, 2, 3, 4, 5, 247, 255]) {
+                                uid = uid_wide as u8;
                                 lock(&self.server.cfg).unit_id = uid;
                             }
                         });
                     });
                 });
-                ui.group(|ui| {
+                theme::titled_group(ui, "Client", |ui| {
                     ui.vertical(|ui| {
-                        ui.label("Client");
                         let text = if self.show_client { "Hide" } else { "Show" };
-                        if ui.button(text).clicked() {
+                        if ui.add(egui::Button::new(text).min_size(egui::vec2(72.0, 32.0))).clicked() {
                             self.show_client = !self.show_client;
                         }
                         ui.label(if self.client.is_connected() { "Connected" } else { "Disconnected" });
                     });
                 });
-                ui.group(|ui| {
+                theme::titled_group(ui, "Logging", |ui| {
                     ui.vertical(|ui| {
-                        ui.label("Logging");
                         let text = if recording { "Stop" } else { "Start" };
-                        if ui.add_enabled(recording || listening, egui::Button::new(text)).clicked() {
+                        if ui.add_enabled(recording || listening, egui::Button::new(text).min_size(egui::vec2(72.0, 32.0))).clicked() {
                             if recording {
                                 log.stop();
                                 self.status_note.clear();
@@ -563,8 +585,7 @@ impl eframe::App for App {
             });
             ui.add_space(4.0);
             let stats = lock(&self.server.stats).clone();
-            ui.group(|ui| {
-                ui.label("Server");
+            theme::titled_group(ui, "Server", |ui| {
                 egui::Grid::new("server_stats").num_columns(3).spacing([14.0, 2.0]).show(ui, |ui| {
                     let conn = |i: usize| stats.slots[i].as_ref();
                     stats_row(ui, "Connection IP", |i| conn(i).map(|c| c.ip.clone()));
@@ -598,7 +619,7 @@ impl eframe::App for App {
                     let flag = |on: bool| if on { "On" } else { "Off" }.to_owned();
                     let single = |ui: &mut egui::Ui, label: &str, value: String| {
                         ui.monospace(format!("{label}:"));
-                        ui.monospace(value);
+                        ui.label(egui::RichText::new(value).monospace().color(theme::VALUE_BLUE));
                         ui.end_row();
                     };
                     single(ui, "Local port", self.server.port.load(Ordering::SeqCst).to_string());
@@ -642,7 +663,7 @@ impl eframe::App for App {
 fn stats_row(ui: &mut egui::Ui, label: &str, value: impl Fn(usize) -> Option<String>) {
     ui.monospace(format!("{label}:"));
     for slot in 0..2 {
-        ui.monospace(value(slot).unwrap_or_else(|| "--".to_owned()));
+        ui.label(egui::RichText::new(value(slot).unwrap_or_else(|| "--".to_owned())).monospace().color(theme::VALUE_BLUE));
     }
     ui.end_row();
 }
