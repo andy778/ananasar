@@ -13,8 +13,6 @@ path = "src/main.rs"
 
 [dependencies]
 ananasar-core = { path = "../ananasar-core" }
-
-[dev-dependencies]
 ananasar-net = { path = "../ananasar-net" }
 
 [lints]
