@@ -319,8 +319,16 @@ impl eframe::App for App {
                 });
                 ui.menu_button("View", |ui| {
                     ui.set_min_width(190.0);
-                    ui.add(egui::Checkbox::new(&mut self.hex, "Values as Hex"));
-                    ui.add(egui::Checkbox::new(&mut self.addr_hex, "Registers as Hex"));
+                    let check = |ui: &mut egui::Ui, on: bool, text: &str, sc: &egui::KeyboardShortcut| {
+                        let label = if on { format!("\u{2713} {text}") } else { format!("    {text}") };
+                        ui.add(egui::Button::new(label).shortcut_text(ctx.format_shortcut(sc))).clicked()
+                    };
+                    if check(ui, self.hex, "Values as Hex", &hex_sc) {
+                        self.hex = !self.hex;
+                    }
+                    if check(ui, self.addr_hex, "Registers as Hex", &addr_hex_sc) {
+                        self.addr_hex = !self.addr_hex;
+                    }
                     ui.separator();
                     ui.checkbox(&mut self.show_client, "Client window");
                     ui.checkbox(&mut self.show_setval, "Set value window");
