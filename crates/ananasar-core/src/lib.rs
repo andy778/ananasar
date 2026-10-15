@@ -136,10 +136,45 @@ mod tests {
         use crate::protocol::Exception;
         for exc in [Exception::SlaveDeviceBusy, Exception::GatewayTargetFailed] {
             let cfg = ServerConfig { forced_exception: Some(exc), ..Default::default() };
-            for func in [0x03u8, 0x04, 0x06, 0x07, 0x08, 0x10, 0x16, 0x17, 0x01] {
+            for func in [0x03u8, 0x04, 0x06, 0x07, 0x08, 0x10, 0x16, 0x17] {
                 assert_eq!(exception_code(&cfg, func), Some((func | 0x80, exc as u8)));
             }
         }
+    }
+
+    #[test]
+    fn forced_exception_keeps_illegal_function_and_illegal_address() {
+        // As recorded from the original: an unsupported function code and a span past
+        // the end of the register file keep their own exception when one is forced.
+        use crate::protocol::Exception;
+        let mut cfg = ServerConfig { forced_exception: Some(Exception::SlaveDeviceBusy), ..Default::default() };
+        assert_eq!(exception_code(&cfg, 0x01), Some((0x81, 0x01)));
+        assert_eq!(exception_code(&cfg, 0x2B), Some((0xAB, 0x01)));
+        cfg.supported.remove(&0x03);
+        assert_eq!(exception_code(&cfg, 0x03), Some((0x83, 0x01)));
+        cfg.supported.insert(0x03);
+        let mut regs = RegisterFile::new();
+        let past_end = crate::protocol::build(1, 1, 0x03, &[0xFF, 0xFF, 0, 2]);
+        assert_eq!(
+            process(&cfg, &mut regs, &past_end),
+            Outcome::Reply(crate::protocol::build(1, 1, 0x83, &[0x02]))
+        );
+        let write_past_end = crate::protocol::build(1, 1, 0x10, &[0xFF, 0xFF, 0, 2, 4, 0, 1, 0, 2]);
+        assert_eq!(
+            process(&cfg, &mut regs, &write_past_end),
+            Outcome::Reply(crate::protocol::build(1, 1, 0x90, &[0x02]))
+        );
+        let read_write = crate::protocol::build(1, 1, 0x17, &[0, 0, 0, 1, 0xFF, 0xFF, 0, 2, 4, 0, 1, 0, 2]);
+        assert_eq!(
+            process(&cfg, &mut regs, &read_write),
+            Outcome::Reply(crate::protocol::build(1, 1, 0x97, &[0x02]))
+        );
+        // A bad quantity that still fits is answered with the forced code.
+        let zero = crate::protocol::build(1, 1, 0x03, &[0, 0, 0, 0]);
+        assert_eq!(
+            process(&cfg, &mut regs, &zero),
+            Outcome::Reply(crate::protocol::build(1, 1, 0x83, &[0x06]))
+        );
     }
 
     #[test]
