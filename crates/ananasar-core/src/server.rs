@@ -34,6 +34,13 @@ pub enum Outcome {
     ReplyAndClose(Vec<u8>),
 }
 
+/// Transaction id the "Return Incorrect TI" option puts in every reply.
+pub const WRONG_TRANSACTION_ID: u16 = 0xDEAD;
+/// Protocol id the "Return Incorrect Protocol ID" option puts in normal replies.
+pub const WRONG_PROTOCOL_ID: u16 = 0xABCD;
+/// Length high byte the "Return Incorrect Length High Byte" option puts in normal replies.
+pub const WRONG_LENGTH_HIGH: u8 = 0xEF;
+
 /// Server configuration (the original's Options menu).
 #[derive(Clone, Debug)]
 pub struct ServerConfig {
@@ -45,6 +52,12 @@ pub struct ServerConfig {
     /// When set, every request that passes the unit id filter is answered with
     /// this exception instead of being processed.
     pub forced_exception: Option<Exception>,
+    /// Answer with transaction id [`WRONG_TRANSACTION_ID`] (also in exception replies).
+    pub wrong_transaction_id: bool,
+    /// Answer normal replies with protocol id [`WRONG_PROTOCOL_ID`].
+    pub wrong_protocol_id: bool,
+    /// Answer normal replies with length high byte [`WRONG_LENGTH_HIGH`].
+    pub wrong_length_high: bool,
 }
 
 impl Default for ServerConfig {
@@ -55,6 +68,9 @@ impl Default for ServerConfig {
             unit_id: 0,
             supported,
             forced_exception: None,
+            wrong_transaction_id: false,
+            wrong_protocol_id: false,
+            wrong_length_high: false,
         }
     }
 }
@@ -63,6 +79,40 @@ impl ServerConfig {
     fn uid_ok(&self, uid: u8) -> bool {
         self.unit_id == 0 || self.unit_id == uid
     }
+}
+
+/// Process one framed request against the shared register file.
+pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome {
+    match dispatch(cfg, regs, buf) {
+        Outcome::Reply(reply) => Outcome::Reply(apply_faults(cfg, reply)),
+        other => other,
+    }
+}
+
+/// Put the deliberately wrong header fields into a reply. The wrong
+/// transaction id goes into every reply; the wrong protocol id and length
+/// high byte only into normal ones, as the original does.
+fn apply_faults(cfg: &ServerConfig, mut reply: Vec<u8>) -> Vec<u8> {
+    let exception = reply.get(7).is_some_and(|f| f & 0x80 != 0);
+    if cfg.wrong_transaction_id
+        && let Some(b) = reply.get_mut(..2)
+    {
+        b.copy_from_slice(&WRONG_TRANSACTION_ID.to_be_bytes());
+    }
+    if exception {
+        return reply;
+    }
+    if cfg.wrong_protocol_id
+        && let Some(b) = reply.get_mut(2..4)
+    {
+        b.copy_from_slice(&WRONG_PROTOCOL_ID.to_be_bytes());
+    }
+    if cfg.wrong_length_high
+        && let Some(b) = reply.get_mut(4)
+    {
+        *b = WRONG_LENGTH_HIGH;
+    }
+    reply
 }
 
 /// The exception a request is refused with before its data is looked at: an
@@ -102,8 +152,7 @@ fn bad_header(cfg: &ServerConfig, buf: &[u8]) -> Outcome {
     }
 }
 
-/// Process one framed request against the shared register file.
-pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome {
+fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome {
     let (hdr, func_byte, pdu) = match crate::protocol::frame(buf) {
         Ok(parts) => parts,
         Err(crate::protocol::FrameError::BadHeader) => return bad_header(cfg, buf),

@@ -533,7 +533,10 @@ impl App {
         let font = egui::FontId::monospace(13.0);
         let dark = egui::Color32::BLACK;
         let flag = |on: bool| if on { "On" } else { "Off" }.to_owned();
-        let forced = lock(&self.server.cfg).forced_exception.is_some();
+        let (forced, wrong_ti, wrong_pid, wrong_len) = {
+            let cfg = lock(&self.server.cfg);
+            (cfg.forced_exception.is_some(), cfg.wrong_transaction_id, cfg.wrong_protocol_id, cfg.wrong_length_high)
+        };
         setvalview::group_box(ui, setvalview::client_rect(area, 206.0, 120.0, 448.0, 425.0), "Server");
         let painter = ui.painter().clone();
         let dash = || "--".to_owned();
@@ -542,10 +545,11 @@ impl App {
             let single = match i {
                 14 => Some(self.server.port.load(Ordering::SeqCst).to_string()),
                 15 => Some(if recording || log.recordings() > 0 { log.recordings().to_string() } else { dash() }),
-                16 | 20 => Some(flag(false)),
+                16 => Some(flag(false)),
                 17 => Some(flag(stats.out_of_sync)),
-                18 => Some(flag(stats.incorrect_length)),
-                19 => Some(flag(stats.incorrect_protocol_id)),
+                18 => Some(flag(wrong_len || stats.incorrect_length)),
+                19 => Some(flag(wrong_pid || stats.incorrect_protocol_id)),
+                20 => Some(flag(wrong_ti)),
                 21 => Some(flag(forced || stats.return_exception.is_some())),
                 _ => None,
             };
@@ -661,6 +665,7 @@ impl eframe::App for App {
                 tooltips: self.tooltips,
                 supported: &cfg.supported,
                 forced_exception: cfg.forced_exception,
+                faults: &cfg,
             })
         };
         let mut chosen = None;
@@ -691,6 +696,7 @@ impl eframe::App for App {
                 let mut cfg = lock(&self.server.cfg);
                 cfg.forced_exception = next_forced_exception(cfg.forced_exception, exc);
             }
+            Some(Action::ToggleFault(fault)) => toggle_fault(&mut lock(&self.server.cfg), fault),
             Some(Action::Scanner) => self.show_scanner = true,
             Some(Action::MonitorPort) => toggle_listen = true,
             Some(Action::ChangePort) => open_port = true,
@@ -796,6 +802,12 @@ impl eframe::App for App {
             self.message = Some(err);
         }
     }
+}
+
+/// Flip one of the on/off server options.
+fn toggle_fault(cfg: &mut ananasar_core::server::ServerConfig, fault: menu::Fault) {
+    let flag = fault.flag(cfg);
+    *flag = !*flag;
 }
 
 /// The forced exception after choosing `chosen`: choosing the active one again turns it off.
@@ -931,6 +943,24 @@ mod tests {
         assert_eq!(next_forced_exception(None, busy), Some(busy));
         assert_eq!(next_forced_exception(Some(busy), busy), None);
         assert_eq!(next_forced_exception(Some(Exception::Acknowledge), busy), Some(busy));
+    }
+
+    #[test]
+    fn menu_options_flip_their_own_switch() {
+        use super::{menu::Fault, toggle_fault};
+        let mut cfg = ananasar_core::server::ServerConfig::default();
+        for fault in [Fault::TransactionId, Fault::ProtocolId, Fault::LengthHigh] {
+            assert!(!fault.is_on(&cfg));
+            toggle_fault(&mut cfg, fault);
+            assert!(fault.is_on(&cfg));
+            let on = [Fault::TransactionId, Fault::ProtocolId, Fault::LengthHigh]
+                .into_iter()
+                .filter(|f| f.is_on(&cfg))
+                .count();
+            assert_eq!(on, 1, "{fault:?} must not touch the other options");
+            toggle_fault(&mut cfg, fault);
+            assert!(!fault.is_on(&cfg));
+        }
     }
 
     #[test]

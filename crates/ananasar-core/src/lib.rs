@@ -356,6 +356,35 @@ mod tests {
         assert_eq!(list.next_run(10), Some((0xFFFE, 2)));
     }
 
+    fn reply_of(cfg: &ServerConfig, regs: &mut RegisterFile, req: &[u8]) -> Vec<u8> {
+        match process(cfg, regs, req) {
+            Outcome::Reply(r) => r,
+            other => panic!("expected a reply, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn incorrect_transaction_id_marks_every_reply() {
+        let cfg = ServerConfig { wrong_transaction_id: true, ..Default::default() };
+        let mut regs = RegisterFile::new();
+        let read = crate::protocol::build(1, 1, 0x03, &[0x0B, 0xB8, 0, 2]);
+        assert_eq!(&reply_of(&cfg, &mut regs, &read)[..4], &[0xDE, 0xAD, 0, 0]);
+        let unknown = crate::protocol::build(1, 1, 0xAB, &[]);
+        let r = reply_of(&cfg, &mut regs, &unknown);
+        assert_eq!((&r[..2], r[7]), (&[0xDE, 0xAD][..], 0xAB | 0x80));
+    }
+
+    #[test]
+    fn incorrect_protocol_id_and_length_high_spare_exceptions() {
+        let cfg = ServerConfig { wrong_protocol_id: true, wrong_length_high: true, ..Default::default() };
+        let mut regs = RegisterFile::new();
+        let read = crate::protocol::build(1, 1, 0x03, &[0x0B, 0xB8, 0, 2]);
+        let r = reply_of(&cfg, &mut regs, &read);
+        assert_eq!(&r[..8], &[0, 1, 0xAB, 0xCD, 0xEF, 7, 1, 3]);
+        let past_end = crate::protocol::build(1, 1, 0x03, &[0xFF, 0xFF, 0, 2]);
+        assert_eq!(reply_of(&cfg, &mut regs, &past_end), crate::protocol::build(1, 1, 0x83, &[2]));
+    }
+
     #[test]
     fn bad_header_closes_and_runs_nothing() {
         let cfg = ServerConfig::default();
