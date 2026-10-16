@@ -198,13 +198,13 @@ impl Report {
     }
 
     fn file_stem(&self) -> String {
-        format!("ananasar-stress-{}", format_timestamp(self.started_unix_ms / 1000).replace(' ', "_"))
+        format!("ananasar-storm-{}", format_timestamp(self.started_unix_ms / 1000).replace(' ', "_"))
     }
 
     fn parameters(&self) -> Items {
         let c = &self.config;
         let mut p = Items::new();
-        text(&mut p, "tool", "ananasar-stress");
+        text(&mut p, "tool", "ananasar-storm");
         text(&mut p, "version", self.version);
         text(&mut p, "host", c.host.as_str());
         int(&mut p, "port", u64::from(c.port));
@@ -294,7 +294,7 @@ impl Report {
     pub fn text(&self) -> String {
         let (c, s) = (&self.config, &self.stats);
         let mut o = String::new();
-        let _ = writeln!(o, "Ananasar stress summary (ananasar-stress {})", self.version);
+        let _ = writeln!(o, "Ananasar storm summary (ananasar-storm {})", self.version);
         let _ = writeln!(o, "  target        {}:{} (unit {})", c.host, c.port, c.unit_id);
         let _ = writeln!(
             o,
@@ -497,7 +497,7 @@ mod tests {
     #[test]
     fn text_summary_has_the_key_numbers() {
         let t = report().text();
-        for want in ["10 sent", "5.0/s", "ok replies    8", "code 2: 1", "timeouts      1", "seed 99", "p99", "ananasar stress 10.0.0.5:502"] {
+        for want in ["10 sent", "5.0/s", "ok replies    8", "code 2: 1", "timeouts      1", "seed 99", "p99", "ananasar storm 10.0.0.5:502"] {
             assert!(t.contains(want), "{t}\nlacks {want}");
         }
     }
@@ -515,7 +515,7 @@ mod tests {
             "\"started_utc\": \"2023-11-14T22:13:20Z\"",
             "\"timeline\": [",
             "\"mean_latency_us\": 2000",
-            "\"reproduce\": \"ananasar stress 10.0.0.5:502",
+            "\"reproduce\": \"ananasar storm 10.0.0.5:502",
         ] {
             assert!(j.contains(want), "{j}\nlacks {want}");
         }
@@ -549,12 +549,12 @@ mod tests {
 
     #[test]
     fn writes_three_timestamped_files_without_overwriting() {
-        let dir = std::env::temp_dir().join(format!("ananasar-stress-test-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("ananasar-storm-test-{}", std::process::id()));
         let r = report();
         let first = r.write_to(&dir).unwrap();
         let second = r.write_to(&dir).unwrap();
         assert_eq!(first.len(), 3);
-        assert!(first[0].to_string_lossy().contains("ananasar-stress-2023-11-14_22-13-20"));
+        assert!(first[0].to_string_lossy().contains("ananasar-storm-2023-11-14_22-13-20"));
         assert!(second[0].to_string_lossy().ends_with("-2.json"));
         assert!(first.iter().chain(&second).all(|p| p.exists()));
         std::fs::remove_dir_all(&dir).unwrap();

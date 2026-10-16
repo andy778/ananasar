@@ -1,10 +1,10 @@
 [package]
-name = "ananasar-stress"
+name = "ananasar-storm"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Modbus/TCP stress generator for load and robustness checks of equipment you are authorised to test."
+description = "Modbus/TCP storm generator for load and robustness checks of equipment you are authorised to test."
 
 [dependencies]
 ananasar-core = { path = "../ananasar-core" }

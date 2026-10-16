@@ -303,11 +303,11 @@ impl Config {
         Ok(())
     }
 
-    /// The `ananasar stress` arguments that repeat this run exactly (the
+    /// The `ananasar storm` arguments that repeat this run exactly (the
     /// operator's authorisation flag is included only if it was given).
     pub fn reproduce_args(&self) -> String {
         let mut a = vec![
-            "stress".to_owned(),
+            "storm".to_owned(),
             format!("{}:{}", self.host, self.port),
             format!("--uid {}", self.unit_id),
             format!("--connections {}", self.connections),
