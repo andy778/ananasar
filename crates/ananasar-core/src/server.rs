@@ -122,7 +122,12 @@ impl OutOfSynch {
 /// Process one framed request against the shared register file.
 pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome {
     match dispatch(cfg, regs, buf) {
-        Outcome::Reply(reply) => Outcome::Reply(apply_faults(cfg, reply)),
+        Outcome::Reply(reply) => {
+            if reply.get(7).is_some_and(|f| f & 0x80 != 0) {
+                regs.diagnostics.exceptions = regs.diagnostics.exceptions.saturating_add(1);
+            }
+            Outcome::Reply(apply_faults(cfg, reply))
+        }
         other => other,
     }
 }
@@ -201,6 +206,7 @@ fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome 
     if !cfg.uid_ok(hdr.unit_id) {
         return Outcome::Drop;
     }
+    regs.diagnostics.messages = regs.diagnostics.messages.saturating_add(1);
 
     let exc = |e: Exception| {
         Outcome::Reply(build(
@@ -316,7 +322,28 @@ fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome 
 
         // Serial-line functions the TCP server accepts but has no real data for.
         Function::ReadExceptionStatus => reply(vec![0x00]),
-        Function::Diagnostics => reply(pdu.to_vec()),
+        Function::Diagnostics => {
+            let Some(&[s0, s1, d0, d1]) = pdu.first_chunk::<4>() else {
+                return exc(Exception::IllegalDataValue);
+            };
+
+            let count = |n: u64, sub: [u8; 2]| reply([sub.as_slice(), &n.to_be_bytes()].concat());
+            match u16::from_be_bytes([s0, s1]) {
+                // Return query data: only the first two data bytes come back.
+                0x0000 => reply(vec![s0, s1, d0, d1]),
+                // Diagnostic register: the original answers holding register 65534.
+                0x0002 => reply([[s0, s1], regs.get(Bank::Holding, 0xFFFE).to_be_bytes()].concat()),
+                // Clear counters.
+                0x000A => {
+                    regs.diagnostics = Default::default();
+                    reply(vec![s0, s1, 0, 0])
+                }
+                0x000D => count(regs.diagnostics.exceptions, [s0, s1]),
+                0x000E => count(regs.diagnostics.messages, [s0, s1]),
+                0x000F => count(0, [s0, s1]),
+                _ => exc(Exception::IllegalFunction),
+            }
+        }
     }
 }
 
