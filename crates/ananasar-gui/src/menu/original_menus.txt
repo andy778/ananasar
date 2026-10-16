@@ -101,3 +101,8 @@ Options
     ~ enabled=false : DDE is only available in builds that include the DDE server
   ---
   Show Tooltips  @ Ctrl+T  [checked]
+
+# Ananasar additions: the original has no storm test, so this menu is ours. It stays
+# after all the original menus and holds only entries that are not in the original.
++ Tools
+  + Storm Test…

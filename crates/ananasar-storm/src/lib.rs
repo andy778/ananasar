@@ -25,6 +25,7 @@ mod worker;
 pub use config::{Config, Faults, Mix};
 pub use fault::FaultKind;
 pub use report::{Report, Tick};
+pub use hist::Histogram;
 pub use stats::Stats;
 
 use std::net::TcpStream;
@@ -53,11 +54,25 @@ fn load(c: &AtomicU64) -> u64 {
     c.load(Ordering::Relaxed)
 }
 
+/// What [`run_with`] reports about once a second.
+pub struct Progress<'a> {
+    /// The counters of the last second.
+    pub tick: &'a Tick,
+    /// Reply latencies of the whole run so far.
+    pub latency: &'a Histogram,
+}
+
 /// Run the storm described by `cfg` until its duration ends or `stop` is
 /// set. `on_tick` is called about once a second with that second's counters.
 ///
 /// The configuration is checked first; an error means nothing was sent.
 pub fn run(cfg: &Config, stop: &AtomicBool, on_tick: &mut dyn FnMut(&Tick)) -> Result<Report, String> {
+    run_with(cfg, stop, &mut |p| on_tick(p.tick))
+}
+
+/// Like [`run`], but `on_progress` also gets the latency histogram so far,
+/// for live percentiles.
+pub fn run_with(cfg: &Config, stop: &AtomicBool, on_progress: &mut dyn FnMut(&Progress<'_>)) -> Result<Report, String> {
     cfg.check()?;
     let live = stats::Live::default();
     let started_unix_ms = unix_ms();
@@ -98,7 +113,7 @@ pub fn run(cfg: &Config, stop: &AtomicBool, on_tick: &mut dyn FnMut(&Tick)) -> R
                 continue;
             }
             let tick = make_tick(&live, &mut last, timeline.len(), now.saturating_duration_since(started));
-            on_tick(&tick);
+            on_progress(&Progress { tick: &tick, latency: &live.latency.snapshot() });
             timeline.push(tick);
             last_at = now;
             next = next.checked_add(Duration::from_secs(1)).unwrap_or(deadline);
@@ -113,7 +128,7 @@ pub fn run(cfg: &Config, stop: &AtomicBool, on_tick: &mut dyn FnMut(&Tick)) -> R
         let end = Instant::now();
         if end.saturating_duration_since(last_at) >= Duration::from_millis(250) {
             let tick = make_tick(&live, &mut last, timeline.len(), end.saturating_duration_since(started));
-            on_tick(&tick);
+            on_progress(&Progress { tick: &tick, latency: &live.latency.snapshot() });
             timeline.push(tick);
         }
     });

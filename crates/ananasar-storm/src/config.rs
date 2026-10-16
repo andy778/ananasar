@@ -288,7 +288,7 @@ impl Config {
         for kind in FaultKind::ALL {
             let p = self.faults.get(kind);
             if !p.is_finite() || !(0.0..=100.0).contains(&p) {
-                return Err(format!("--fault-{} must be a percentage from 0 to 100", kind.name()));
+                return Err(format!("the {} fault must be a percentage from 0 to 100", kind.name()));
             }
         }
         if self.faults.sum() > 100.0 {

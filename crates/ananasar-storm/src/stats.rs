@@ -2,7 +2,7 @@
 //! shared [`Live`] atomics the progress line reads once a second.
 
 use crate::fault::FaultKind;
-use crate::hist::Histogram;
+use crate::hist::{AtomicHistogram, Histogram};
 use crate::request::MismatchKind;
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -139,6 +139,8 @@ pub struct Live {
     pub cycles: AtomicU64,
     /// Sum of reply latencies in microseconds.
     pub latency_sum_us: AtomicU64,
+    /// Reply latencies so far, for live percentiles.
+    pub latency: AtomicHistogram,
 }
 
 fn add(c: &AtomicU64, n: u64) {
@@ -168,6 +170,7 @@ impl<'a> Recorder<'a> {
         self.stats.latency.record(micros);
         add(&self.live.replies, 1);
         add(&self.live.latency_sum_us, micros);
+        self.live.latency.record(micros);
     }
 
     /// A correct normal reply after `micros`.

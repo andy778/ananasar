@@ -15,6 +15,7 @@ mod filewindow;
 mod licences;
 mod menu;
 mod setvalview;
+mod stormview;
 #[cfg(test)]
 mod screenshot;
 mod theme;
@@ -28,6 +29,7 @@ use eframe::egui;
 use embed::{ServerHandle, SharedRegs};
 use menu::{sc, Action};
 use scannerview::ScannerView;
+use stormview::StormView;
 use filewindow::FileWindow;
 use setvalview::SetValView;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -177,6 +179,7 @@ struct App {
     show_client: bool,
     show_setval: bool,
     show_scanner: bool,
+    show_storm: bool,
     log_interpretive: bool,
     /// An error to show the user in a message box.
     message: Option<String>,
@@ -184,6 +187,7 @@ struct App {
     client: ClientView,
     setval: SetValView,
     scanner: ScannerView,
+    storm: StormView,
     file: FileWindow,
 }
 
@@ -246,12 +250,14 @@ impl App {
             show_client: false,
             show_setval: false,
             show_scanner: false,
+            show_storm: false,
             log_interpretive: true,
             message: startup_error,
             status_note: String::new(),
             client: ClientView::new(format!("127.0.0.1:{port}"), ctx.clone()),
             setval: SetValView::default(),
             scanner: ScannerView::new(format!("127.0.0.1:{port}"), ctx.clone()),
+            storm: StormView::new(ctx.clone()),
             file: FileWindow::default(),
         }
     }
@@ -716,6 +722,7 @@ impl eframe::App for App {
             }
             Some(Action::ToggleFault(fault)) => toggle_fault(&mut lock(&self.server.cfg), fault),
             Some(Action::Scanner) => self.show_scanner = true,
+            Some(Action::StormTest) => self.show_storm = true,
             Some(Action::MonitorPort) => toggle_listen = true,
             Some(Action::ChangePort) => open_port = true,
             Some(Action::ToggleNagle(slot)) => toggle_nagle(&mut lock(&self.server.stats), slot),
@@ -817,6 +824,10 @@ impl eframe::App for App {
         let mut show_scanner = self.show_scanner;
         self.scanner.show(&ctx, &mut show_scanner, &self.regs, self.tooltips);
         self.show_scanner = show_scanner;
+
+        let mut show_storm = self.show_storm;
+        self.storm.show(&ctx, &mut show_storm);
+        self.show_storm = show_storm;
 
         if let Some(err) = self.file.ui(&self.regs, self.bank, &mut self.start_address) {
             self.message = Some(err);

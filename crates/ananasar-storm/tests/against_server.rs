@@ -187,3 +187,22 @@ fn a_dead_port_counts_connect_errors() {
     assert!(r.stats.connect_errors > 0);
     assert_eq!(r.stats.sent, 0);
 }
+
+#[test]
+fn progress_carries_live_latency_percentiles() {
+    let srv = TestServer::start();
+    let mut cfg = base(srv.port);
+    cfg.connections = 1;
+    cfg.rate = 100.0;
+    cfg.duration = Duration::from_secs(2);
+    let mut seen = Vec::new();
+    let r = ananasar_storm::run_with(&cfg, &AtomicBool::new(false), &mut |p| {
+        seen.push((p.tick.index, p.latency.count(), p.latency.percentile(95.0)));
+    })
+    .unwrap();
+    assert!(!seen.is_empty());
+    let last = seen.last().unwrap();
+    assert!(last.1 > 50 && last.2.is_some(), "{seen:?}");
+    assert!(seen.windows(2).all(|w| w[0].1 <= w[1].1), "the histogram only grows: {seen:?}");
+    assert!(last.1 <= r.stats.latency.count());
+}

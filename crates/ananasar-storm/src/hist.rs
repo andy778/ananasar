@@ -8,6 +8,8 @@ const SUB: u64 = 1 << SUB_BITS;
 const EXACT: u64 = SUB * 2;
 const BUCKETS: usize = 1920;
 
+use std::sync::atomic::{AtomicU64, Ordering};
+
 /// Latency histogram.
 #[derive(Clone, Debug)]
 pub struct Histogram {
@@ -111,6 +113,55 @@ impl Histogram {
     }
 }
 
+/// A histogram that many threads record into at once, so a run can show
+/// latency percentiles while it is still going. [`AtomicHistogram::snapshot`]
+/// copies it into a plain [`Histogram`].
+#[derive(Debug)]
+pub struct AtomicHistogram {
+    buckets: Vec<AtomicU64>,
+    sum: AtomicU64,
+    min: AtomicU64,
+    max: AtomicU64,
+}
+
+impl Default for AtomicHistogram {
+    fn default() -> Self {
+        Self {
+            buckets: (0..BUCKETS).map(|_| AtomicU64::new(0)).collect(),
+            sum: AtomicU64::new(0),
+            min: AtomicU64::new(u64::MAX),
+            max: AtomicU64::new(0),
+        }
+    }
+}
+
+impl AtomicHistogram {
+    /// Record one value in microseconds.
+    pub fn record(&self, micros: u64) {
+        if let Some(b) = self.buckets.get(index(micros)) {
+            b.fetch_add(1, Ordering::Relaxed);
+        }
+        self.sum.fetch_add(micros, Ordering::Relaxed);
+        self.min.fetch_min(micros, Ordering::Relaxed);
+        self.max.fetch_max(micros, Ordering::Relaxed);
+    }
+
+    /// A copy of what has been recorded so far. The counters are read one
+    /// after another while workers keep recording, so the copy is consistent
+    /// to within the few samples that arrive during the read.
+    pub fn snapshot(&self) -> Histogram {
+        let buckets: Vec<u64> = self.buckets.iter().map(|b| b.load(Ordering::Relaxed)).collect();
+        let count = buckets.iter().fold(0u64, |a, &n| a.saturating_add(n));
+        Histogram {
+            buckets,
+            count,
+            sum: u128::from(self.sum.load(Ordering::Relaxed)),
+            min: self.min.load(Ordering::Relaxed),
+            max: self.max.load(Ordering::Relaxed),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -178,5 +229,20 @@ mod tests {
         h.record(12_345);
         assert_eq!(h.percentile(1.0), Some(12_345));
         assert_eq!(h.percentile(99.0), Some(12_345));
+    }
+
+    #[test]
+    fn atomic_snapshot_matches_the_plain_histogram() {
+        let (a, mut p) = (AtomicHistogram::default(), Histogram::default());
+        assert_eq!(a.snapshot().count(), 0);
+        for v in [5u64, 900, 12_000, 12_001, 3_000_000] {
+            a.record(v);
+            p.record(v);
+        }
+        let s = a.snapshot();
+        assert_eq!((s.count(), s.min(), s.max(), s.mean()), (p.count(), p.min(), p.max(), p.mean()));
+        for q in [50.0, 95.0, 99.0] {
+            assert_eq!(s.percentile(q), p.percentile(q));
+        }
     }
 }

@@ -118,8 +118,18 @@ Every request counts exactly once: `requests_sent` equals ok + exceptions + mism
 
 Against `ananasar server` the run should have no mismatches. Note that `ananasar server` itself accepts only two clients at a time (as the original did), so use at most `-c 2` against it.
 
+## The GUI
+
+Tools > Storm Test… in `ananasar-gui` opens the same tool in a window, built on the same library, so the load, the request mix, the faults, the churn and the report files are the ones described above. See [Storm Test](gui.md#storm-test) in the GUI manual. It is an Ananasar addition; the original program has no storm test.
+
+- The window shows the same notice and the same modest defaults, and the target field starts empty.
+- The authorisation box, "I am authorised to test this equipment", is required for exactly what `--i-am-authorised` is required for (see Safety first), and the library checks the rules again before anything is sent. The box is cleared when a test starts.
+- Start and Stop control the test, which runs on worker threads. Stop takes effect within one reply timeout.
+- Progress is shown live: counters, latency mean, median, 95th and 99th percentile and maximum, and a per-second chart. The percentiles come from the same histogram as the report.
+- **Save report** writes the `.json`, `.csv` and `.timeline.csv` files, with the same names, into a folder you choose. The timeline has the same wall-clock timestamps for lining up with an external flood.
+
 ## Limits
 
-- Ctrl-C ends the process without a report; use `--duration-secs` to bound a run.
+- On the command line, Ctrl-C ends the process without a report; use `--duration-secs` to bound a run. In the window, Stop keeps the partial results.
 - One request is in flight per connection (no pipelining apart from the coalesced fault).
 - The tool does not analyse the target's internals; correlate with the device's own logs if you need to know why it misbehaved.
