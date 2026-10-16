@@ -12,7 +12,7 @@ use ananasar_core::registers::RegisterFile;
 use ananasar_core::protocol::Exception;
 use ananasar_core::server::ServerConfig;
 use ananasar_net::Server;
-use ananasar_stress::{Config, FaultKind, Report, run};
+use ananasar_storm::{Config, FaultKind, Report, run};
 use std::net::TcpListener;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -89,7 +89,7 @@ fn clean_run_has_consistent_counts_and_no_mismatches() {
     // About the configured rate: 2 x 200/s for one second, with pacing slack.
     assert!(r.achieved_rate() > 150.0 && r.achieved_rate() < 450.0, "{}", r.achieved_rate());
 
-    let dir = std::env::temp_dir().join(format!("ananasar-stress-it-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("ananasar-storm-it-{}", std::process::id()));
     let files = r.write_to(&dir).unwrap();
     let json = std::fs::read_to_string(&files[0]).unwrap();
     assert!(json.contains("\"seed\": 1234") && json.contains(&format!("\"port\": {}", srv.port)));

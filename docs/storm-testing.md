@@ -1,10 +1,10 @@
-# Modbus/TCP stress testing (`ananasar stress`)
+# Modbus/TCP storm testing (`ananasar storm`)
 
-`ananasar stress` drives a Modbus/TCP target at a controlled load and records how it behaves: how fast it answers, whether it answers correctly, and what happens when the traffic gets rough. It is meant for **internal checks** of Modbus devices and of your own server/poller setups, for example "does this gateway still answer within 50 ms with eight pollers attached", "what happens to the PLC when a client sends garbage" or "does the poller recover when the server restarts".
+`ananasar storm` drives a Modbus/TCP target at a controlled load and records how it behaves: how fast it answers, whether it answers correctly, and what happens when the traffic gets rough. It is meant for **internal checks** of Modbus devices and of your own server/poller setups, for example "does this gateway still answer within 50 ms with eight pollers attached", "what happens to the PLC when a client sends garbage" or "does the poller recover when the server restarts".
 
 ## Safety first
 
-**Use it only against equipment you own or are authorised to test.** Stress traffic can slow, confuse, reset or crash a device, and some devices need a power cycle afterwards. Do not point it at a running plant, a vessel's live control system or anyone else's network without the owner's written agreement.
+**Use it only against equipment you own or are authorised to test.** Storm traffic can slow, confuse, reset or crash a device, and some devices need a power cycle afterwards. Do not point it at a running plant, a vessel's live control system or anyone else's network without the owner's written agreement.
 
 The tool enforces some caution:
 
@@ -21,37 +21,37 @@ The tool enforces some caution:
 
 This is a **Modbus-level** tool. It does not replace the **link-level network storm tests** (broadcast, multicast, unicast floods) used in marine classification, for example DNV control system network robustness testing. Those flood the Ethernet layer and need a raw packet generator such as [Ostinato](https://ostinato.org) or a commercial marine test tool. Run one of those for the classification evidence.
 
-You can run `ananasar stress` *while* such a flood is running to see how the Modbus traffic behaves during it. The per-second timeline file (below) carries wall-clock timestamps so it can be lined up with the flood's start and stop.
+You can run `ananasar storm` *while* such a flood is running to see how the Modbus traffic behaves during it. The per-second timeline file (below) carries wall-clock timestamps so it can be lined up with the flood's start and stop.
 
 The reports are plain measurements for an internal record. They are not a certified test report.
 
 ## Usage
 
 ```text
-ananasar stress <HOST:PORT> [options]
+ananasar storm <HOST:PORT> [options]
 ```
 
 ```bash
 # Default modest run, with the report written to ./results
-ananasar stress 192.168.1.50:502 --out results
+ananasar storm 192.168.1.50:502 --out results
 
 # 8 connections at 50 requests/s each for a minute (400/s in total)
-ananasar stress plc.local:502 -c 8 -r 50 -d 60 --out results
+ananasar storm plc.local:502 -c 8 -r 50 -d 60 --out results
 
 # Ramp each of 4 connections from 5 to 400 requests/s over 30 s, then hold for 10 s
-ananasar stress 10.0.0.5:502 --rate 5 --ramp-to 400 --ramp-secs 30 -d 40 --i-am-authorised
+ananasar storm 10.0.0.5:502 --rate 5 --ramp-to 400 --ramp-secs 30 -d 40 --i-am-authorised
 
 # Mix of reads and writes on addresses 0-199, up to 20 registers per request
-ananasar stress 10.0.0.5:502 --mix 3=60,4=20,16=20 --addr-end 199 --qty-max 20
+ananasar storm 10.0.0.5:502 --mix 3=60,4=20,16=20 --addr-end 199 --qty-max 20
 
 # Fault injection: 2 % wrong length fields, 5 % requests split across two segments
-ananasar stress 10.0.0.5:502 --fault-bad-length 2 --fault-split 5 --i-am-authorised
+ananasar storm 10.0.0.5:502 --fault-bad-length 2 --fault-split 5 --i-am-authorised
 
 # Connection churn (connect, disconnect, repeat every 50 ms per thread) with 10 idle connections held open
-ananasar stress 10.0.0.5:502 --churn --churn-interval-ms 50 --half-open 10
+ananasar storm 10.0.0.5:502 --churn --churn-interval-ms 50 --half-open 10
 ```
 
-Run `ananasar stress --help` for every option.
+Run `ananasar storm --help` for every option.
 
 ### Load
 
@@ -100,7 +100,7 @@ While running, one line per second:
 [   3s] sent     20  replies     20  exc    0  timeout    0  err    0  mismatch   0  fault    0  cycles     0  mean 0.11 ms
 ```
 
-At the end a summary is printed. With `--out DIR` three files are written, named by the UTC start time (`ananasar-stress-2026-10-15_19-49-05.*`; a repeat in the same second gets `-2`, `-3`, ...):
+At the end a summary is printed. With `--out DIR` three files are written, named by the UTC start time (`ananasar-storm-2026-10-15_19-49-05.*`; a repeat in the same second gets `-2`, `-3`, ...):
 
 - `.json`: all parameters (including the version, the seed and a `reproduce` command line), all results and the timeline.
 - `.csv`: the same parameters and results as `section,key,value` rows.

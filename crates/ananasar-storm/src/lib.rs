@@ -1,4 +1,4 @@
-//! Modbus/TCP stress generator for load and robustness checks.
+//! Modbus/TCP storm generator for load and robustness checks.
 //!
 //! Drives a target with N parallel connections at a controlled request rate
 //! (fixed or ramped), a configurable function mix, optional fault injection
@@ -37,7 +37,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// The notice every run prints before it starts.
 pub const SAFETY_NOTICE: &str =
-    "Use this only against equipment you own or are authorised to test: stress traffic can disturb or disable devices.";
+    "Use this only against equipment you own or are authorised to test: storm traffic can disturb or disable devices.";
 
 fn unix_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| u64::try_from(d.as_millis()).unwrap_or(0))
@@ -53,7 +53,7 @@ fn load(c: &AtomicU64) -> u64 {
     c.load(Ordering::Relaxed)
 }
 
-/// Run the stress described by `cfg` until its duration ends or `stop` is
+/// Run the storm described by `cfg` until its duration ends or `stop` is
 /// set. `on_tick` is called about once a second with that second's counters.
 ///
 /// The configuration is checked first; an error means nothing was sent.

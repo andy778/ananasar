@@ -8,7 +8,7 @@ ananasar <COMMAND>
 Commands:
   server       Run a Modbus/TCP server backed by an in-memory register file
   client       Poll a Modbus/TCP server and print the responses
-  stress       Drive a Modbus/TCP target at a controlled load
+  storm       Drive a Modbus/TCP target at a controlled load
   completions  Print a shell completion script to stdout
   scan         Read a range of registers one by one and report which respond
 ```
@@ -119,12 +119,14 @@ ananasar scan 192.168.1.50:502 --uid 3 --bank input --start 0 --end 20 --only-ok
 
 Without `--only-ok` an address that answered with an exception prints `exception N` and one that did not answer prints `no reply`. If a request gets no usable reply, the scan stops with a message, because the stream can no longer be matched to requests. The exit status is 0 if at least one register answered with a value and 1 otherwise, which makes `scan` usable as a reachability check in scripts.
 
-## ananasar stress
+## ananasar storm
 
-Drives a target at a controlled load and records latency and errors, with optional ramps, fault injection and connection churn. It refuses heavy or risky settings unless you pass `--i-am-authorised`; use it only on equipment you are authorised to test. It is Modbus-level and does not replace link-level network storm tests. All options, examples and the report format are in [Stress testing](stress-testing.md); `ananasar stress --help` lists them.
+(Called `ananasar stress` before; that name still works.)
+
+Drives a target at a controlled load and records latency and errors, with optional ramps, fault injection and connection churn. It refuses heavy or risky settings unless you pass `--i-am-authorised`; use it only on equipment you are authorised to test. It is Modbus-level and does not replace link-level network storm tests. All options, examples and the report format are in [Storm testing](storm-testing.md); `ananasar storm --help` lists them.
 
 ```bash
-ananasar stress 192.168.1.50:502 --out results
+ananasar storm 192.168.1.50:502 --out results
 ```
 
 ## ananasar completions
@@ -143,6 +145,6 @@ Shows the version, the dependencies with their licences and the RustSec advisori
 ## See also
 
 - [Getting started](getting-started.md) for a first server and client session
-- [Stress testing](stress-testing.md)
+- [Storm testing](storm-testing.md)
 - [GUI manual](gui.md) for the windows behind the same engine
 - [Troubleshooting](troubleshooting.md) for ports, unit ids and exceptions
