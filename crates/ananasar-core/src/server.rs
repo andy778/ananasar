@@ -58,6 +58,8 @@ pub struct ServerConfig {
     pub wrong_protocol_id: bool,
     /// Answer normal replies with length high byte [`WRONG_LENGTH_HIGH`].
     pub wrong_length_high: bool,
+    /// Answer each request one request late; see [`OutOfSynch`].
+    pub out_of_synch: bool,
 }
 
 impl Default for ServerConfig {
@@ -71,6 +73,7 @@ impl Default for ServerConfig {
             wrong_transaction_id: false,
             wrong_protocol_id: false,
             wrong_length_high: false,
+            out_of_synch: false,
         }
     }
 }
@@ -78,6 +81,27 @@ impl Default for ServerConfig {
 impl ServerConfig {
     fn uid_ok(&self, uid: u8) -> bool {
         self.unit_id == 0 || self.unit_id == uid
+    }
+}
+
+/// Holds replies back by one request for the "Reply Out of Synch" option: the
+/// reply to request n goes out after request n + 1 arrives. One per connection.
+#[derive(Debug, Default)]
+pub struct OutOfSynch {
+    held: Option<Vec<u8>>,
+}
+
+impl OutOfSynch {
+    /// Take the reply to the current request. Returns the reply to send now,
+    /// if any. With the option on that is the previous request's reply (none
+    /// for the first); with it off, a reply still held goes out ahead of this
+    /// one.
+    pub fn next(&mut self, on: bool, reply: Vec<u8>) -> Vec<Vec<u8>> {
+        if on {
+            self.held.replace(reply).into_iter().collect()
+        } else {
+            self.held.take().into_iter().chain(Some(reply)).collect()
+        }
     }
 }
 

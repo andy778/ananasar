@@ -533,9 +533,9 @@ impl App {
         let font = egui::FontId::monospace(13.0);
         let dark = egui::Color32::BLACK;
         let flag = |on: bool| if on { "On" } else { "Off" }.to_owned();
-        let (forced, wrong_ti, wrong_pid, wrong_len) = {
+        let (forced, wrong_ti, wrong_pid, wrong_len, late) = {
             let cfg = lock(&self.server.cfg);
-            (cfg.forced_exception.is_some(), cfg.wrong_transaction_id, cfg.wrong_protocol_id, cfg.wrong_length_high)
+            (cfg.forced_exception.is_some(), cfg.wrong_transaction_id, cfg.wrong_protocol_id, cfg.wrong_length_high, cfg.out_of_synch)
         };
         setvalview::group_box(ui, setvalview::client_rect(area, 206.0, 120.0, 448.0, 425.0), "Server");
         let painter = ui.painter().clone();
@@ -546,7 +546,7 @@ impl App {
                 14 => Some(self.server.port.load(Ordering::SeqCst).to_string()),
                 15 => Some(if recording || log.recordings() > 0 { log.recordings().to_string() } else { dash() }),
                 16 => Some(flag(false)),
-                17 => Some(flag(stats.out_of_sync)),
+                17 => Some(flag(late || stats.out_of_sync)),
                 18 => Some(flag(wrong_len || stats.incorrect_length)),
                 19 => Some(flag(wrong_pid || stats.incorrect_protocol_id)),
                 20 => Some(flag(wrong_ti)),
@@ -630,6 +630,9 @@ impl eframe::App for App {
         // Ctrl+Alt shortcuts first, so Ctrl+Alt+S is not taken as Ctrl+S.
         if ctx.input_mut(|i| i.consume_shortcut(&sc::SCANNER)) {
             self.show_scanner = true;
+        }
+        if ctx.input_mut(|i| i.consume_shortcut(&sc::OUT_OF_SYNCH)) {
+            toggle_fault(&mut lock(&self.server.cfg), menu::Fault::OutOfSynch);
         }
         let mut toggle_listen = ctx.input_mut(|i| i.consume_shortcut(&sc::LISTEN));
         let mut open_port = ctx.input_mut(|i| i.consume_shortcut(&sc::CHANGE_PORT));
@@ -949,11 +952,11 @@ mod tests {
     fn menu_options_flip_their_own_switch() {
         use super::{menu::Fault, toggle_fault};
         let mut cfg = ananasar_core::server::ServerConfig::default();
-        for fault in [Fault::TransactionId, Fault::ProtocolId, Fault::LengthHigh] {
+        for fault in [Fault::TransactionId, Fault::ProtocolId, Fault::LengthHigh, Fault::OutOfSynch] {
             assert!(!fault.is_on(&cfg));
             toggle_fault(&mut cfg, fault);
             assert!(fault.is_on(&cfg));
-            let on = [Fault::TransactionId, Fault::ProtocolId, Fault::LengthHigh]
+            let on = [Fault::TransactionId, Fault::ProtocolId, Fault::LengthHigh, Fault::OutOfSynch]
                 .into_iter()
                 .filter(|f| f.is_on(&cfg))
                 .count();
