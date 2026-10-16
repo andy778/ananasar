@@ -1,8 +1,8 @@
-//! The `stress` subcommand: a Modbus/TCP load and robustness generator on top
-//! of the `ananasar-stress` library.
+//! The `storm` subcommand: a Modbus/TCP load and robustness generator on top
+//! of the `ananasar-storm` library.
 
 use ananasar_net::{parse_endpoint, split_host_port};
-use ananasar_stress::{Config, FaultKind, SAFETY_NOTICE, fresh_seed, run};
+use ananasar_storm::{Config, FaultKind, SAFETY_NOTICE, fresh_seed, run};
 use clap::Args;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
@@ -10,26 +10,26 @@ use std::time::Duration;
 
 const AFTER_HELP: &str = "\
 SAFETY: use this only against equipment you own or are authorised to test.
-Stress traffic can slow, confuse or crash a device. The defaults are modest
+Storm traffic can slow, confuse or crash a device. The defaults are modest
 (4 connections x 10 requests/s for 10 s, reads only). A total rate above
 1000 requests/s (or an unlimited rate), more than 64 connections, and any
 fault injection are refused unless you add --i-am-authorised.
 
 This is a Modbus/TCP-level tool. It does not replace the link-level
 broadcast/multicast/unicast storm tests used for classification; run a raw
-packet generator for those. See docs/stress-testing.md.
+packet generator for those. See docs/storm-testing.md.
 
 EXAMPLES:
-  ananasar stress 192.168.1.50:502
-  ananasar stress plc.local:502 -c 8 -r 50 -d 60 --out results
-  ananasar stress 10.0.0.5:502 --rate 5 --ramp-to 400 --ramp-secs 30 -d 40 --i-am-authorised
-  ananasar stress 10.0.0.5:502 --mix 3=60,4=20,16=20 --addr-end 199 --qty-max 20
-  ananasar stress 10.0.0.5:502 --fault-bad-length 2 --fault-split 5 --i-am-authorised
-  ananasar stress 10.0.0.5:502 --churn --churn-interval-ms 50 --half-open 10";
+  ananasar storm 192.168.1.50:502
+  ananasar storm plc.local:502 -c 8 -r 50 -d 60 --out results
+  ananasar storm 10.0.0.5:502 --rate 5 --ramp-to 400 --ramp-secs 30 -d 40 --i-am-authorised
+  ananasar storm 10.0.0.5:502 --mix 3=60,4=20,16=20 --addr-end 199 --qty-max 20
+  ananasar storm 10.0.0.5:502 --fault-bad-length 2 --fault-split 5 --i-am-authorised
+  ananasar storm 10.0.0.5:502 --churn --churn-interval-ms 50 --half-open 10";
 
 #[derive(Args)]
 #[command(after_long_help = AFTER_HELP)]
-pub struct StressArgs {
+pub struct StormArgs {
     /// Target as host:port (only for equipment you are authorised to test)
     target: String,
     /// Parallel connections (more than 64 needs --i-am-authorised)
@@ -134,7 +134,7 @@ fn secs(name: &str, v: f64) -> Result<Duration, String> {
     Duration::try_from_secs_f64(v).map_err(|_| format!("{name} must be a non-negative number of seconds"))
 }
 
-fn build_config(a: &StressArgs) -> Result<Config, String> {
+fn build_config(a: &StormArgs) -> Result<Config, String> {
     let (host, port) = split_host_port(&a.target);
     let port = port.ok_or("the target must be host:port, for example 192.168.1.50:502")?;
     let (host, port) = parse_endpoint(host, port)?;
@@ -180,7 +180,7 @@ fn build_config(a: &StressArgs) -> Result<Config, String> {
     Ok(c)
 }
 
-pub fn run_stress(args: &StressArgs) -> i32 {
+pub fn run_storm(args: &StormArgs) -> i32 {
     println!("NOTICE: {SAFETY_NOTICE}");
     let cfg = match build_config(args).and_then(|c| c.check().map(|()| c)) {
         Ok(c) => c,
@@ -190,7 +190,7 @@ pub fn run_stress(args: &StressArgs) -> i32 {
         }
     };
     println!(
-        "stress {}:{}: {} {}, {}, {:.0} s, seed {} (repeat with --seed {})",
+        "storm {}:{}: {} {}, {}, {:.0} s, seed {} (repeat with --seed {})",
         cfg.host,
         cfg.port,
         cfg.connections,
@@ -248,20 +248,20 @@ mod tests {
     }
     #[derive(clap::Subcommand)]
     enum Sub {
-        Stress(StressArgs),
+        Storm(StormArgs),
     }
 
-    fn parse(line: &str) -> Result<StressArgs, clap::Error> {
+    fn parse(line: &str) -> Result<StormArgs, clap::Error> {
         let mut argv = vec!["ananasar"];
         argv.extend(line.split_whitespace());
         Wrap::try_parse_from(argv).map(|w| match w.cmd {
-            Sub::Stress(a) => a,
+            Sub::Storm(a) => a,
         })
     }
 
     #[test]
     fn defaults_are_modest_and_need_no_authorisation() {
-        let c = build_config(&parse("stress 127.0.0.1:502").unwrap()).unwrap();
+        let c = build_config(&parse("storm 127.0.0.1:502").unwrap()).unwrap();
         assert_eq!((c.connections, c.rate, c.duration), (4, 10.0, Duration::from_secs(10)));
         assert_eq!(c.mix.weights, [70, 30, 0, 0, 0, 0]);
         assert_eq!(c.check(), Ok(()));
@@ -269,34 +269,34 @@ mod tests {
 
     #[test]
     fn target_and_ports_are_validated() {
-        for bad in ["stress plc.local", "stress plc.local:0", "stress plc.local:70000", "stress :502", "stress host:x"] {
+        for bad in ["storm plc.local", "storm plc.local:0", "storm plc.local:70000", "storm :502", "storm host:x"] {
             assert!(build_config(&parse(bad).unwrap()).is_err(), "{bad}");
         }
-        assert!(build_config(&parse("stress [::1]:1502").unwrap()).is_ok());
+        assert!(build_config(&parse("storm [::1]:1502").unwrap()).is_ok());
     }
 
     #[test]
     fn percentages_rates_and_mix_are_validated() {
         let bad = |line: &str| build_config(&parse(line).unwrap()).and_then(|c| c.check().map(|()| c)).unwrap_err();
-        assert!(bad("stress h:502 --fault-split 120 --i-am-authorised").contains("percentage"));
-        assert!(bad("stress h:502 --fault-split=-1 --i-am-authorised").contains("percentage"));
-        assert!(bad("stress h:502 --rate=-5").contains("rate"));
-        assert!(bad("stress h:502 --mix 9=1").contains("function code"));
-        assert!(bad("stress h:502 --mix 3=0").contains("mix"));
-        assert!(bad("stress h:502 --duration-secs 0").contains("duration"));
-        assert!(parse("stress h:502 --mix three=1").is_err());
-        assert!(parse("stress h:502 --churn-request").is_err());
+        assert!(bad("storm h:502 --fault-split 120 --i-am-authorised").contains("percentage"));
+        assert!(bad("storm h:502 --fault-split=-1 --i-am-authorised").contains("percentage"));
+        assert!(bad("storm h:502 --rate=-5").contains("rate"));
+        assert!(bad("storm h:502 --mix 9=1").contains("function code"));
+        assert!(bad("storm h:502 --mix 3=0").contains("mix"));
+        assert!(bad("storm h:502 --duration-secs 0").contains("duration"));
+        assert!(parse("storm h:502 --mix three=1").is_err());
+        assert!(parse("storm h:502 --churn-request").is_err());
     }
 
     #[test]
     fn risky_options_are_refused_without_the_flag() {
         for line in [
-            "stress h:502 --fault-bad-length 1",
-            "stress h:502 --rate 0",
-            "stress h:502 --rate 300",
-            "stress h:502 --connections 65",
-            "stress h:502 --rate 1 --ramp-to 2000",
-            "stress h:502 --churn --churn-interval-ms 0",
+            "storm h:502 --fault-bad-length 1",
+            "storm h:502 --rate 0",
+            "storm h:502 --rate 300",
+            "storm h:502 --connections 65",
+            "storm h:502 --rate 1 --ramp-to 2000",
+            "storm h:502 --churn --churn-interval-ms 0",
         ] {
             let c = build_config(&parse(line).unwrap()).unwrap();
             assert!(c.check().unwrap_err().contains("--i-am-authorised"), "{line}");
@@ -307,14 +307,14 @@ mod tests {
 
     #[test]
     fn reproduce_args_parse_back_to_the_same_run() {
-        let line = "stress 10.0.0.5:502 -c 3 --rate 5 --ramp-to 40 --ramp-secs 5 -d 8 --timeout-ms 500 --uid 3 --seed 77 \
+        let line = "storm 10.0.0.5:502 -c 3 --rate 5 --ramp-to 40 --ramp-secs 5 -d 8 --timeout-ms 500 --uid 3 --seed 77 \
                     --mix 3=1,16=2,23=1 --addr-start 10 --addr-end 50 --qty-min 2 --qty-max 6 \
                     --fault-split 4 --fault-bad-length 1.5 --split-delay-ms 20 --coalesce-count 4 --fault-wait-ms 90 \
                     --half-open 2 --i-am-authorised";
         let cfg = build_config(&parse(line).unwrap()).unwrap();
         let again = build_config(&parse(&cfg.reproduce_args()).unwrap()).unwrap();
         assert_eq!(cfg, again);
-        let churn = build_config(&parse("stress h:1 --churn --churn-interval-ms 40 --churn-request --seed 5").unwrap()).unwrap();
+        let churn = build_config(&parse("storm h:1 --churn --churn-interval-ms 40 --churn-request --seed 5").unwrap()).unwrap();
         assert_eq!(build_config(&parse(&churn.reproduce_args()).unwrap()).unwrap(), churn);
     }
 }

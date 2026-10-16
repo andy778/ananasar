@@ -162,7 +162,7 @@ version = "0.1.0"
 dependencies = [
  "ananasar-core",
  "ananasar-net",
- "ananasar-stress",
+ "ananasar-storm",
  "clap",
  "clap_complete",
 ]
@@ -223,7 +223,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ananasar-stress"
+name = "ananasar-storm"
 version = "0.1.0"
 dependencies = [
  "ananasar-core",
