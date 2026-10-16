@@ -26,6 +26,11 @@ Runs a server with 65 536 holding and 65 536 input registers, all 0 at the start
 | `--load <FILE>` | none | Load register values from a `*.ananas` file before serving. |
 | `--log-dir <DIR>` | none | Write a data log file in this directory (created if needed). |
 | `--interpretive` | off | Add decoded descriptions to the log entries. Requires `--log-dir`. |
+| `--wrong-ti` | off | Put transaction id `DE AD` in every reply (Options > Modbus > Return Incorrect TI). |
+| `--wrong-protocol-id` | off | Put protocol id `AB CD` in normal replies (Return Incorrect Protocol ID). |
+| `--wrong-length-high` | off | Put `EF` in the length high byte of normal replies (Return Incorrect Length High Byte). |
+| `--out-of-synch` | off | Answer each request one request late (Reply Out of Synch). |
+| `--address-offset` | off | Wire address n reaches register n + 1 (Use Address Offset). |
 
 The server answers function codes 3, 4, 6, 7, 8, 16, 22 and 23 and listens on all interfaces (`0.0.0.0`). The function code set and forced exceptions can be changed in the GUI and through [MCP](mcp.md), not from the CLI.
 

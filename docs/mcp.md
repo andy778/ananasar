@@ -93,7 +93,7 @@ Use `modbus_connect` first; the other `modbus_*` tools work on that connection.
 | `server_get_registers` | `bank` (`holding` or `input`), `address`, `count` (1-125) | Reads registers straight from the simulation, without the network. |
 | `server_set_registers` | `bank`, `address`, `values` (1-125 numbers) | Sets registers in either bank. This is the only way to set input registers. |
 | `server_stats` | none | What the GUI's Server panel shows: clients, per client IP, poll interval, last request's transaction id, protocol id, length, unit id, function, start address and word count, byte totals and header check, plus the out-of-sync, incorrect length, incorrect protocol id and return exception flags. |
-| `server_options` | optional `active_function_codes` (from 3, 4, 6, 7, 8, 16, 22, 23), `forced_exception` (1-8, 10, 11, or 0 for off), `unit_id` | With no arguments, reads the options; with arguments, changes those given. |
+| `server_options` | optional `active_function_codes` (from 3, 4, 6, 7, 8, 16, 22, 23), `forced_exception` (1-8, 10, 11, or 0 for off), `unit_id`, and the booleans `return_incorrect_ti`, `return_incorrect_protocol_id`, `return_incorrect_length_high_byte`, `reply_out_of_synch`, `use_address_offset` | With no arguments, reads the options; with arguments, changes those given. |
 | `server_get_log` | optional `max_chars` (1-100 000, default 8000), `clear` (default false) | Tail of the data log. The log is kept in memory, the most recent 1 MiB. |
 
 Each tool also carries the MCP annotations `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`, so clients can ask for confirmation before the destructive ones.
