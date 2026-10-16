@@ -81,6 +81,32 @@ proptest! {
     }
 
     #[test]
+    fn address_offset_stores_one_register_up_and_refuses_the_last_wire_address(
+        addr in any_addr(),
+        values in proptest::collection::vec(any::<u16>(), 1..=20),
+    ) {
+        let cfg = ServerConfig { address_offset: true, ..ServerConfig::default() };
+        let mut regs = RegisterFile::new();
+        let count = values.len();
+        let fits = usize::from(addr) + 1 + count <= BANK_LEN;
+        let (_, f, d) = decode(&reply(&cfg, &mut regs, &build(1, 1, 0x10, &write_multiple_pdu(addr, &values))));
+        if fits {
+            prop_assert_eq!(f, 0x10);
+            for (k, v) in values.iter().enumerate() {
+                prop_assert_eq!(regs.get(Bank::Holding, addr + 1 + k as u16), *v);
+            }
+            let read = [addr.to_be_bytes(), (count as u16).to_be_bytes()].concat();
+            let (_, f, d) = decode(&reply(&cfg, &mut regs, &build(2, 1, 0x03, &read)));
+            prop_assert_eq!(f, 3);
+            prop_assert_eq!(words(&d[1..]), values);
+        } else {
+            prop_assert_eq!(f, 0x90);
+            prop_assert_eq!(d, vec![Exception::IllegalDataAddress as u8]);
+            prop_assert!(regs.bank(Bank::Holding).iter().all(|r| *r == 0));
+        }
+    }
+
+    #[test]
     fn a_bad_header_never_runs_the_request(
         function in any::<u8>(),
         data in proptest::collection::vec(any::<u8>(), 0..40),

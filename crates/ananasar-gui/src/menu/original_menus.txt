@@ -75,7 +75,7 @@ Options
       Gateway Target Device Failed to Respond  [check]
     ---
     Use Address Offset  @ Ctrl+Alt+O
-      ~ enabled=false : the engine has no address offset yet
+      ~ kind=check : ours ticks the option while it is on
     ---
     Reply Out of Synch  @ Ctrl+Alt+S
       ~ kind=check : ours ticks the option while it is on

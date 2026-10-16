@@ -101,6 +101,7 @@ pub enum Fault {
     TransactionId,
     ProtocolId,
     LengthHigh,
+    AddressOffset,
     OutOfSynch,
 }
 
@@ -111,6 +112,7 @@ impl Fault {
             Self::TransactionId => &mut cfg.wrong_transaction_id,
             Self::ProtocolId => &mut cfg.wrong_protocol_id,
             Self::LengthHigh => &mut cfg.wrong_length_high,
+            Self::AddressOffset => &mut cfg.address_offset,
             Self::OutOfSynch => &mut cfg.out_of_synch,
         }
     }
@@ -121,6 +123,7 @@ impl Fault {
             Self::TransactionId => cfg.wrong_transaction_id,
             Self::ProtocolId => cfg.wrong_protocol_id,
             Self::LengthHigh => cfg.wrong_length_high,
+            Self::AddressOffset => cfg.address_offset,
             Self::OutOfSynch => cfg.out_of_synch,
         }
     }
@@ -237,7 +240,7 @@ pub fn build(s: &MenuState<'_>) -> Vec<MenuItem> {
         M::check("Return Incorrect Length High Byte", Fault::LengthHigh.is_on(s.faults), Action::ToggleFault(Fault::LengthHigh)),
         M::submenu("Return Exception", exceptions),
         M::separator(),
-        M { shortcut: Some(sc::ADDRESS_OFFSET), ..M::off("Use Address Offset") },
+        M::check("Use Address Offset", Fault::AddressOffset.is_on(s.faults), Action::ToggleFault(Fault::AddressOffset)).key(sc::ADDRESS_OFFSET),
         M::separator(),
         M::check("Reply Out of Synch", Fault::OutOfSynch.is_on(s.faults), Action::ToggleFault(Fault::OutOfSynch)).key(sc::OUT_OF_SYNCH),
         M::separator(),

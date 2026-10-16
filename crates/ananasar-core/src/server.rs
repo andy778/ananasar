@@ -60,6 +60,9 @@ pub struct ServerConfig {
     pub wrong_length_high: bool,
     /// Answer each request one request late; see [`OutOfSynch`].
     pub out_of_synch: bool,
+    /// Wire address `n` reaches register `n + 1`, so the top wire address
+    /// (65535) is out of range.
+    pub address_offset: bool,
 }
 
 impl Default for ServerConfig {
@@ -74,6 +77,7 @@ impl Default for ServerConfig {
             wrong_protocol_id: false,
             wrong_length_high: false,
             out_of_synch: false,
+            address_offset: false,
         }
     }
 }
@@ -81,6 +85,16 @@ impl Default for ServerConfig {
 impl ServerConfig {
     fn uid_ok(&self, uid: u8) -> bool {
         self.unit_id == 0 || self.unit_id == uid
+    }
+
+    /// The register a wire address reaches, or `None` past the last register.
+    fn map(&self, addr: u16) -> Option<u16> {
+        if self.address_offset { addr.checked_add(1) } else { Some(addr) }
+    }
+
+    /// Whether `count` registers from wire address `addr` fit inside a bank.
+    fn span_fits(&self, addr: u16, count: u16) -> bool {
+        self.map(addr).is_some_and(|a| span_fits(a, count))
     }
 }
 
@@ -148,7 +162,7 @@ fn refusal(cfg: &ServerConfig, func_byte: u8, pdu: &[u8]) -> Option<Exception> {
         return Some(Exception::IllegalFunction);
     };
     cfg.forced_exception.map(|forced| {
-        if address_fault(func, pdu) { Exception::IllegalDataAddress } else { forced }
+        if address_fault(cfg, func, pdu) { Exception::IllegalDataAddress } else { forced }
     })
 }
 
@@ -215,7 +229,7 @@ fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome 
             if count == 0 || count > MAX_READ {
                 return exc(Exception::IllegalDataValue);
             }
-            match regs.read_span(bank, addr, count) {
+            match cfg.map(addr).and_then(|a| regs.read_span(bank, a, count)) {
                 Some(words) => reply(words_reply(words)),
                 None => exc(Exception::IllegalDataAddress),
             }
@@ -225,7 +239,10 @@ fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome 
             let Some((addr, value)) = read_addr_count(pdu) else {
                 return exc(Exception::IllegalDataValue);
             };
-            regs.set_holding(addr, value);
+            let Some(target) = cfg.map(addr) else {
+                return exc(Exception::IllegalDataAddress);
+            };
+            regs.set_holding(target, value);
             reply(pdu.get(..4).unwrap_or_default().to_vec()) // echo address + value
         }
 
@@ -242,7 +259,7 @@ fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome 
             if count == 0 || count > MAX_WRITE || byte_count != usize::from(count).saturating_mul(2) {
                 return exc(Exception::IllegalDataValue);
             }
-            if !write_words(regs, addr, data) {
+            if !cfg.span_fits(addr, count) || !write_words(regs, cfg.map(addr).unwrap_or(addr), data) {
                 return exc(Exception::IllegalDataAddress);
             }
             reply(pdu.get(..4).unwrap_or_default().to_vec()) // echo address + quantity
@@ -254,9 +271,12 @@ fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome 
             else {
                 return exc(Exception::IllegalDataValue);
             };
-            let cur = regs.get(Bank::Holding, addr);
+            let Some(target) = cfg.map(addr) else {
+                return exc(Exception::IllegalDataAddress);
+            };
+            let cur = regs.get(Bank::Holding, target);
             // result = (current AND and_mask) OR (or_mask AND NOT and_mask)
-            regs.set_holding(addr, (cur & and_mask) | (or_mask & !and_mask));
+            regs.set_holding(target, (cur & and_mask) | (or_mask & !and_mask));
             reply(pdu.get(..6).unwrap_or_default().to_vec()) // echo
         }
 
@@ -281,13 +301,14 @@ fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome 
                 return exc(Exception::IllegalDataValue);
             }
             // Validate the read span before writing, so a bad read leaves no side effect.
-            if regs.read_span(Bank::Holding, r_addr, r_count).is_none()
-                || !span_fits(w_addr, w_count)
-            {
+            let (Some(r_at), Some(w_at)) = (cfg.map(r_addr), cfg.map(w_addr)) else {
+                return exc(Exception::IllegalDataAddress);
+            };
+            if regs.read_span(Bank::Holding, r_at, r_count).is_none() || !span_fits(w_at, w_count) {
                 return exc(Exception::IllegalDataAddress);
             }
-            write_words(regs, w_addr, data);
-            match regs.read_span(Bank::Holding, r_addr, r_count) {
+            write_words(regs, w_at, data);
+            match regs.read_span(Bank::Holding, r_at, r_count) {
                 Some(words) => reply(words_reply(words)),
                 None => exc(Exception::IllegalDataAddress),
             }
@@ -337,9 +358,9 @@ fn words_reply(words: &[u16]) -> Vec<u8> {
 /// Whether the request addresses registers beyond the end of the bank. Only
 /// the functions with a start address and a quantity can; malformed or short
 /// PDUs are not an address fault.
-fn address_fault(func: Function, pdu: &[u8]) -> bool {
+fn address_fault(cfg: &ServerConfig, func: Function, pdu: &[u8]) -> bool {
     let span_bad = |addr_at: usize| match (be_u16(pdu, addr_at), be_u16(pdu, addr_at.saturating_add(2))) {
-        (Some(addr), Some(count)) => !span_fits(addr, count),
+        (Some(addr), Some(count)) => !cfg.span_fits(addr, count),
         _ => false,
     };
     match func {
