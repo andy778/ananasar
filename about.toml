@@ -1,0 +1,27 @@
+# cargo-about configuration: collects the licence texts of every dependency that
+# ends up in a release binary. See scripts/make-notices.sh.
+accepted = [
+  "0BSD",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "ISC",
+  "MIT",
+  "OFL-1.1",
+  "Ubuntu-font-1.0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+# Crates that exist only for a platform we do not ship still resolve in the lock
+# file; the release targets below are the ones that matter.
+targets = [
+  "x86_64-pc-windows-msvc",
+  "x86_64-unknown-linux-gnu",
+  "aarch64-apple-darwin",
+  "x86_64-apple-darwin",
+]
+ignore-dev-dependencies = true
+ignore-build-dependencies = true

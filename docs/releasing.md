@@ -5,7 +5,7 @@ Releases are automated with [semantic-release](https://github.com/semantic-relea
 1. A push to `main` runs `.github/workflows/semantic-release.yml`.
 2. semantic-release reads the Conventional Commits since the last `v*` tag: `fix:` gives a patch, `feat:` a minor and a `!` or `BREAKING CHANGE:` a major release. `chore:`, `docs:`, `ci:` and `refactor:` alone release nothing.
 3. If a release is due it creates the `vX.Y.Z` tag and the GitHub Release with generated notes.
-4. The tag starts `build.yml`, which stamps the version into the workspace (`scripts/stamp-version.sh`), builds Windows, macOS and Linux, signs the files with cosign and attaches them to the release.
+4. The tag starts `build.yml`. Its `notices` job runs `scripts/make-notices.sh` (licence texts, dependency list, advisory report and CycloneDX SBOMs, embedded into `ananasar about` and attached to the release). The build jobs then stamp the version into the workspace (`scripts/stamp-version.sh`), build Windows, macOS and Linux, signs the files with cosign and attaches them to the release.
 
 `main` is protected, so merge PRs with **Rebase and merge** (or a merge commit), not squash: a squash merge turns the whole PR into a single commit and loses the individual `feat`/`fix` types.
 
