@@ -320,8 +320,8 @@ fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome 
             }
         }
 
-        // Serial-line functions the TCP server accepts but has no real data for.
-        Function::ReadExceptionStatus => reply(vec![0x00]),
+        // The status byte is the low byte of holding register 65535, as in the original.
+        Function::ReadExceptionStatus => reply(vec![regs.get(Bank::Holding, 0xFFFF).to_le_bytes().first().copied().unwrap_or(0)]),
         Function::Diagnostics => {
             let Some(&[s0, s1, d0, d1]) = pdu.first_chunk::<4>() else {
                 return exc(Exception::IllegalDataValue);
