@@ -1,6 +1,7 @@
 //! Headless Ananasar: a Modbus/TCP server and client driven from the command
 //! line, built on the shared `ananasar-core` engine and `ananasar-net` server.
 
+mod about;
 mod stress;
 
 use ananasar_core::ananas_file;
@@ -44,6 +45,8 @@ enum Command {
     Scan(ScanArgs),
     /// Load-test a Modbus/TCP target (only equipment you may test): rate, ramp, faults, churn
     Stress(Box<stress::StressArgs>),
+    /// Show the version, dependencies, licences and advisories known at build time
+    About(about::AboutArgs),
 }
 
 #[derive(Args)]
@@ -147,6 +150,7 @@ fn main() {
         }
         Command::Scan(a) => run_scan(&a),
         Command::Stress(a) => stress::run_stress(&a),
+        Command::About(a) => about::run_about(&a),
     };
     std::process::exit(code);
 }
