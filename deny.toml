@@ -1,10 +1,31 @@
-# cargo-deny configuration. CI runs: cargo deny check advisories bans sources
+# cargo-deny configuration. CI runs: cargo deny check advisories bans sources licenses
 [advisories]
 version = 2
 ignore = [
   # ttf-parser is unmaintained (informational, no exploit, no patched version).
   # Transitive only, via the eframe GUI font stack on Linux. Tracked upstream.
   "RUSTSEC-2026-0192",
+]
+
+[licenses]
+version = 2
+# Permissive licences only. Dual-licensed crates (for example "MIT OR Apache-2.0
+# OR LGPL-2.1-or-later") pass because one alternative is on this list; the
+# fonts in epaint_default_fonts bring OFL-1.1 and the Ubuntu font licence.
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "ISC",
+  "MIT",
+  "OFL-1.1",
+  "Ubuntu-font-1.0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
 ]
 
 [bans]
