@@ -357,6 +357,18 @@ impl Mcp {
         if a.contains_key("unit_id") {
             cfg.unit_id = opt_u8(a, "unit_id", 0);
         }
+        let c = &mut *cfg;
+        for (key, flag) in [
+            ("return_incorrect_ti", &mut c.wrong_transaction_id),
+            ("return_incorrect_protocol_id", &mut c.wrong_protocol_id),
+            ("return_incorrect_length_high_byte", &mut c.wrong_length_high),
+            ("reply_out_of_synch", &mut c.out_of_synch),
+            ("use_address_offset", &mut c.address_offset),
+        ] {
+            if let Some(on) = a.get(key).and_then(Value::as_bool) {
+                *flag = on;
+            }
+        }
         let forced = cfg.forced_exception.map_or(0, |e| e as u8);
         Ok(json!({
             "active_function_codes": cfg.supported.iter().collect::<Vec<_>>(),
@@ -364,6 +376,11 @@ impl Mcp {
             "forced_exception_name": if forced == 0 { Value::Null } else { json!(exception_name(forced)) },
             "unit_id": cfg.unit_id,
             "unit_id_note": "0 answers any unit id",
+            "return_incorrect_ti": cfg.wrong_transaction_id,
+            "return_incorrect_protocol_id": cfg.wrong_protocol_id,
+            "return_incorrect_length_high_byte": cfg.wrong_length_high,
+            "reply_out_of_synch": cfg.out_of_synch,
+            "use_address_offset": cfg.address_offset,
         }))
     }
 
