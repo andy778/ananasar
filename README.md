@@ -169,15 +169,15 @@ What is not done or differs from the original, stated plainly. Greyed-out entrie
 
 | Area | Gap | Issue |
 | --- | --- | --- |
-| Server | FC8 (diagnostics) with a PDU shorter than four bytes gets illegal data value; the original answers from stale data. The sub-functions themselves match the recordings. | [#91](https://github.com/andy778/ananasar/issues/91) |
 | Server | The connection is closed on a bad protocol id or length high byte, as in the original. A length field that disagrees with the bytes sent is framed by the length field; the original answers from whatever bytes arrived. | [#93](https://github.com/andy778/ananasar/issues/93) |
-| Server options | Disable Nagle per connection and Purge Port Usage Blocking(s) are greyed out. | none |
+| Server options | Disable Nagle per connection is greyed out. | [#104](https://github.com/andy778/ananasar/issues/104) |
+| Server options | Purge Port Usage Blocking(s) is greyed out; Ananasar has no port usage blocking. | [#105](https://github.com/andy778/ananasar/issues/105) |
 | Stress mode | CLI only (`ananasar stress`); there is no GUI panel yet. | [#86](https://github.com/andy778/ananasar/issues/86) |
 | CLI | `ananasar client --write` writes zeros only, and there is no option for the address offset, the function code set or a forced exception. | none |
 | Alarm data | Alarm data with timestamps over Modbus is under investigation only. | [#32](https://github.com/andy778/ananasar/issues/32) |
 | Original's network-adapter features | Not planned. | none |
 
-Places where Ananasar deliberately differs from the original (for example, it enforces the Modbus quantity limits) are recorded in [#94](https://github.com/andy778/ananasar/issues/94).
+Places where Ananasar deliberately differs from the original (for example, it enforces the Modbus quantity limits and rejects FC8 requests too short to hold a sub-function) are recorded in [#94](https://github.com/andy778/ananasar/issues/94).
 
 ## About the original
 
