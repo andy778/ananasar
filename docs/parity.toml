@@ -218,7 +218,7 @@ id = "server-disable-nagle"
 area = "server"
 feature = "Disable Nagle's algorithm on a connected client from the Options menu"
 status = "missing"
-issue = 38
+issue = 104
 note = "the menu entries Connection #1 and #2 are shown greyed out; the server does not change TCP_NODELAY on a live connection yet"
 
 [[feature]]
@@ -268,9 +268,8 @@ note = "the wrong transaction id is also put into exception replies, the wrong p
 id = "server-fc8-fc7-values"
 area = "server"
 feature = "FC8 sub-functions with their own answers and counters, FC7 status byte that follows register contents"
-status = "partial"
+status = "shipped"
 tests = ["crates/ananasar-core/src/lib.rs::diagnostics_query_data_echoes_four_bytes", "crates/ananasar-core/src/lib.rs::diagnostics_register_is_holding_register_65534", "crates/ananasar-core/src/lib.rs::diagnostics_counters_count_and_clear", "crates/ananasar-core/src/lib.rs::diagnostics_other_sub_functions_and_short_pdus_are_refused", "crates/ananasar-core/src/lib.rs::exception_status_is_the_low_byte_of_holding_register_65535"]
-issue = 91
 note = "FC8 answers per sub-function as recorded, FC7 follows the low byte of holding register 65535 as probed on the original; FC8 requests too short to carry a sub-function and data get illegal data value, where the original answers from stale data"
 
 [[feature]]
