@@ -19,6 +19,7 @@ Manuals for using Ananasar, and notes on how it is tested and released.
 | Page | What it covers |
 | --- | --- |
 | [Parity testing](parity-testing.md) | Running the same wire-level scenarios against Ananasar and the original and diffing the results. |
+| [Differences from the original](differences.md) | Where Ananasar deliberately differs from the original Ananas, with the reason and the Modbus specification reference. |
 | [README screenshot](screenshots.md) | How the README screenshot is rendered headlessly and regenerated. |
 | [Releasing](releasing.md) | How releases are cut from Conventional Commits and how the artifacts are built and signed. |
 
