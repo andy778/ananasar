@@ -106,7 +106,7 @@ mod tests {
                 let (_, f, pdu) = frame(&r).unwrap();
                 (f & 0x80 != 0).then(|| (f, pdu[0]))
             }
-            Outcome::Drop => None,
+            Outcome::Drop | Outcome::Close | Outcome::ReplyAndClose(_) => None,
         }
     }
 
@@ -294,7 +294,7 @@ mod tests {
     /// reply or a drop and never a panic.
     #[test]
     fn truncated_requests_never_panic() {
-        let cfg = ServerConfig { unit_id: 0, supported: (0..=0x20).collect(), forced_exception: None };
+        let cfg = ServerConfig { supported: (0..=0x20).collect(), ..Default::default() };
         let pdus: [&[u8]; 6] = [
             &[0, 1, 0, 2],
             &[0, 1, 0, 2, 4, 0, 1, 0, 2],
@@ -355,4 +355,40 @@ mod tests {
         let mut list = PollList::new(vec![0xFFFE, 0xFFFF]);
         assert_eq!(list.next_run(10), Some((0xFFFE, 2)));
     }
+
+    #[test]
+    fn bad_header_closes_and_runs_nothing() {
+        let cfg = ServerConfig::default();
+        let mut regs = RegisterFile::new();
+        let mut write = crate::protocol::build(1, 1, 0x06, &[0, 5, 0, 9]);
+        write[3] = 1; // protocol id 1
+        assert_eq!(process(&cfg, &mut regs, &write), Outcome::Close);
+        assert_eq!(regs.get(Bank::Holding, 5), 0, "the write must not run");
+        let mut high = crate::protocol::build(1, 1, 0x03, &[0, 0, 0, 1]);
+        high[4] = 1;
+        assert_eq!(process(&cfg, &mut regs, &high), Outcome::Close);
+        high[6] = 9; // unit filter only matters when set
+        let filtered = ServerConfig { unit_id: 7, ..Default::default() };
+        assert_eq!(process(&filtered, &mut regs, &high), Outcome::Close);
+    }
+
+    #[test]
+    fn bad_header_gets_the_exception_first_when_refused() {
+        let mut cfg = ServerConfig::default();
+        cfg.supported.remove(&0x03);
+        let mut req = crate::protocol::build(0x0001, 1, 0x03, &[0x0B, 0xB8, 0, 1]);
+        req[3] = 1;
+        let expected = {
+            let mut e = crate::protocol::build(1, 1, 0x83, &[1]);
+            e[3] = 1;
+            e
+        };
+        let mut regs = RegisterFile::new();
+        assert_eq!(process(&cfg, &mut regs, &req), Outcome::ReplyAndClose(expected.clone()));
+        let forced = ServerConfig { forced_exception: Some(crate::protocol::Exception::SlaveDeviceFailure), ..Default::default() };
+        let mut want = expected;
+        want[8] = 4;
+        assert_eq!(process(&forced, &mut regs, &req), Outcome::ReplyAndClose(want));
+    }
+
 }

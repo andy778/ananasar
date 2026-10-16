@@ -35,7 +35,6 @@
 < 0004 0000 0003 01 90 08
 
 ## probe_bad_header_then_valid
-#! deviation: the original answers first with the exception when the function is disabled or an exception is forced, echoing the bad protocol id, and always closes the connection; Ananasar ignores the frame and keeps the connection (issue 93)
 > 0001 0001 0006 01 03 0bb80001
 < 0001 0001 0003 01 83 08
 < closed
