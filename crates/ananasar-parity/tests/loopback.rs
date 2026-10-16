@@ -72,10 +72,9 @@ fn scenarios_record_expected_replies_and_repeat_identically() {
     assert_eq!(&mask[8..], &[2, 0x00, 0x17]);
     // An incomplete frame gets no reply.
     assert_eq!(section(&a, "bad_length_too_long")[1], Entry::NoReply);
-    // A bad protocol id is dropped but the connection still serves.
+    // A bad protocol id closes the connection, as the original does.
     let bad = section(&a, "bad_protocol_id");
-    assert_eq!(bad[1], Entry::NoReply);
-    assert!(matches!(bad[3], Entry::Received(_)));
+    assert_eq!(bad[1], Entry::Closed);
 }
 
 #[test]

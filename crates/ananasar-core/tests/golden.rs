@@ -32,7 +32,8 @@ fn replies_for(cfg: &ServerConfig, regs: &mut RegisterFile, block: &[u8]) -> Vec
         .iter()
         .filter_map(|frame| match process(cfg, regs, frame) {
             Outcome::Reply(r) => Some(r),
-            Outcome::Drop => None,
+            Outcome::Drop | Outcome::Close => None,
+            Outcome::ReplyAndClose(r) => Some(r),
         })
         .collect()
 }

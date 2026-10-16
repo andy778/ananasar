@@ -31,7 +31,7 @@ fn fitting_span(max_count: u16) -> impl Strategy<Value = (u16, u16)> {
 fn reply(cfg: &ServerConfig, regs: &mut RegisterFile, request: &[u8]) -> Vec<u8> {
     match process(cfg, regs, request) {
         Outcome::Reply(r) => r,
-        Outcome::Drop => panic!("request was dropped: {request:02x?}"),
+        other => panic!("no reply ({other:?}) to {request:02x?}"),
     }
 }
 
@@ -58,6 +58,26 @@ fn write_multiple_pdu(addr: u16, values: &[u16]) -> Vec<u8> {
 
 proptest! {
     #![proptest_config(ProptestConfig { failure_persistence: None, ..ProptestConfig::default() })]
+
+    // ---- fault options and address offset ----
+
+    #[test]
+    fn a_bad_header_never_runs_the_request(
+        function in any::<u8>(),
+        data in proptest::collection::vec(any::<u8>(), 0..40),
+        pid in 1u16..=u16::MAX,
+        len_high in 0u8..=1,
+    ) {
+        let mut request = build(9, 1, function, &data);
+        request[2..4].copy_from_slice(&pid.to_be_bytes());
+        request[4] = len_high;
+        let mut regs = RegisterFile::new();
+        match process(&ServerConfig::default(), &mut regs, &request) {
+            Outcome::Close | Outcome::ReplyAndClose(_) => {}
+            other => prop_assert!(false, "unexpected {other:?}"),
+        }
+        prop_assert!(regs.bank(Bank::Holding).iter().all(|r| *r == 0));
+    }
 
     // ---- frame codec ----
 
