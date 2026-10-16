@@ -199,7 +199,7 @@ All of these affect the embedded server and apply immediately.
 | Reply Out of Synch (Ctrl+Alt+S) | Each connection answers one request late: the first request gets no reply, and the reply to request n is sent when request n + 1 arrives. |
 | Register Scanner… | See [Register Scanner](#register-scanner). |
 
-FC7 (Read Exception Status) always replies with status 0, and FC8 (Diagnostics) answers sub-functions 0 (the first two data bytes echoed), 2 (the value of holding register 65534), 0x0A (clear the counters), 0x0D (exception replies sent), 0x0E (requests received) and 0x0F (always 0); every other sub-function gets Illegal Function (1). Requests with a unit id the server does not accept get no reply at all. A request with a non-zero protocol id or length high byte closes the connection; if the function is switched off or an exception is forced, the exception reply (with that protocol id) is sent first.
+FC7 (Read Exception Status) replies with the low byte of holding register 65535, and FC8 (Diagnostics) answers sub-functions 0 (the first two data bytes echoed), 2 (the value of holding register 65534), 0x0A (clear the counters), 0x0D (exception replies sent), 0x0E (requests received) and 0x0F (always 0); every other sub-function gets Illegal Function (1). Requests with a unit id the server does not accept get no reply at all. A request with a non-zero protocol id or length high byte closes the connection; if the function is switched off or an exception is forced, the exception reply (with that protocol id) is sent first.
 
 ## TCP options
 

@@ -129,7 +129,7 @@ The first full recording of all profiles found these differences. Each has an is
 
 - Fix made in this change: with Return Exception on, the original keeps illegal function for unsupported function codes and illegal data address for spans past register 65535; Ananasar forced the chosen code on everything.
 - Return Incorrect TI, Protocol ID and Length High Byte, Reply Out of Synch and Use Address Offset are implemented now (issues 88, 89, 90). The original puts the wrong transaction id into exception replies too, but the wrong protocol id and length high byte only into normal replies.
-- FC8 sub-functions are implemented as recorded (issue 91); the FC7 status byte is not (issue 92).
+- FC8 sub-functions are implemented as recorded (issue 91); the FC7 status byte is matched too: it is the low byte of holding register 65535 (issue 92).
 - The original closes the connection on a bad protocol id or length high byte, first answering with the exception when the function is switched off or an exception is forced. Ananasar does the same now. How the original frames requests whose length field disagrees with the bytes sent is not matched (issue 93).
 - Places where Ananasar follows the specification and the original does not: quantity limits, zero quantities, no PDU length checks, function codes above 0x7F, writes past register 65535, error precedence (issue 94).
 

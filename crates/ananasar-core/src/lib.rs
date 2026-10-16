@@ -503,4 +503,22 @@ mod tests {
             assert!(matches!(r, Outcome::Reply(r) if r[7] == 0x88 && r[8] == 3));
         }
     }
+
+    #[test]
+    fn exception_status_is_the_low_byte_of_holding_register_65535() {
+        let cfg = ServerConfig::default();
+        let mut regs = RegisterFile::new();
+        let req = crate::protocol::build(1, 1, 0x07, &[]);
+        let status = |regs: &mut RegisterFile| match process(&cfg, regs, &req) {
+            Outcome::Reply(r) => r[8..].to_vec(),
+            other => panic!("{other:?}"),
+        };
+        assert_eq!(status(&mut regs), [0]);
+        regs.set_holding(0xFFFF, 0x7777);
+        assert_eq!(status(&mut regs), [0x77]);
+        regs.set_holding(0xFFFF, 0x0100);
+        assert_eq!(status(&mut regs), [0]);
+        regs.set_input(0xFFFF, 0x00FF);
+        assert_eq!(status(&mut regs), [0]);
+    }
 }
