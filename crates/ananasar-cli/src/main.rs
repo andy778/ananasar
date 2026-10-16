@@ -63,6 +63,21 @@ struct ServerArgs {
     /// Add decoded descriptions to the log entries (needs --log-dir)
     #[arg(long, requires = "log_dir")]
     interpretive: bool,
+    /// Put transaction id DE AD in every reply
+    #[arg(long)]
+    wrong_ti: bool,
+    /// Put protocol id AB CD in normal replies
+    #[arg(long)]
+    wrong_protocol_id: bool,
+    /// Put EF in the length high byte of normal replies
+    #[arg(long)]
+    wrong_length_high: bool,
+    /// Answer every request one request late
+    #[arg(long)]
+    out_of_synch: bool,
+    /// Wire address n reaches register n + 1
+    #[arg(long)]
+    address_offset: bool,
 }
 
 #[derive(Args)]
@@ -181,7 +196,15 @@ fn run_server(args: &ServerArgs) -> i32 {
 
     let server = Server {
         regs: Arc::new(Mutex::new(registers)),
-        cfg: Arc::new(Mutex::new(ServerConfig { unit_id: uid, ..Default::default() })),
+        cfg: Arc::new(Mutex::new(ServerConfig {
+            unit_id: uid,
+            wrong_transaction_id: args.wrong_ti,
+            wrong_protocol_id: args.wrong_protocol_id,
+            wrong_length_high: args.wrong_length_high,
+            out_of_synch: args.out_of_synch,
+            address_offset: args.address_offset,
+            ..Default::default()
+        })),
         clients: Arc::new(AtomicUsize::new(0)),
         stop: Arc::new(AtomicBool::new(false)),
         notify: Arc::new(|event| match event {

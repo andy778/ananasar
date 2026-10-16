@@ -251,8 +251,9 @@ pub fn definitions() -> Vec<Value> {
             "server_options",
             "Get or set simulated server options",
             "Show the simulated server's options and change any that are given: the active function \
-             codes, a forced exception reply, and the accepted unit id. Call with no arguments to \
-             only read them.",
+             codes, a forced exception reply, the accepted unit id and the deliberate-fault options \
+             (wrong transaction id, protocol id or length high byte, replies one request late, \
+             address offset). Call with no arguments to only read them.",
             json!({
                 "active_function_codes": { "type": "array", "description":
                     "Function codes the server answers (others get Illegal Function). Allowed: 3, 4, 6, 7, 8, 16, 22, 23.",
@@ -261,6 +262,11 @@ pub fn definitions() -> Vec<Value> {
                     "Answer every request with this Modbus exception code instead of processing it \
                      (1-8, 10, 11); 0 turns it off.", 0, 11),
                 "unit_id": int("Unit id the server answers to; 0 answers any.", 0, 255),
+                "return_incorrect_ti": { "type": "boolean", "description": "Put transaction id 0xDEAD in every reply." },
+                "return_incorrect_protocol_id": { "type": "boolean", "description": "Put protocol id 0xABCD in normal replies." },
+                "return_incorrect_length_high_byte": { "type": "boolean", "description": "Put 0xEF in the length high byte of normal replies." },
+                "reply_out_of_synch": { "type": "boolean", "description": "Answer each request one request late; the first gets no reply." },
+                "use_address_offset": { "type": "boolean", "description": "Wire address n reaches register n + 1, so address 65535 is out of range." },
             }),
             &[],
             LOCAL_CHANGE,

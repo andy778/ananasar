@@ -120,6 +120,15 @@ fn client_and_simulated_server_round_trip() {
     assert_eq!(h.ok("modbus_read_holding", json!({ "address": 0, "count": 1 }))["count"], 1);
     assert!(h.err("server_options", json!({ "active_function_codes": [5] })).contains("not supported"));
 
+    // The fault options are reported and can be switched on and off.
+    let opts = h.ok("server_options", json!({}));
+    assert_eq!(opts["use_address_offset"], false);
+    let opts = h.ok("server_options", json!({ "use_address_offset": true, "return_incorrect_ti": true }));
+    assert_eq!((opts["use_address_offset"].clone(), opts["return_incorrect_ti"].clone()), (json!(true), json!(true)));
+    assert_eq!(opts["reply_out_of_synch"], false);
+    let opts = h.ok("server_options", json!({ "use_address_offset": false, "return_incorrect_ti": false }));
+    assert_eq!((opts["use_address_offset"].clone(), opts["return_incorrect_ti"].clone()), (json!(false), json!(false)));
+
     // A unit id the server does not answer to times out cleanly.
     h.ok("server_options", json!({ "unit_id": 9 }));
     let msg = h.err("modbus_read_holding", json!({ "address": 0, "count": 1, "timeout_ms": 200 }));
