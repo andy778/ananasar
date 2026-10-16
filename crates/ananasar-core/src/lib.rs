@@ -14,6 +14,7 @@
 pub mod ananas_file;
 pub mod client;
 pub mod log;
+pub mod notices;
 pub mod protocol;
 pub mod registers;
 pub mod scanner;
