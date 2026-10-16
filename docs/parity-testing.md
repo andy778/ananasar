@@ -83,7 +83,7 @@ ANANAS_ORIGINAL_ADDR=127.0.0.1:503 cargo run -p ananasar-parity -- cross --profi
 cargo run -p ananasar-parity -- cross --addr 127.0.0.1:503 --profile default --record crates/ananasar-parity/golden
 ```
 
-`cross` prints one line per scenario, `same` or `DIFF` with both frames and a short decode, and exits 1 if any differ. For a profile with an option Ananasar lacks (`fault-*`, `address-offset`) it records and says there is nothing to compare against.
+`cross` prints one line per scenario, `same` or `DIFF` with both frames and a short decode, and exits 1 if any differ. For a profile whose option Ananasar lacks it records and says there is nothing to compare against; every profile has a counterpart now.
 
 To keep two recordings and diff them later, `run` and `ours` write files and `diff` compares them:
 
@@ -128,9 +128,9 @@ The older `crates/ananasar-core/tests/golden/` files (replayed by `crates/ananas
 The first full recording of all profiles found these differences. Each has an issue; the deliberate ones are collected in one.
 
 - Fix made in this change: with Return Exception on, the original keeps illegal function for unsupported function codes and illegal data address for spans past register 65535; Ananasar forced the chosen code on everything.
-- Return Incorrect TI, Protocol ID and Length High Byte, Reply Out of Synch and Use Address Offset are not implemented (issues 88, 89, 90).
+- Return Incorrect TI, Protocol ID and Length High Byte, Reply Out of Synch and Use Address Offset are implemented now (issues 88, 89, 90). The original puts the wrong transaction id into exception replies too, but the wrong protocol id and length high byte only into normal replies.
 - FC8 sub-functions and the FC7 status byte (issues 91, 92).
-- The original closes the connection on a bad protocol id or length high byte (issue 93).
+- The original closes the connection on a bad protocol id or length high byte, first answering with the exception when the function is switched off or an exception is forced. Ananasar does the same now. How the original frames requests whose length field disagrees with the bytes sent is not matched (issue 93).
 - Places where Ananasar follows the specification and the original does not: quantity limits, zero quantities, no PDU length checks, function codes above 0x7F, writes past register 65535, error precedence (issue 94).
 
 ## Cross-run: Ananasar server, original as the client
