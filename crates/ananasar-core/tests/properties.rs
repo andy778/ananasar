@@ -12,7 +12,7 @@
 
 use ananasar_core::protocol::{Exception, MBAP_PREFIX, build, frame};
 use ananasar_core::registers::{BANK_LEN, Bank, InitMode, RegisterFile};
-use ananasar_core::server::{MAX_READ, MAX_WRITE, Outcome, ServerConfig, process};
+use ananasar_core::server::{MAX_READ, MAX_WRITE, Outcome, OutOfSynch, ServerConfig, process};
 use proptest::prelude::*;
 
 /// Start addresses that favour the interesting ends of the 16-bit space.
@@ -96,6 +96,13 @@ proptest! {
             other => prop_assert!(false, "unexpected {other:?}"),
         }
         prop_assert!(regs.bank(Bank::Holding).iter().all(|r| *r == 0));
+    }
+
+    #[test]
+    fn out_of_synch_shifts_the_replies_by_one(replies in proptest::collection::vec(proptest::collection::vec(any::<u8>(), 1..8), 1..20)) {
+        let mut hold = OutOfSynch::default();
+        let sent: Vec<Vec<u8>> = replies.iter().flat_map(|r| hold.next(true, r.clone())).collect();
+        prop_assert_eq!(&sent[..], &replies[..replies.len() - 1]);
     }
 
     // ---- frame codec ----

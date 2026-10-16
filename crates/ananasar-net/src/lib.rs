@@ -17,7 +17,7 @@ pub use stats::{ConnStats, Stats};
 use ananasar_core::log::Response;
 use ananasar_core::protocol::{self, MBAP_PREFIX};
 use ananasar_core::registers::RegisterFile;
-use ananasar_core::server::{Outcome, ServerConfig, process};
+use ananasar_core::server::{Outcome, OutOfSynch, ServerConfig, process};
 use ananasar_core::sync::lock;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -182,6 +182,7 @@ impl Server {
         stream.set_read_timeout(Some(IDLE_TIMEOUT)).ok();
         stream.set_write_timeout(Some(IDLE_TIMEOUT)).ok();
         let mut last_request: Option<Instant> = None;
+        let mut synch = OutOfSynch::default();
         loop {
             let request = match read_request(&mut stream, MAX_REQUEST) {
                 Ok(r) => r,
@@ -204,7 +205,10 @@ impl Server {
             if let Some(slot) = stats_slot {
                 lock(&self.stats).record_request(slot, &request, interval_ms);
             }
-            let outcome = process(&lock(&self.cfg), &mut lock(&self.regs), &request);
+            let (outcome, out_of_synch) = {
+                let cfg = lock(&self.cfg);
+                (process(&cfg, &mut lock(&self.regs), &request), cfg.out_of_synch)
+            };
             if let (Some(slot), Outcome::Reply(reply) | Outcome::ReplyAndClose(reply)) = (stats_slot, &outcome) {
                 lock(&self.stats).record_reply(slot, reply);
             }
@@ -228,7 +232,7 @@ impl Server {
                 }
             }
             let (replies, close) = match outcome {
-                Outcome::Reply(reply) => (vec![reply], false),
+                Outcome::Reply(reply) => (synch.next(out_of_synch, reply), false),
                 Outcome::ReplyAndClose(reply) => (vec![reply], true),
                 Outcome::Close => (Vec::new(), true),
                 Outcome::Drop => (Vec::new(), false),

@@ -65,6 +65,7 @@ pub fn server_config(profile: &str) -> Option<ServerConfig> {
         "fault-ti" => cfg.wrong_transaction_id = true,
         "fault-protocol-id" => cfg.wrong_protocol_id = true,
         "fault-length-high" => cfg.wrong_length_high = true,
+        "fault-out-of-synch" => cfg.out_of_synch = true,
         _ => return None,
     }
     Some(cfg)
@@ -93,7 +94,7 @@ mod tests {
     use super::*;
 
     /// Profiles whose option the server does not have yet.
-    const MISSING: [&str; 2] = ["fault-out-of-synch", "address-offset"];
+    const MISSING: [&str; 1] = ["address-offset"];
 
     #[test]
     fn profiles_map_to_configs() {

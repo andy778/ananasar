@@ -105,3 +105,19 @@ fn a_good_frame_after_the_bad_one_is_not_served() {
     s.write_all(&both).unwrap();
     assert_eq!(next(&mut s), None);
 }
+
+#[test]
+fn reply_out_of_synch_answers_one_request_late() {
+    let server = start(ServerConfig { out_of_synch: true, ..Default::default() });
+    let mut s = connect(&server);
+    s.write_all(&read_request(1)).unwrap();
+    s.set_read_timeout(Some(Duration::from_millis(150))).unwrap();
+    let mut buf = [0u8; 16];
+    let first = s.read(&mut buf);
+    assert!(matches!(&first, Err(e) if matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut)), "{first:?}");
+    s.write_all(&read_request(2)).unwrap();
+    s.set_read_timeout(Some(Duration::from_millis(500))).unwrap();
+    assert_eq!(next(&mut s), Some(build(1, 1, 0x03, &[2, 0, 0])));
+    s.write_all(&read_request(3)).unwrap();
+    assert_eq!(next(&mut s), Some(build(2, 1, 0x03, &[2, 0, 0])));
+}

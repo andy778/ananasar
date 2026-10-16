@@ -78,7 +78,7 @@ Options
       ~ enabled=false : the engine has no address offset yet
     ---
     Reply Out of Synch  @ Ctrl+Alt+S
-      ~ enabled=false : the engine cannot reply out of synch yet
+      ~ kind=check : ours ticks the option while it is on
     ---
     Register Scanner…  @ Ctrl+Alt+C
   TCP

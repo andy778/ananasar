@@ -420,4 +420,15 @@ mod tests {
         assert_eq!(process(&forced, &mut regs, &req), Outcome::ReplyAndClose(want));
     }
 
+    #[test]
+    fn out_of_synch_answers_one_request_late() {
+        use crate::server::OutOfSynch;
+        let mut s = OutOfSynch::default();
+        assert!(s.next(true, vec![1]).is_empty());
+        assert_eq!(s.next(true, vec![2]), vec![vec![1]]);
+        assert_eq!(s.next(true, vec![3]), vec![vec![2]]);
+        // Switched off: the held reply goes out ahead of the current one.
+        assert_eq!(s.next(false, vec![4]), vec![vec![3], vec![4]]);
+        assert_eq!(s.next(false, vec![5]), vec![vec![5]]);
+    }
 }
