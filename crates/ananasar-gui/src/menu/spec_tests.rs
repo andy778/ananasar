@@ -142,6 +142,7 @@ fn our_menus() -> Vec<MenuItem> {
         tooltips: true,
         supported: &cfg.supported,
         forced_exception: cfg.forced_exception,
+        faults: &cfg,
     })
 }
 

@@ -62,6 +62,25 @@ proptest! {
     // ---- fault options and address offset ----
 
     #[test]
+    fn header_fault_options_change_only_their_header_bytes(
+        function in prop_oneof![Just(3u8), Just(4), Just(6), Just(7), Just(8), Just(0x10), Just(0x16), Just(0x17), any::<u8>()],
+        data in proptest::collection::vec(any::<u8>(), 0..40),
+        ti in any::<bool>(), pid in any::<bool>(), len in any::<bool>(),
+    ) {
+        let request = build(0x1234, 1, function, &data);
+        let plain = reply(&ServerConfig::default(), &mut RegisterFile::new(), &request);
+        let cfg = ServerConfig { wrong_transaction_id: ti, wrong_protocol_id: pid, wrong_length_high: len, ..ServerConfig::default() };
+        let faulty = reply(&cfg, &mut RegisterFile::new(), &request);
+        prop_assert_eq!(faulty.len(), plain.len());
+        let exception = plain[7] & 0x80 != 0;
+        let mut expected = plain.clone();
+        if ti { expected[..2].copy_from_slice(&[0xDE, 0xAD]); }
+        if pid && !exception { expected[2..4].copy_from_slice(&[0xAB, 0xCD]); }
+        if len && !exception { expected[4] = 0xEF; }
+        prop_assert_eq!(faulty, expected);
+    }
+
+    #[test]
     fn a_bad_header_never_runs_the_request(
         function in any::<u8>(),
         data in proptest::collection::vec(any::<u8>(), 0..40),

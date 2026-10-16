@@ -56,11 +56,11 @@ Options
       FC23  [checked]
     ---
     Return Incorrect TI
-      ~ enabled=false : the server cannot send a wrong transaction id yet
+      ~ kind=check : ours ticks the option while it is on
     Return Incorrect Protocol ID
-      ~ enabled=false : the server cannot send a wrong protocol id yet
+      ~ kind=check : ours ticks the option while it is on
     Return Incorrect Length High Byte
-      ~ enabled=false : the server cannot send a wrong length yet
+      ~ kind=check : ours ticks the option while it is on
     Return Exception
       # Whether the original ticks these is not recorded; ours tick the forced exception.
       Illegal Function  [check]

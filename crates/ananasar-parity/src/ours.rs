@@ -61,7 +61,13 @@ pub fn server_config(profile: &str) -> Option<ServerConfig> {
         cfg.forced_exception = Some(exception_from_code(u8::from_str_radix(code, 16).ok()?)?);
         return Some(cfg);
     }
-    None
+    match profile {
+        "fault-ti" => cfg.wrong_transaction_id = true,
+        "fault-protocol-id" => cfg.wrong_protocol_id = true,
+        "fault-length-high" => cfg.wrong_length_high = true,
+        _ => return None,
+    }
+    Some(cfg)
 }
 
 /// Start a server with all registers zero and `cfg`, on a free loopback port.
@@ -87,7 +93,7 @@ mod tests {
     use super::*;
 
     /// Profiles whose option the server does not have yet.
-    const MISSING: [&str; 5] = ["fault-ti", "fault-protocol-id", "fault-length-high", "fault-out-of-synch", "address-offset"];
+    const MISSING: [&str; 2] = ["fault-out-of-synch", "address-offset"];
 
     #[test]
     fn profiles_map_to_configs() {
@@ -96,7 +102,7 @@ mod tests {
         assert!(!cfg.supported.contains(&0x16) && cfg.supported.contains(&0x03));
         let cfg = server_config("exception-0b").unwrap();
         assert_eq!(cfg.forced_exception, Some(Exception::GatewayTargetFailed));
-        assert!(server_config("fault-ti").is_none());
+        assert!(server_config("fault-ti").is_some_and(|c| c.wrong_transaction_id));
         assert!(server_config("nonsense").is_none());
     }
 

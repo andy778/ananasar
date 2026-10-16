@@ -6,6 +6,7 @@
 use crate::theme;
 use ananasar_core::protocol::Exception;
 use ananasar_core::registers::{Bank, InitMode};
+use ananasar_core::server::ServerConfig;
 use eframe::egui::{self, Key, KeyboardShortcut, Modifiers};
 use std::collections::BTreeSet;
 
@@ -73,6 +74,7 @@ pub enum Action {
     Hex,
     ToggleFunction(u8),
     ForceException(Exception),
+    ToggleFault(Fault),
     Scanner,
     MonitorPort,
     ChangePort,
@@ -86,7 +88,38 @@ impl Action {
     /// Whether the menu closes after the entry is chosen (toggles that are
     /// meant to be clicked repeatedly leave it open).
     fn closes_menu(self) -> bool {
-        !matches!(self, Self::Exit | Self::AddrHex | Self::Hex | Self::ToggleFunction(_) | Self::ForceException(_) | Self::Tooltips)
+        !matches!(
+            self,
+            Self::Exit | Self::AddrHex | Self::Hex | Self::ToggleFunction(_) | Self::ForceException(_) | Self::ToggleFault(_) | Self::Tooltips
+        )
+    }
+}
+
+/// The on/off server options of Options > Modbus besides the function codes and the forced exception.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Fault {
+    TransactionId,
+    ProtocolId,
+    LengthHigh,
+}
+
+impl Fault {
+    /// The switch in the server configuration that belongs to this option.
+    pub fn flag(self, cfg: &mut ServerConfig) -> &mut bool {
+        match self {
+            Self::TransactionId => &mut cfg.wrong_transaction_id,
+            Self::ProtocolId => &mut cfg.wrong_protocol_id,
+            Self::LengthHigh => &mut cfg.wrong_length_high,
+        }
+    }
+
+    /// Whether the option is on in `cfg`.
+    pub fn is_on(self, cfg: &ServerConfig) -> bool {
+        match self {
+            Self::TransactionId => cfg.wrong_transaction_id,
+            Self::ProtocolId => cfg.wrong_protocol_id,
+            Self::LengthHigh => cfg.wrong_length_high,
+        }
     }
 }
 
@@ -151,6 +184,7 @@ pub struct MenuState<'a> {
     pub tooltips: bool,
     pub supported: &'a BTreeSet<u8>,
     pub forced_exception: Option<Exception>,
+    pub faults: &'a ServerConfig,
 }
 
 /// The menu bar: its top-level menus in order.
@@ -195,9 +229,9 @@ pub fn build(s: &MenuState<'_>) -> Vec<MenuItem> {
     let modbus = vec![
         M::submenu("Active MB Functions", functions),
         M::separator(),
-        M::off("Return Incorrect TI"),
-        M::off("Return Incorrect Protocol ID"),
-        M::off("Return Incorrect Length High Byte"),
+        M::check("Return Incorrect TI", Fault::TransactionId.is_on(s.faults), Action::ToggleFault(Fault::TransactionId)),
+        M::check("Return Incorrect Protocol ID", Fault::ProtocolId.is_on(s.faults), Action::ToggleFault(Fault::ProtocolId)),
+        M::check("Return Incorrect Length High Byte", Fault::LengthHigh.is_on(s.faults), Action::ToggleFault(Fault::LengthHigh)),
         M::submenu("Return Exception", exceptions),
         M::separator(),
         M { shortcut: Some(sc::ADDRESS_OFFSET), ..M::off("Use Address Offset") },
