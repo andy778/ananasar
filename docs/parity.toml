@@ -217,9 +217,17 @@ tests = ["crates/ananasar-core/src/lib.rs::forced_exception_answers_every_reques
 id = "server-disable-nagle"
 area = "server"
 feature = "Disable Nagle's algorithm on a connected client from the Options menu"
+status = "shipped"
+tests = ["crates/ananasar-net/tests/connections.rs::nagle_is_switched_on_a_live_connection_and_only_while_it_exists", "crates/ananasar-net/src/stats.rs::set_nagle_changes_the_socket_option_of_that_slot", "crates/ananasar-gui/src/main.rs::nagle_toggle_flips_a_live_connection_and_ignores_a_free_slot", "crates/ananasar-gui/src/menu/spec_tests.rs::nagle_entries_follow_the_connections"]
+note = "Connection #1 and #2 are enabled only while that connection exists, tick while Nagle is off, and the Server panel shows the new state"
+
+[[feature]]
+id = "server-purge-port-blocking"
+area = "gui"
+feature = "Purge Port Usage Blocking(s): clear the record of ports held by Ananas instances so a new instance may use them again"
 status = "missing"
-issue = 104
-note = "the menu entries Connection #1 and #2 are shown greyed out; the server does not change TCP_NODELAY on a live connection yet"
+issue = 105
+note = "left greyed out on purpose: the original keeps a record of ports used by Ananas instances, outside the listening sockets, and a new instance skips a recorded port even when nothing listens on it; Ananasar finds the next free port by binding, so it has no record that can go stale and nothing to purge"
 
 [[feature]]
 id = "wire-scenario-catalog"

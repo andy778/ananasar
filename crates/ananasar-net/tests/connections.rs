@@ -12,7 +12,7 @@
 use ananasar_core::protocol::build;
 use ananasar_core::registers::RegisterFile;
 use ananasar_core::server::ServerConfig;
-use ananasar_net::Server;
+use ananasar_net::{Server, Stats};
 use std::io::{ErrorKind, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -22,6 +22,7 @@ use std::time::Duration;
 struct Running {
     addr: SocketAddr,
     stop: Arc<AtomicBool>,
+    stats: Arc<Mutex<Stats>>,
 }
 
 impl Drop for Running {
@@ -34,6 +35,7 @@ fn start(cfg: ServerConfig) -> Running {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let addr = listener.local_addr().unwrap();
     let stop = Arc::new(AtomicBool::new(false));
+    let stats = Arc::new(Mutex::new(Stats::default()));
     let server = Server {
         regs: Arc::new(Mutex::new(RegisterFile::new())),
         cfg: Arc::new(Mutex::new(cfg)),
@@ -41,10 +43,10 @@ fn start(cfg: ServerConfig) -> Running {
         stop: stop.clone(),
         notify: Arc::new(|_| {}),
         log: None,
-        stats: Arc::default(),
+        stats: stats.clone(),
     };
     std::thread::spawn(move || server.run(&listener));
-    Running { addr, stop }
+    Running { addr, stop, stats }
 }
 
 fn connect(server: &Running) -> TcpStream {
@@ -120,4 +122,33 @@ fn reply_out_of_synch_answers_one_request_late() {
     assert_eq!(next(&mut s), Some(build(1, 1, 0x03, &[2, 0, 0])));
     s.write_all(&read_request(3)).unwrap();
     assert_eq!(next(&mut s), Some(build(2, 1, 0x03, &[2, 0, 0])));
+}
+
+#[test]
+fn nagle_is_switched_on_a_live_connection_and_only_while_it_exists() {
+    let server = start(ServerConfig::default());
+    assert!(server.stats.lock().unwrap().set_nagle(0, false).is_err(), "no connection yet");
+    let mut s = connect(&server);
+    s.write_all(&read_request(1)).unwrap();
+    assert!(next(&mut s).is_some());
+    {
+        let mut stats = server.stats.lock().unwrap();
+        assert!(stats.slots[0].as_ref().unwrap().nagle, "enabled by default");
+        stats.set_nagle(0, false).unwrap();
+        assert!(!stats.slots[0].as_ref().unwrap().nagle);
+        assert_eq!(stats.set_nagle(1, false).unwrap_err().kind(), ErrorKind::NotConnected);
+        stats.set_nagle(0, true).unwrap();
+        assert!(stats.slots[0].as_ref().unwrap().nagle);
+    }
+    // The connection still serves requests afterwards.
+    s.write_all(&read_request(2)).unwrap();
+    assert!(next(&mut s).is_some());
+    drop(s);
+    for _ in 0..50 {
+        if server.stats.lock().unwrap().slots[0].is_none() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    assert_eq!(server.stats.lock().unwrap().set_nagle(0, false).unwrap_err().kind(), ErrorKind::NotConnected);
 }
