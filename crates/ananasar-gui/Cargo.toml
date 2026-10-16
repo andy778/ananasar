@@ -13,6 +13,7 @@ path = "src/main.rs"
 [dependencies]
 ananasar-core = { path = "../ananasar-core" }
 ananasar-net = { path = "../ananasar-net" }
+ananasar-storm = { path = "../ananasar-storm" }
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
 eframe = "0.36"
 egui_extras = "0.36"

@@ -95,6 +95,14 @@ Errors from loading or saving appear in a message box.
 | DDE Server… | | Windows only; see [DDE Server](#dde-server). Greyed out elsewhere. |
 | Show Tooltips | Ctrl+T | Turn the hover hints on or off (on by default). |
 
+### Tools menu
+
+The Tools menu is an Ananasar addition: the original program has no menu of this name.
+
+| Entry | Shortcut | Action |
+| --- | --- | --- |
+| Storm Test… | | Open the [Storm Test](#storm-test) window. |
+
 ## Set Register Value
 
 Edit > Set Register Value (Ctrl+R) edits one register in the server's register file while the server keeps serving.
@@ -132,6 +140,18 @@ Options > Modbus > Register Scanner… (Ctrl+Alt+C), or Modbus > Register Scanne
 | Copy value to register | A successful read is also written into the same register of the program's own register file. |
 
 Results lines show the address and either the value (decimal and hex), `exception N` or `no reply`. Right-click the list for Copy to Clipboard and Clear; double-click it to toggle a horizontal scroll bar. If a request gets no usable reply the scan stops and the connection is closed, because the stream can no longer be matched to requests. The window's menu has **Close!**.
+
+## Storm Test
+
+Tools > Storm Test…. The original program has no such feature; it is an Ananasar addition. It is the window version of [`ananasar storm`](cli.md#ananasar-storm) and uses the same engine, the same safety rules and the same report files. See [Storm testing](storm-testing.md) for what the options mean and for what the tool is not.
+
+**Use it only against equipment you own or are authorised to test.** Storm traffic can disturb or disable devices. The notice is shown at the top of the window.
+
+- **Target** is `host:port` and is empty at first: nothing is sent until you type one, and only to that target. The settings are grouped as Load (connections, rate per connection, optional ramp, duration, reply timeout, seed), Request mix (weights for FC3, FC4, FC6, FC16, FC22 and FC23, address range, quantity range), Fault injection, and Connection churn and half-open. The defaults are the command line's: 4 connections at 10 requests/s each for 10 s, reads only. Writes stay off until a weight is entered for FC6, FC16, FC22 or FC23.
+- **I am authorised to test this equipment** has to be ticked for the same runs that need `--i-am-authorised` on the command line: a total rate above 1000 requests/s (an unlimited rate counts, and so does the peak of a ramp), more than 64 connections (idle half-open connections count), any fault injection, and churn without a pause or above 1000 connects/s. The window says which of these applies, and Start stays greyed out until the box is ticked. The box is cleared when a test starts, so each run is a fresh decision.
+- **Start** begins the test on worker threads; the window stays responsive. **Stop** ends it: the workers finish within one reply timeout, and the partial results are kept. Closing the window also stops a running test.
+- While it runs the window shows the elapsed time, the counters (requests sent, replies, exceptions, timeouts, drops, mismatched replies, faults injected, churn cycles), the latency so far (mean, median, 95th and 99th percentile, maximum) and a per-second bar chart of the requests sent, with the share that timed out, dropped or did not match in red.
+- When the test has ended the summary is shown. **Save report** writes the JSON, CSV and per-second timeline files, with the same names and contents as `--out` on the command line, into the folder typed or chosen with **Browse…**.
 
 ## Client window
 

@@ -76,6 +76,8 @@ pub enum Action {
     ForceException(Exception),
     ToggleFault(Fault),
     Scanner,
+    /// Tools > Storm Test…, an Ananasar addition.
+    StormTest,
     MonitorPort,
     ChangePort,
     /// Switch Nagle's algorithm on connection 1 or 2 (index 0 or 1).
@@ -290,11 +292,14 @@ pub fn build(s: &MenuState<'_>) -> Vec<MenuItem> {
         M::separator(),
         M::check("Show Tooltips", s.tooltips, Action::Tooltips).key(sc::TOOLTIPS),
     ];
+    // Not in the original: the storm test is an Ananasar addition (see original_menus.txt).
+    let tools = vec![M::action("Storm Test…", Action::StormTest)];
     vec![
         M::submenu("File", file).width(190.0),
         M::submenu("Edit", edit).width(190.0),
         M::submenu("View", view).width(190.0),
         M::submenu("Options", options).width(190.0),
+        M::submenu("Tools", tools).width(190.0),
     ]
 }
 
