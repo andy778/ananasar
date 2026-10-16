@@ -66,6 +66,7 @@ pub fn server_config(profile: &str) -> Option<ServerConfig> {
         "fault-protocol-id" => cfg.wrong_protocol_id = true,
         "fault-length-high" => cfg.wrong_length_high = true,
         "fault-out-of-synch" => cfg.out_of_synch = true,
+        "address-offset" => cfg.address_offset = true,
         _ => return None,
     }
     Some(cfg)
@@ -93,9 +94,6 @@ pub fn start(cfg: ServerConfig) -> io::Result<Running> {
 mod tests {
     use super::*;
 
-    /// Profiles whose option the server does not have yet.
-    const MISSING: [&str; 1] = ["address-offset"];
-
     #[test]
     fn profiles_map_to_configs() {
         assert!(server_config("default").is_some());
@@ -104,12 +102,14 @@ mod tests {
         let cfg = server_config("exception-0b").unwrap();
         assert_eq!(cfg.forced_exception, Some(Exception::GatewayTargetFailed));
         assert!(server_config("fault-ti").is_some_and(|c| c.wrong_transaction_id));
+        assert!(server_config("address-offset").is_some_and(|c| c.address_offset));
         assert!(server_config("nonsense").is_none());
     }
 
     #[test]
-    fn every_profile_has_a_config_except_the_unfinished_options() {
-        let missing: Vec<&str> = PROFILES.iter().map(|p| p.name).filter(|n| server_config(n).is_none()).collect();
-        assert_eq!(missing, MISSING, "profiles without a config");
+    fn every_profile_has_a_config() {
+        for p in PROFILES {
+            assert!(server_config(p.name).is_some(), "{}", p.name);
+        }
     }
 }

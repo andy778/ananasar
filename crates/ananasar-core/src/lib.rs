@@ -386,6 +386,27 @@ mod tests {
     }
 
     #[test]
+    fn address_offset_moves_the_window_up_by_one() {
+        let cfg = ServerConfig { address_offset: true, ..Default::default() };
+        let mut regs = RegisterFile::new();
+        reply_of(&cfg, &mut regs, &crate::protocol::build(1, 1, 0x06, &[0, 0, 0x11, 0x11]));
+        assert_eq!(regs.get(Bank::Holding, 1), 0x1111);
+        assert_eq!(regs.get(Bank::Holding, 0), 0);
+        let read = crate::protocol::build(2, 1, 0x03, &[0, 0, 0, 1]);
+        assert_eq!(reply_of(&cfg, &mut regs, &read), crate::protocol::build(2, 1, 0x03, &[2, 0x11, 0x11]));
+        for (func, data) in [(0x03u8, vec![0xFF, 0xFF, 0, 1]), (0x06, vec![0xFF, 0xFF, 0x33, 0x33]), (0x03, vec![0xFF, 0xFE, 0, 2])] {
+            let r = reply_of(&cfg, &mut regs, &crate::protocol::build(3, 1, func, &data));
+            assert_eq!((r[7], r[8]), (func | 0x80, 2), "func {func:#x}");
+        }
+        // Reading 65534 alone still works, 65535 is the last wire address minus one.
+        let ok = crate::protocol::build(4, 1, 0x03, &[0xFF, 0xFE, 0, 1]);
+        assert_eq!(reply_of(&cfg, &mut regs, &ok)[7], 0x03);
+        // The plain setup is unchanged.
+        let plain = crate::protocol::build(5, 1, 0x03, &[0xFF, 0xFF, 0, 1]);
+        assert_eq!(reply_of(&ServerConfig::default(), &mut regs, &plain)[7], 0x03);
+    }
+
+    #[test]
     fn bad_header_closes_and_runs_nothing() {
         let cfg = ServerConfig::default();
         let mut regs = RegisterFile::new();
