@@ -164,10 +164,18 @@ impl Server {
             let peer = stream.peer_addr().map(|a| a.to_string()).unwrap_or_default();
             let nagle = !stream.nodelay().unwrap_or(false);
             let ip = stream.peer_addr().map(|a| a.ip().to_string()).unwrap_or_default();
-            let stats_slot = lock(&server.stats).connect(&ip, nagle);
+            let stream = Arc::new(stream);
+            let stats_slot = {
+                let mut stats = lock(&server.stats);
+                let slot = stats.connect(&ip, nagle);
+                if let Some(slot) = slot {
+                    stats.attach(slot, stream.clone());
+                }
+                slot
+            };
             (server.notify)(Event::Connected(peer.clone()));
             let conn = server.log.as_ref().map_or(0, |l| l.open_connection());
-            server.serve_connection(stream, conn, stats_slot);
+            server.serve_connection(&stream, conn, stats_slot);
             if let Some(l) = &server.log {
                 l.close_connection(conn);
             }
@@ -178,13 +186,15 @@ impl Server {
         });
     }
 
-    fn serve_connection(&self, mut stream: TcpStream, conn: u8, stats_slot: Option<usize>) {
+    fn serve_connection(&self, stream: &TcpStream, conn: u8, stats_slot: Option<usize>) {
         stream.set_read_timeout(Some(IDLE_TIMEOUT)).ok();
         stream.set_write_timeout(Some(IDLE_TIMEOUT)).ok();
+        // `&TcpStream` reads and writes too; the stats keep the other handle.
+        let (mut rd, mut wr) = (stream, stream);
         let mut last_request: Option<Instant> = None;
         let mut synch = OutOfSynch::default();
         loop {
-            let request = match read_request(&mut stream, MAX_REQUEST) {
+            let request = match read_request(&mut rd, MAX_REQUEST) {
                 Ok(r) => r,
                 Err(e) => {
                     // A bad length field is a detected error; a closed or
@@ -238,7 +248,7 @@ impl Server {
                 Outcome::Drop => (Vec::new(), false),
             };
             for reply in replies {
-                if stream.write_all(&reply).is_err() {
+                if wr.write_all(&reply).is_err() {
                     return;
                 }
             }

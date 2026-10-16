@@ -228,9 +228,9 @@ followed by the reply (and, in interpretive mode, the descriptions). The same lo
 
 ## Not implemented
 
-These entries exist in the menus, to match the original's layout, but are greyed out because the server does not support them yet:
+These entries exist in the menus, to match the original's layout, but are greyed out:
 
-- Options > TCP: Port > Purge Port Usage Blocking(s) and Disable Nagle > Connection #1 / #2.
+- Options > TCP: Port > Purge Port Usage Blocking(s). This is deliberate. The original keeps a record of the ports its instances use; a new instance skips a recorded port, even when no program listens on it any more, and the entry asks for confirmation and then deletes all the records. Ananasar keeps no such record: it moves to the next port it can actually bind (see above), so it can never be held back by a stale entry, and there is nothing to purge.
 - Options > DDE Server… on platforms other than Windows.
 
 ## See also

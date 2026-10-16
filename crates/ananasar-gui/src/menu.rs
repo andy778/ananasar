@@ -78,6 +78,8 @@ pub enum Action {
     Scanner,
     MonitorPort,
     ChangePort,
+    /// Switch Nagle's algorithm on connection 1 or 2 (index 0 or 1).
+    ToggleNagle(usize),
     /// Only on Windows, where the DDE server exists.
     #[cfg(windows)]
     DdeServer,
@@ -90,7 +92,7 @@ impl Action {
     fn closes_menu(self) -> bool {
         !matches!(
             self,
-            Self::Exit | Self::AddrHex | Self::Hex | Self::ToggleFunction(_) | Self::ForceException(_) | Self::ToggleFault(_) | Self::Tooltips
+            Self::Exit | Self::AddrHex | Self::Hex | Self::ToggleFunction(_) | Self::ForceException(_) | Self::ToggleFault(_) | Self::ToggleNagle(_) | Self::Tooltips
         )
     }
 }
@@ -191,6 +193,8 @@ pub struct MenuState<'a> {
     pub supported: &'a BTreeSet<u8>,
     pub forced_exception: Option<Exception>,
     pub faults: &'a ServerConfig,
+    /// Per connection slot: `None` while free, otherwise whether Nagle's algorithm is on.
+    pub nagle: [Option<bool>; 2],
 }
 
 /// The menu bar: its top-level menus in order.
@@ -250,11 +254,23 @@ pub fn build(s: &MenuState<'_>) -> Vec<MenuItem> {
         M::check(&format!("Monitor Port {}", s.port), s.listening, Action::MonitorPort).key(sc::LISTEN),
         M::action("Change Port…", Action::ChangePort).key(sc::CHANGE_PORT),
         M::separator(),
+        // Greyed out on purpose: the port fallback binds, it keeps no record of used ports to purge.
         M::off("Purge Port Usage Blocking(s)"),
     ];
-    // The original enables the Nagle entries per connected client; the server
-    // does not switch TCP_NODELAY on a live connection yet.
-    let nagle = vec![M::off("Connection #1"), M::off("Connection #2")];
+    // Like the original, the Nagle entries are enabled per connected client.
+    // Ours are ticked while Nagle's algorithm is disabled on that connection.
+    let nagle = s
+        .nagle
+        .iter()
+        .enumerate()
+        .map(|(slot, state)| {
+            let caption = format!("Connection #{}", slot.saturating_add(1));
+            match state {
+                Some(on) => M::check(&caption, !on, Action::ToggleNagle(slot)),
+                None => M { enabled: false, ..M::new(&caption, Kind::Check) },
+            }
+        })
+        .collect();
     let tcp = vec![
         M::submenu("Port", port).width(260.0),
         M::submenu("Disable Nagle", nagle),

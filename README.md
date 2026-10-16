@@ -170,8 +170,7 @@ What is not done or differs from the original, stated plainly. Greyed-out entrie
 | Area | Gap | Issue |
 | --- | --- | --- |
 | Server | The connection is closed on a bad protocol id or length high byte, as in the original. A length field that disagrees with the bytes sent is framed by the length field; the original answers from whatever bytes arrived. | [#93](https://github.com/andy778/ananasar/issues/93) |
-| Server options | Disable Nagle per connection is greyed out. | [#104](https://github.com/andy778/ananasar/issues/104) |
-| Server options | Purge Port Usage Blocking(s) is greyed out; Ananasar has no port usage blocking. | [#105](https://github.com/andy778/ananasar/issues/105) |
+| Server options | Purge Port Usage Blocking(s) is greyed out on purpose: Ananasar finds a free port by binding and keeps no record of used ports, so nothing can go stale. | [#105](https://github.com/andy778/ananasar/issues/105) |
 | Storm mode | CLI only (`ananasar storm`); there is no GUI panel yet. | [#86](https://github.com/andy778/ananasar/issues/86) |
 | CLI | `ananasar client --write` writes zeros only, and there is no option for the address offset, the function code set or a forced exception. | none |
 | Alarm data | Alarm data with timestamps over Modbus is under investigation only. | [#32](https://github.com/andy778/ananasar/issues/32) |

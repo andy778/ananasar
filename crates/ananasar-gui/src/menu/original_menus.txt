@@ -87,10 +87,12 @@ Options
       Change Port…  @ Ctrl+N
       ---
       Purge Port Usage Blocking(s)
-        ~ enabled=false : there is no port usage blocking to purge
+        ~ enabled=false : we keep no record of used ports (the port fallback binds), so there is nothing to purge
     Disable Nagle
       Connection #1  [disabled]
+        ~ kind=check : ours is ticked while Nagle's algorithm is off on that connection
       Connection #2  [disabled]
+        ~ kind=check : ours is ticked while Nagle's algorithm is off on that connection
     ---
     Release Connection if Unused >1 min  [checked]
       ~ enabled=false : the server always releases a connection silent for a minute

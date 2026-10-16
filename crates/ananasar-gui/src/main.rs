@@ -680,6 +680,10 @@ impl eframe::App for App {
                 supported: &cfg.supported,
                 forced_exception: cfg.forced_exception,
                 faults: &cfg,
+                nagle: {
+                    let stats = lock(&self.server.stats);
+                    std::array::from_fn(|slot| stats.slots.get(slot).and_then(Option::as_ref).map(|c| c.nagle))
+                },
             })
         };
         let mut chosen = None;
@@ -714,6 +718,7 @@ impl eframe::App for App {
             Some(Action::Scanner) => self.show_scanner = true,
             Some(Action::MonitorPort) => toggle_listen = true,
             Some(Action::ChangePort) => open_port = true,
+            Some(Action::ToggleNagle(slot)) => toggle_nagle(&mut lock(&self.server.stats), slot),
             #[cfg(windows)]
             Some(Action::DdeServer) => self.dde.open(),
             Some(Action::Tooltips) => self.tooltips = !self.tooltips,
@@ -825,6 +830,13 @@ fn toggle_fault(cfg: &mut ananasar_core::server::ServerConfig, fault: menu::Faul
     *flag = !*flag;
 }
 
+/// Flip Nagle's algorithm on the live connection in `slot`. A connection that
+/// has just closed is ignored: the entry is disabled on the next frame.
+fn toggle_nagle(stats: &mut ananasar_net::Stats, slot: usize) {
+    let Some(on) = stats.slots.get(slot).and_then(Option::as_ref).map(|c| c.nagle) else { return };
+    stats.set_nagle(slot, !on).ok();
+}
+
 /// The forced exception after choosing `chosen`: choosing the active one again turns it off.
 fn next_forced_exception(current: Option<Exception>, chosen: Exception) -> Option<Exception> {
     (current != Some(chosen)).then_some(chosen)
@@ -863,7 +875,8 @@ fn hex16_plain(v: u16) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{first_free_port, fmt_ms, hex8, hex16, hex16_plain, list_text, next_forced_exception, parse_port, port_changed_text, Exception};
+    use super::{first_free_port, fmt_ms, hex8, hex16, hex16_plain, list_text, next_forced_exception, parse_port, port_changed_text, toggle_nagle, Exception};
+    use std::sync::Arc;
     use crate::menu::{EXCEPTION_CHOICES, FUNCTION_TOGGLES};
 
     #[test]
@@ -976,6 +989,23 @@ mod tests {
             toggle_fault(&mut cfg, fault);
             assert!(!fault.is_on(&cfg));
         }
+    }
+
+    #[test]
+    fn nagle_toggle_flips_a_live_connection_and_ignores_a_free_slot() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let _client = std::net::TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+        let stream = Arc::new(listener.accept().unwrap().0);
+        let mut stats = ananasar_net::Stats::default();
+        let slot = stats.connect("127.0.0.1", true).unwrap();
+        stats.attach(slot, stream.clone());
+        toggle_nagle(&mut stats, 1); // free slot: nothing happens
+        toggle_nagle(&mut stats, slot);
+        assert!(!stats.slots[slot].as_ref().unwrap().nagle);
+        assert!(stream.nodelay().unwrap());
+        toggle_nagle(&mut stats, slot);
+        assert!(stats.slots[slot].as_ref().unwrap().nagle);
+        assert!(!stream.nodelay().unwrap());
     }
 
     #[test]

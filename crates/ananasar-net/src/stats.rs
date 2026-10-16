@@ -2,6 +2,9 @@
 //! request looked like and the traffic totals, plus error flags.
 
 use ananasar_core::protocol::{self, Function};
+use std::io;
+use std::net::TcpStream;
+use std::sync::Arc;
 
 /// Number of client slots, matching [`crate::MAX_CLIENTS`].
 pub const SLOTS: usize = 2;
@@ -45,6 +48,8 @@ pub struct ConnStats {
 pub struct Stats {
     /// The two client slots; `None` while a slot is free.
     pub slots: [Option<ConnStats>; SLOTS],
+    /// The live socket of each slot, kept so the host can change its options.
+    streams: [Option<Arc<TcpStream>>; SLOTS],
     /// The last request had a length field the stream could not follow.
     pub out_of_sync: bool,
     /// The last request's length field disagreed with the bytes received.
@@ -63,9 +68,31 @@ impl Stats {
         Some(slot)
     }
 
+    /// Keep the socket of the client in `slot`, for [`Stats::set_nagle`].
+    pub fn attach(&mut self, slot: usize, stream: Arc<TcpStream>) {
+        if let Some(s) = self.streams.get_mut(slot) {
+            *s = Some(stream);
+        }
+    }
+
+    /// Switch Nagle's algorithm on or off (`TCP_NODELAY` is the opposite) on
+    /// the live connection in `slot` and record the new state. Fails with
+    /// `NotConnected` when the slot is free.
+    pub fn set_nagle(&mut self, slot: usize, enabled: bool) -> io::Result<()> {
+        let stream = self.streams.get(slot).and_then(Option::as_ref).ok_or_else(|| io::Error::from(io::ErrorKind::NotConnected))?;
+        stream.set_nodelay(!enabled)?;
+        if let Some(Some(c)) = self.slots.get_mut(slot) {
+            c.nagle = enabled;
+        }
+        Ok(())
+    }
+
     /// Free a slot when its client disconnects.
     pub fn disconnect(&mut self, slot: usize) {
         if let Some(s) = self.slots.get_mut(slot) {
+            *s = None;
+        }
+        if let Some(s) = self.streams.get_mut(slot) {
             *s = None;
         }
     }
@@ -137,6 +164,24 @@ mod tests {
         s.disconnect(0);
         assert_eq!(s.connect("10.0.0.4", false), Some(0));
         assert_eq!(s.slots[0].as_ref().unwrap().ip, "10.0.0.4");
+    }
+
+    #[test]
+    fn set_nagle_changes_the_socket_option_of_that_slot() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let _client = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+        let stream = Arc::new(listener.accept().unwrap().0);
+        let mut s = Stats::default();
+        let slot = s.connect("127.0.0.1", !stream.nodelay().unwrap()).unwrap();
+        assert_eq!(s.set_nagle(slot, true).unwrap_err().kind(), io::ErrorKind::NotConnected, "no socket attached yet");
+        s.attach(slot, stream.clone());
+        s.set_nagle(slot, false).unwrap();
+        assert!(stream.nodelay().unwrap());
+        assert!(!s.slots[slot].as_ref().unwrap().nagle);
+        s.set_nagle(slot, true).unwrap();
+        assert!(!stream.nodelay().unwrap());
+        s.disconnect(slot);
+        assert!(s.set_nagle(slot, false).is_err());
     }
 
     #[test]
