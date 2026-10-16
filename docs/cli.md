@@ -136,6 +136,10 @@ ananasar completions bash > ~/.local/share/bash-completion/completions/ananasar
 ananasar completions powershell | Out-String | Invoke-Expression
 ```
 
+## ananasar about
+
+Shows the version, the dependencies with their licences and the RustSec advisories known when the binary was built. `--deps`, `--advisories` and `--licenses` print one part; `--licenses` prints the full licence texts. A development build (not from a release) has no data embedded and says so. To check a binary against the current advisory database, run `cargo audit bin <path to ananasar>`. The same lists, plus CycloneDX SBOMs, are attached to every release.
+
 ## See also
 
 - [Getting started](getting-started.md) for a first server and client session
