@@ -64,7 +64,7 @@ The panel has a column for each of the two possible connections. A dash means no
 | Open… | Ctrl+O | Load register values from a `*.ananas` file. All registers are cleared first, then the file's values are set, and the Start Address jumps to the first address of the saved list for the shown bank. |
 | Save As… | Ctrl+S | Save the register values and the visible address list to a `*.ananas` text file (default name `registers.ananas`). Only non-zero registers are stored. |
 | Exit | Alt+F4 | Close the program. |
-| About… | | Version and credits. |
+| About… | | Version and credits. The Licences button opens the third-party notices: the dependencies, the advisories known when the build was made and the licence texts (release builds only; other builds show a placeholder). |
 
 Errors from loading or saving appear in a message box.
 
