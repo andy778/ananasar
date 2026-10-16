@@ -15,11 +15,23 @@ pub enum Bank {
     Input,
 }
 
+/// The counters the server keeps for FC8 (Diagnostics), shared by all
+/// connections and reset by sub-function 0x000A.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct DiagnosticCounters {
+    /// Requests addressed to this server (sub-function 0x000E).
+    pub messages: u64,
+    /// Exception replies sent (sub-function 0x000D).
+    pub exceptions: u64,
+}
+
 /// Holding + input register banks, 65536 u16 each.
 #[derive(Clone)]
 pub struct RegisterFile {
     holding: Box<[u16]>,
     input: Box<[u16]>,
+    /// FC8 counters; not part of the register contents.
+    pub diagnostics: DiagnosticCounters,
 }
 
 impl Default for RegisterFile {
@@ -34,6 +46,7 @@ impl RegisterFile {
         Self {
             holding: vec![0u16; BANK_LEN].into_boxed_slice(),
             input: vec![0u16; BANK_LEN].into_boxed_slice(),
+            diagnostics: DiagnosticCounters::default(),
         }
     }
 
