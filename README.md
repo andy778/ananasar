@@ -124,6 +124,7 @@ Then ask, for example: *"Start a simulated Modbus server on port 15021, set hold
 | [DDE manual](docs/dde.md) | Serving registers to Excel and other DDE clients (Windows) |
 | [Troubleshooting](docs/troubleshooting.md) | Ports, firewalls, no reply, exceptions, reporting a bug |
 | [Parity testing](docs/parity-testing.md) | Comparing Ananasar with the original at wire level |
+| [Differences](docs/differences.md) | Where Ananasar deliberately differs from the original, and why |
 | [Releasing](docs/releasing.md) | How releases are made |
 
 The full index is [docs/README.md](docs/README.md).
@@ -176,7 +177,7 @@ What is not done or differs from the original, stated plainly. Greyed-out entrie
 | Alarm data | Alarm data with timestamps over Modbus is under investigation only. | [#32](https://github.com/andy778/ananasar/issues/32) |
 | Original's network-adapter features | Not planned. | none |
 
-Places where Ananasar deliberately differs from the original (for example, it enforces the Modbus quantity limits and rejects FC8 requests too short to hold a sub-function) are recorded in [#94](https://github.com/andy778/ananasar/issues/94).
+Places where Ananasar deliberately differs from the original (for example, it enforces the Modbus quantity limits and rejects FC8 requests too short to hold a sub-function) are listed in [Differences from the original](docs/differences.md) ([#94](https://github.com/andy778/ananasar/issues/94)).
 
 ## About the original
 
