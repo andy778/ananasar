@@ -505,22 +505,18 @@
 < 0001 0000 0005 ff 03 020001
 
 ## bad_protocol_id
-#! deviation: the original closes the connection after a frame with a bad protocol id or length high byte; Ananasar ignores the frame and keeps the connection (issue 93)
 > 0001 0001 0006 01 03 00000001
 < closed
 
 ## bad_protocol_id_high_byte
-#! deviation: the original closes the connection after a frame with a bad protocol id or length high byte; Ananasar ignores the frame and keeps the connection (issue 93)
 > 0001 0100 0006 01 03 00000001
 < closed
 
 ## bad_protocol_id_ffff
-#! deviation: the original closes the connection after a frame with a bad protocol id or length high byte; Ananasar ignores the frame and keeps the connection (issue 93)
 > 0001 ffff 0006 01 03 00000001
 < closed
 
 ## bad_length_high_byte
-#! deviation: the original closes the connection after a frame with a bad protocol id or length high byte; Ananasar ignores the frame and keeps the connection (issue 93)
 > 0001 0000 0106 01 03 00000001
 < closed
 
@@ -596,7 +592,6 @@
 < 0003 0000 0005 01 03 025555
 
 ## pipelined_second_bad
-#! deviation: the original closes the connection after a frame with a bad protocol id or length high byte; Ananasar ignores the frame and keeps the connection (issue 93)
 > 0001 0000 0006 01 03 00000001000100010006010300000001
 < 0001 0000 0005 01 03 020001
 < closed

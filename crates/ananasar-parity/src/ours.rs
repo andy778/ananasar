@@ -43,8 +43,7 @@ fn exception_from_code(code: u8) -> Option<Exception> {
 }
 
 /// The server configuration a profile stands for, or `None` when Ananasar has
-/// no counterpart for the profile's option (the deliberate-fault options and
-/// the address offset are not implemented yet).
+/// no counterpart for the profile's option.
 pub fn server_config(profile: &str) -> Option<ServerConfig> {
     if !PROFILES.iter().any(|p| p.name == profile) {
         return None;
@@ -87,6 +86,9 @@ pub fn start(cfg: ServerConfig) -> io::Result<Running> {
 mod tests {
     use super::*;
 
+    /// Profiles whose option the server does not have yet.
+    const MISSING: [&str; 5] = ["fault-ti", "fault-protocol-id", "fault-length-high", "fault-out-of-synch", "address-offset"];
+
     #[test]
     fn profiles_map_to_configs() {
         assert!(server_config("default").is_some());
@@ -99,10 +101,8 @@ mod tests {
     }
 
     #[test]
-    fn every_function_and_exception_profile_has_a_config() {
-        for p in PROFILES {
-            let option_only = ["fault-", "address-offset"].iter().any(|k| p.name.starts_with(k));
-            assert_eq!(server_config(p.name).is_some(), !option_only, "{}", p.name);
-        }
+    fn every_profile_has_a_config_except_the_unfinished_options() {
+        let missing: Vec<&str> = PROFILES.iter().map(|p| p.name).filter(|n| server_config(n).is_none()).collect();
+        assert_eq!(missing, MISSING, "profiles without a config");
     }
 }

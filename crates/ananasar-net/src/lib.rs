@@ -45,9 +45,46 @@ pub fn read_frame(r: &mut impl Read) -> io::Result<Vec<u8>> {
     read_frame_max(r, MAX_FRAME)
 }
 
+/// Read one request for the server. Like [`read_frame`], except that a frame
+/// with a bad protocol id or length high byte is handed back as it is (the
+/// head, plus the declared body when the length high byte is zero) so the
+/// engine can decide what to answer before the connection is closed.
+fn read_request(r: &mut impl Read, max: usize) -> io::Result<Vec<u8>> {
+    let mut head = [0u8; MBAP_PREFIX + 1];
+    r.read_exact(&mut head)?;
+    if !has_bad_header(&head) {
+        return finish_frame(r, head, max);
+    }
+    let mut out = head.to_vec();
+    if head.get(4) == Some(&0) {
+        let total = protocol::be_u16(&head, 4).map_or(0, usize::from).saturating_add(6);
+        if total > out.len() {
+            out.resize(total, 0);
+            let mut got = head.len();
+            while let Some(rest) = out.get_mut(got..).filter(|b| !b.is_empty()) {
+                match r.read(rest) {
+                    Ok(0) | Err(_) => break,
+                    Ok(n) => got = got.saturating_add(n),
+                }
+            }
+            out.truncate(got);
+        }
+    }
+    Ok(out)
+}
+
+/// Whether an MBAP head has a non-zero protocol id or length high byte.
+fn has_bad_header(head: &[u8]) -> bool {
+    protocol::be_u16(head, 2) != Some(protocol::PROTOCOL_ID) || head.get(4) != Some(&0)
+}
+
 fn read_frame_max(r: &mut impl Read, max: usize) -> io::Result<Vec<u8>> {
     let mut head = [0u8; MBAP_PREFIX + 1];
     r.read_exact(&mut head)?;
+    finish_frame(r, head, max)
+}
+
+fn finish_frame(r: &mut impl Read, head: [u8; MBAP_PREFIX + 1], max: usize) -> io::Result<Vec<u8>> {
     let declared = protocol::be_u16(&head, 4).map_or(0, usize::from);
     let total = declared.saturating_add(6);
     if !(head.len()..=max).contains(&total) {
@@ -146,7 +183,7 @@ impl Server {
         stream.set_write_timeout(Some(IDLE_TIMEOUT)).ok();
         let mut last_request: Option<Instant> = None;
         loop {
-            let request = match read_frame_max(&mut stream, MAX_REQUEST) {
+            let request = match read_request(&mut stream, MAX_REQUEST) {
                 Ok(r) => r,
                 Err(e) => {
                     // A bad length field is a detected error; a closed or
@@ -168,12 +205,19 @@ impl Server {
                 lock(&self.stats).record_request(slot, &request, interval_ms);
             }
             let outcome = process(&lock(&self.cfg), &mut lock(&self.regs), &request);
-            if let (Some(slot), Outcome::Reply(reply)) = (stats_slot, &outcome) {
+            if let (Some(slot), Outcome::Reply(reply) | Outcome::ReplyAndClose(reply)) = (stats_slot, &outcome) {
                 lock(&self.stats).record_reply(slot, reply);
             }
             if let Some(log) = &self.log {
                 match &outcome {
                     Outcome::Reply(reply) => log.record(conn, &request, Response::Reply(reply)),
+                    Outcome::ReplyAndClose(reply) => {
+                        log.record(conn, &request, Response::Reply(reply));
+                        log.record(conn, &[], Response::Error("bad protocol id or length high byte, connection closed"));
+                    }
+                    Outcome::Close => {
+                        log.record(conn, &request, Response::Error("bad protocol id or length high byte, connection closed"));
+                    }
                     Outcome::Drop => {
                         let why = match protocol::frame(&request) {
                             Err(e) => e.to_string(),
@@ -183,12 +227,21 @@ impl Server {
                     }
                 }
             }
-            if let Outcome::Reply(reply) = outcome
-                && stream.write_all(&reply).is_err()
-            {
-                return;
+            let (replies, close) = match outcome {
+                Outcome::Reply(reply) => (vec![reply], false),
+                Outcome::ReplyAndClose(reply) => (vec![reply], true),
+                Outcome::Close => (Vec::new(), true),
+                Outcome::Drop => (Vec::new(), false),
+            };
+            for reply in replies {
+                if stream.write_all(&reply).is_err() {
+                    return;
+                }
             }
             (self.notify)(Event::Activity);
+            if close {
+                return;
+            }
         }
     }
 }
@@ -205,6 +258,24 @@ mod tests {
         let mut input = f.clone();
         input.extend_from_slice(&[0xAA; 4]); // next frame's bytes stay unread
         assert_eq!(read_frame(&mut Cursor::new(input)).unwrap(), f);
+    }
+
+    #[test]
+    fn requests_with_a_bad_header_are_handed_over_whole() {
+        // Bad protocol id: the declared body is read too.
+        let mut f = protocol::build(7, 1, 0x03, &[0, 1, 0, 2]);
+        f[3] = 1;
+        let mut input = f.clone();
+        input.extend_from_slice(&[0xAA; 4]);
+        assert_eq!(read_request(&mut Cursor::new(input), MAX_REQUEST).unwrap(), f);
+        // Length high byte: nothing past the head is waited for.
+        let mut g = protocol::build(7, 1, 0x03, &[0, 1, 0, 2]);
+        g[4] = 1;
+        assert_eq!(read_request(&mut Cursor::new(g.clone()), MAX_REQUEST).unwrap(), g[..8]);
+        // A truncated body is passed on as far as it came.
+        assert_eq!(read_request(&mut Cursor::new(&f[..10]), MAX_REQUEST).unwrap(), f[..10]);
+        // A head too short to tell is an error.
+        assert!(read_request(&mut Cursor::new(&f[..7]), MAX_REQUEST).is_err());
     }
 
     #[test]

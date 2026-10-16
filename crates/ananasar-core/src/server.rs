@@ -27,6 +27,11 @@ pub enum Outcome {
     Reply(Vec<u8>),
     /// Drop the request with no reply (UID mismatch, as the original does).
     Drop,
+    /// Send no reply and close the connection (bad protocol id or length high byte).
+    Close,
+    /// Send this exception reply, then close the connection (bad protocol id
+    /// or length high byte on a request that would get an exception).
+    ReplyAndClose(Vec<u8>),
 }
 
 /// Server configuration (the original's Options menu).
@@ -46,7 +51,11 @@ impl Default for ServerConfig {
     fn default() -> Self {
         // By default the server supports FC 3, 4, 6, 7, 8, 16, 22 and 23.
         let supported = [0x03u8, 0x04, 0x06, 0x07, 0x08, 0x10, 0x16, 0x17].into_iter().collect();
-        Self { unit_id: 0, supported, forced_exception: None }
+        Self {
+            unit_id: 0,
+            supported,
+            forced_exception: None,
+        }
     }
 }
 
@@ -56,11 +65,50 @@ impl ServerConfig {
     }
 }
 
+/// The exception a request is refused with before its data is looked at: an
+/// unsupported or disabled function (even when an exception is forced, as the
+/// original does), else the forced exception, which a span past the end of
+/// the register file turns into illegal data address.
+fn refusal(cfg: &ServerConfig, func_byte: u8, pdu: &[u8]) -> Option<Exception> {
+    let Some(func) = Function::from_u8(func_byte).filter(|_| cfg.supported.contains(&func_byte)) else {
+        return Some(Exception::IllegalFunction);
+    };
+    cfg.forced_exception.map(|forced| {
+        if address_fault(func, pdu) { Exception::IllegalDataAddress } else { forced }
+    })
+}
+
+/// A request whose protocol id or length high byte is wrong: the original
+/// closes the connection, first sending the exception (with the bad protocol
+/// id echoed) when the request would be refused. Nothing is executed.
+fn bad_header(cfg: &ServerConfig, buf: &[u8]) -> Outcome {
+    let (Some(&[t0, t1, p0, p1, _, _, unit_id, func_byte]), Some(pdu)) =
+        (buf.first_chunk::<8>(), buf.get(8..))
+    else {
+        return Outcome::Close;
+    };
+    if !cfg.uid_ok(unit_id) {
+        return Outcome::Close;
+    }
+    match refusal(cfg, func_byte, pdu) {
+        Some(e) => {
+            let mut reply = build(u16::from_be_bytes([t0, t1]), unit_id, func_byte | 0x80, &[e as u8]);
+            if let Some(b) = reply.get_mut(2..4) {
+                b.copy_from_slice(&[p0, p1]);
+            }
+            Outcome::ReplyAndClose(reply)
+        }
+        None => Outcome::Close,
+    }
+}
+
 /// Process one framed request against the shared register file.
 pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome {
-    // Malformed header/length: the original logs and does not reply.
-    let Ok((hdr, func_byte, pdu)) = crate::protocol::frame(buf) else {
-        return Outcome::Drop;
+    let (hdr, func_byte, pdu) = match crate::protocol::frame(buf) {
+        Ok(parts) => parts,
+        Err(crate::protocol::FrameError::BadHeader) => return bad_header(cfg, buf),
+        // Malformed length: the original logs and does not reply.
+        Err(_) => return Outcome::Drop,
     };
 
     if !cfg.uid_ok(hdr.unit_id) {
@@ -76,16 +124,12 @@ pub fn process(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outco
         ))
     };
 
-    // An unsupported or disabled function is reported as such even when an
-    // exception is forced, as the original does.
-    let Some(func) = Function::from_u8(func_byte).filter(|_| cfg.supported.contains(&func_byte)) else {
+    if let Some(e) = refusal(cfg, func_byte, pdu) {
+        return exc(e);
+    }
+    let Some(func) = Function::from_u8(func_byte) else {
         return exc(Exception::IllegalFunction);
     };
-    if let Some(forced) = cfg.forced_exception {
-        // A span that runs past the register file still gets illegal data
-        // address; everything else gets the forced code.
-        return exc(if address_fault(func, pdu) { Exception::IllegalDataAddress } else { forced });
-    }
 
     let reply = |data: Vec<u8>| Outcome::Reply(build(hdr.transaction_id, hdr.unit_id, func_byte, &data));
 
