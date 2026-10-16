@@ -195,5 +195,6 @@ The binaries include open-source libraries (mostly MIT and Apache-2.0, plus the 
 - `dependencies.txt`: each dependency with its version and licence,
 - `advisories.txt`: the RustSec advisories known when the release was built,
 - `ananasar-cli.cdx.json`, `ananasar-mcp.cdx.json`, `ananasar-gui.cdx.json`: CycloneDX software bills of materials,
+- `ananasar-<version>-source.tar.gz` and `.zip`: the source of the tagged commit,
 
 all signed with cosign like the binaries. `ananasar about` prints the dependency list and the advisories embedded in the CLI binary, and `ananasar about --licenses` the licence texts. The binaries also carry `cargo auditable` data, so `cargo audit bin <file>` checks them against the current advisory database. CI rejects a dependency whose licence is not on the allow-list in `deny.toml`.
