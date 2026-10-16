@@ -169,12 +169,9 @@ What is not done or differs from the original, stated plainly. Greyed-out entrie
 
 | Area | Gap | Issue |
 | --- | --- | --- |
-| Server options | Return Incorrect TI, Return Incorrect Protocol ID and Return Incorrect Length High Byte are greyed out. | [#88](https://github.com/andy778/ananasar/issues/88) |
-| Server options | Reply Out of Synch is greyed out. | [#89](https://github.com/andy778/ananasar/issues/89) |
-| Server options | Use Address Offset on the server is greyed out (the client and the scanner have their own working offset). | [#90](https://github.com/andy778/ananasar/issues/90) |
 | Server | FC8 (diagnostics) echoes the request for every sub-function; the original answers per sub-function. | [#91](https://github.com/andy778/ananasar/issues/91) |
 | Server | FC7 (exception status) always returns 0; the original's value follows register contents. | [#92](https://github.com/andy778/ananasar/issues/92) |
-| Server | A frame with a bad protocol id or length high byte is ignored; the original closes the connection. | [#93](https://github.com/andy778/ananasar/issues/93) |
+| Server | The connection is closed on a bad protocol id or length high byte, as in the original. A length field that disagrees with the bytes sent is framed by the length field; the original answers from whatever bytes arrived. | [#93](https://github.com/andy778/ananasar/issues/93) |
 | Server options | Disable Nagle per connection and Purge Port Usage Blocking(s) are greyed out. | none |
 | Stress mode | CLI only (`ananasar stress`); there is no GUI panel yet. | [#86](https://github.com/andy778/ananasar/issues/86) |
 | CLI | `ananasar client --write` writes zeros only, and there is no option for the address offset, the function code set or a forced exception. | none |

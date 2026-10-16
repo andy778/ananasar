@@ -51,8 +51,8 @@ The panel has a column for each of the two possible connections. A dash means no
 | Data received / Data sent | Byte totals for the connection. |
 | Local port | The port the server listens on. |
 | Logged packets | Entries written to the current data log. |
-| Address offset, Incorrect TI | Always Off (not implemented, see [below](#not-implemented)). |
-| Out of Synch, Incorrect length, Incorrect PID | On when the last request had that problem (a length the stream could not follow, a length field that disagreed with the bytes received, a non-zero protocol id). |
+| Address offset, Incorrect TI | On when the matching Options > Modbus entry is checked. |
+| Out of Synch, Incorrect length, Incorrect PID | On when the matching Options > Modbus entry is checked, or when the last request had that problem (a length the stream could not follow, a length field that disagreed with the bytes received, a non-zero protocol id). |
 | Return exception | On when a forced exception is active or the last reply was an exception. |
 
 ## Menus
@@ -192,9 +192,14 @@ All of these affect the embedded server and apply immediately.
 | --- | --- |
 | Active MB Functions > FC3, FC4, FC6, FC7, FC8, FC16, FC22, FC23 | Check marks for the function codes the server answers. All are on by default. A request for an unchecked function gets exception 1 (Illegal Function). |
 | Return Exception > … | Answer requests that pass the unit id filter with the chosen exception instead of processing them. A disabled or unknown function still gets Illegal Function (1), and a request whose range runs past register 65535 still gets Illegal Data Address (2). Choose the active entry again to turn it off. The entries are Illegal Function (1), Illegal Data Address (2), Illegal Data Value (3), Slave Device Failure (4), Acknowledge (5), Slave Device Busy (6), Negative Acknowledge (7), Memory Parity Error (8), Gateway Path Unavailable (10) and Gateway Target Device Failed to Respond (11). |
+| Return Incorrect TI | Every reply, exceptions included, gets transaction id `DE AD`. |
+| Return Incorrect Protocol ID | Normal replies get protocol id `AB CD`; exception replies are left alone. |
+| Return Incorrect Length High Byte | Normal replies get `EF` as the high byte of the length field; exception replies are left alone. |
+| Use Address Offset (Ctrl+Alt+O) | Wire address n reaches register n + 1, so a request at address 65535, or a span that ends there, gets Illegal Data Address (2). |
+| Reply Out of Synch (Ctrl+Alt+S) | Each connection answers one request late: the first request gets no reply, and the reply to request n is sent when request n + 1 arrives. |
 | Register Scanner… | See [Register Scanner](#register-scanner). |
 
-FC7 (Read Exception Status) always replies with status 0, and FC8 (Diagnostics) echoes the request data. Requests with a unit id the server does not accept get no reply at all.
+FC7 (Read Exception Status) always replies with status 0, and FC8 (Diagnostics) echoes the request data. Requests with a unit id the server does not accept get no reply at all. A request with a non-zero protocol id or length high byte closes the connection; if the function is switched off or an exception is forced, the exception reply (with that protocol id) is sent first.
 
 ## TCP options
 
@@ -225,7 +230,6 @@ followed by the reply (and, in interpretive mode, the descriptions). The same lo
 
 These entries exist in the menus, to match the original's layout, but are greyed out because the server does not support them yet:
 
-- Options > Modbus (see [known gaps](../README.md#known-gaps) for the issues): Return Incorrect TI, Return Incorrect Protocol ID, Return Incorrect Length High Byte, Use Address Offset (server side) and Reply Out of Synch. (The *client* has a working Use address offset; see [Polling](#polling).)
 - Options > TCP: Port > Purge Port Usage Blocking(s) and Disable Nagle > Connection #1 / #2.
 - Options > DDE Server… on platforms other than Windows.
 

@@ -181,7 +181,7 @@ feature = "Same bytes on the wire as the original for the fixed scenarios"
 status = "partial"
 tests = ["crates/ananasar-parity/tests/loopback.rs::scenarios_record_expected_replies_and_repeat_identically", "crates/ananasar-parity/tests/golden.rs::ananasar_matches_the_original_except_listed_deviations"]
 issue = 64
-note = "recordings of the original for every profile run in CI against Ananasar; the known differences are listed as deviations in the golden files (issues 88 to 94); refreshing a golden needs the original run by hand, see docs/parity-testing.md"
+note = "recordings of the original for every profile run in CI against Ananasar; the known differences are listed as deviations in the golden files (issues 91 to 94); refreshing a golden needs the original run by hand, see docs/parity-testing.md"
 
 [[feature]]
 id = "dde-and-adapter"
@@ -260,9 +260,9 @@ tests = ["crates/ananasar-core/src/lib.rs::forced_exception_keeps_illegal_functi
 id = "server-fault-options"
 area = "server"
 feature = "Return Incorrect TI, Protocol ID and Length High Byte, Reply Out of Synch, Use Address Offset"
-status = "missing"
-issue = 88
-note = "greyed out in the menu; the original's replies are recorded in the fault-*, fault-out-of-synch and address-offset goldens (issues 88, 89, 90)"
+status = "shipped"
+tests = ["crates/ananasar-core/src/lib.rs::incorrect_transaction_id_marks_every_reply", "crates/ananasar-core/src/lib.rs::incorrect_protocol_id_and_length_high_spare_exceptions", "crates/ananasar-core/src/lib.rs::out_of_synch_answers_one_request_late", "crates/ananasar-core/src/lib.rs::address_offset_moves_the_window_up_by_one", "crates/ananasar-core/tests/properties.rs::header_fault_options_change_only_their_header_bytes", "crates/ananasar-core/tests/properties.rs::address_offset_stores_one_register_up_and_refuses_the_last_wire_address", "crates/ananasar-core/tests/properties.rs::out_of_synch_shifts_the_replies_by_one", "crates/ananasar-net/tests/connections.rs::reply_out_of_synch_answers_one_request_late", "crates/ananasar-gui/src/main.rs::menu_options_flip_their_own_switch"]
+note = "the wrong transaction id is also put into exception replies, the wrong protocol id and length high byte are not, as recorded in the goldens; the address offset maps wire address n to register n + 1, which follows the recording and is not checked against the original's register display"
 
 [[feature]]
 id = "server-fc8-fc7-values"
@@ -275,7 +275,8 @@ note = "Ananasar echoes FC8 and always answers FC7 with 0; see issues 91 and 92"
 [[feature]]
 id = "server-bad-header-close"
 area = "server"
-feature = "Close the connection on a bad protocol id or length high byte, as the original does"
-status = "missing"
+feature = "Close the connection on a bad protocol id or length high byte, first answering with the exception when the request is refused"
+status = "partial"
+tests = ["crates/ananasar-core/src/lib.rs::bad_header_closes_and_runs_nothing", "crates/ananasar-core/src/lib.rs::bad_header_gets_the_exception_first_when_refused", "crates/ananasar-core/tests/properties.rs::a_bad_header_never_runs_the_request", "crates/ananasar-net/src/lib.rs::requests_with_a_bad_header_are_handed_over_whole", "crates/ananasar-net/tests/connections.rs::bad_protocol_id_or_length_high_byte_closes_the_connection", "crates/ananasar-net/tests/connections.rs::a_refused_request_with_a_bad_header_gets_its_exception_before_the_close"]
 issue = 93
-note = "decision needed whether to match; Ananasar ignores the frame and keeps serving"
+note = "the close is matched; the original's handling of a length field that disagrees with the bytes sent (answering from stale bytes) is left as it is"
