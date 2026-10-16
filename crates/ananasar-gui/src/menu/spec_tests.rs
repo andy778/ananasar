@@ -132,6 +132,10 @@ fn shortcut_text(sc: &KeyboardShortcut) -> String {
 }
 
 fn our_menus() -> Vec<MenuItem> {
+    menus_with_nagle([None; 2])
+}
+
+fn menus_with_nagle(nagle: [Option<bool>; 2]) -> Vec<MenuItem> {
     let cfg = ServerConfig::default();
     build(&MenuState {
         value_list_edit: false,
@@ -143,6 +147,7 @@ fn our_menus() -> Vec<MenuItem> {
         supported: &cfg.supported,
         forced_exception: cfg.forced_exception,
         faults: &cfg,
+        nagle,
     })
 }
 
@@ -343,4 +348,23 @@ fn additions_are_allowed_after_the_original_entries_only() {
     assert_eq!(differences(&spec, &ours), Vec::<String>::new());
     let result = std::panic::catch_unwind(|| parse("View\n  + Theme\n  Values as Hex\n"));
     assert!(result.is_err());
+}
+
+#[test]
+fn nagle_entries_follow_the_connections() {
+    use super::Action;
+    fn entries(menus: &[MenuItem]) -> Vec<(bool, bool, Option<Action>)> {
+        let Kind::Submenu(options) = &menus[3].kind else { panic!("Options") };
+        let Kind::Submenu(tcp) = &options[1].kind else { panic!("TCP") };
+        let Kind::Submenu(nagle) = &tcp[1].kind else { panic!("Disable Nagle") };
+        nagle.iter().map(|i| (i.enabled, i.checked, i.action)).collect()
+    }
+    assert_eq!(entries(&menus_with_nagle([None, None])), [(false, false, None), (false, false, None)]);
+    // Connection 1 has Nagle on (not ticked), connection 2 has it off (ticked).
+    assert_eq!(
+        entries(&menus_with_nagle([Some(true), Some(false)])),
+        [(true, false, Some(Action::ToggleNagle(0))), (true, true, Some(Action::ToggleNagle(1)))]
+    );
+    // Only the second slot in use.
+    assert_eq!(entries(&menus_with_nagle([None, Some(true)]))[0], (false, false, None));
 }
