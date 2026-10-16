@@ -310,28 +310,23 @@
 < 0001 0000 0006 01 08 00000000
 
 ## diag_0001_restart
-#! deviation: the original answers illegal function for this FC8 sub-function; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 00010000
 < 0001 0000 0003 01 88 01
 
 ## diag_0001_restart_clear_log
-#! deviation: the original answers illegal function for this FC8 sub-function; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 0001ff00
 < 0001 0000 0003 01 88 01
 
 ## diag_0002_register
-#! deviation: the original implements this FC8 sub-function with state; Ananasar echoes the request (issue 91)
 #! quirk: the diagnostic register the original returns is holding register 65534
 > 0001 0000 0006 01 08 00020000
 < 0001 0000 0006 01 08 00021079
 
 ## diag_0003_delimiter
-#! deviation: the original answers illegal function for this FC8 sub-function; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 00030a00
 < 0001 0000 0003 01 88 01
 
 ## diag_0004_listen_only
-#! deviation: the original answers illegal function for this FC8 sub-function; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 00040000
 < 0001 0000 0003 01 88 01
 
@@ -340,62 +335,50 @@
 < 0001 0000 0006 01 08 000a0000
 
 ## diag_000b_bus_message_count
-#! deviation: the original answers illegal function for this FC8 sub-function; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 000b0000
 < 0001 0000 0003 01 88 01
 
 ## diag_000c_bus_error_count
-#! deviation: the original answers illegal function for this FC8 sub-function; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 000c0000
 < 0001 0000 0003 01 88 01
 
 ## diag_000d_exception_count
-#! deviation: the original implements this FC8 sub-function with state; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 000d0000
 < 0001 0000 000c 01 08 000d0000000000000002
 
 ## diag_000e_server_message_count
-#! deviation: the original implements this FC8 sub-function with state; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 000e0000
 < 0001 0000 000c 01 08 000e0000000000000004
 
 ## diag_000f_no_response_count
-#! deviation: the original implements this FC8 sub-function with state; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 000f0000
 < 0001 0000 000c 01 08 000f0000000000000000
 
 ## diag_0010_nak_count
-#! deviation: the original answers illegal function for this FC8 sub-function; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 00100000
 < 0001 0000 0003 01 88 01
 
 ## diag_0011_busy_count
-#! deviation: the original answers illegal function for this FC8 sub-function; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 00110000
 < 0001 0000 0003 01 88 01
 
 ## diag_0012_overrun_count
-#! deviation: the original answers illegal function for this FC8 sub-function; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 00120000
 < 0001 0000 0003 01 88 01
 
 ## diag_0014_clear_overrun
-#! deviation: the original answers illegal function for this FC8 sub-function; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 00140000
 < 0001 0000 0003 01 88 01
 
 ## diag_00ff_unknown_sub
-#! deviation: the original answers illegal function for this FC8 sub-function; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 00ff0000
 < 0001 0000 0003 01 88 01
 
 ## diag_ffff_unknown_sub
-#! deviation: the original answers illegal function for this FC8 sub-function; Ananasar echoes the request (issue 91)
 > 0001 0000 0006 01 08 ffffffff
 < 0001 0000 0003 01 88 01
 
 ## diag_query_data_long
-#! deviation: the original echoes only four bytes of FC8 data; Ananasar echoes everything (issue 91)
 > 0001 0000 0018 01 08 00000102030405060708090a0b0c0d0e0f1011121314
 < 0001 0000 0006 01 08 00000102
 

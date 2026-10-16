@@ -452,4 +452,55 @@ mod tests {
         assert_eq!(s.next(false, vec![4]), vec![vec![3], vec![4]]);
         assert_eq!(s.next(false, vec![5]), vec![vec![5]]);
     }
+
+    fn diag(cfg: &ServerConfig, regs: &mut RegisterFile, sub: u16, data: &[u8]) -> Vec<u8> {
+        let req = crate::protocol::build(1, 1, 0x08, &[&sub.to_be_bytes()[..], data].concat());
+        match process(cfg, regs, &req) {
+            Outcome::Reply(r) => r[7..].to_vec(),
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn diagnostics_query_data_echoes_four_bytes() {
+        let (cfg, mut regs) = (ServerConfig::default(), RegisterFile::new());
+        assert_eq!(diag(&cfg, &mut regs, 0, &[1, 2, 3, 4, 5]), [0x08, 0, 0, 1, 2]);
+        assert_eq!(diag(&cfg, &mut regs, 0, &[0xA5, 0x37]), [0x08, 0, 0, 0xA5, 0x37]);
+    }
+
+    #[test]
+    fn diagnostics_register_is_holding_register_65534() {
+        let (cfg, mut regs) = (ServerConfig::default(), RegisterFile::new());
+        regs.set_holding(0xFFFE, 0x1079);
+        assert_eq!(diag(&cfg, &mut regs, 2, &[0, 0]), [0x08, 0, 2, 0x10, 0x79]);
+    }
+
+    #[test]
+    fn diagnostics_counters_count_and_clear() {
+        let (cfg, mut regs) = (ServerConfig::default(), RegisterFile::new());
+        assert_eq!(diag(&cfg, &mut regs, 0x0A, &[0, 0]), [0x08, 0, 0x0A, 0, 0]);
+        assert_eq!(diag(&cfg, &mut regs, 0x0B, &[0, 0]), [0x88, 1]); // unsupported: an exception
+        assert_eq!(diag(&cfg, &mut regs, 0x0C, &[0, 0]), [0x88, 1]);
+        assert_eq!(diag(&cfg, &mut regs, 0x0D, &[0, 0]), [0x08, 0, 0x0D, 0, 0, 0, 0, 0, 0, 0, 2]);
+        assert_eq!(diag(&cfg, &mut regs, 0x0E, &[0, 0]), [0x08, 0, 0x0E, 0, 0, 0, 0, 0, 0, 0, 4]);
+        assert_eq!(diag(&cfg, &mut regs, 0x0F, &[0, 0]), [0x08, 0, 0x0F, 0, 0, 0, 0, 0, 0, 0, 0]);
+        // A request for another unit is not counted.
+        let other = ServerConfig { unit_id: 7, ..Default::default() };
+        assert_eq!(process(&other, &mut regs, &crate::protocol::build(1, 1, 0x03, &[0, 0, 0, 1])), Outcome::Drop);
+        assert_eq!(diag(&cfg, &mut regs, 0x0E, &[0, 0])[10], 6);
+        diag(&cfg, &mut regs, 0x0A, &[0, 0]);
+        assert_eq!(diag(&cfg, &mut regs, 0x0E, &[0, 0])[10], 1);
+    }
+
+    #[test]
+    fn diagnostics_other_sub_functions_and_short_pdus_are_refused() {
+        let (cfg, mut regs) = (ServerConfig::default(), RegisterFile::new());
+        for sub in [1u16, 3, 4, 0x10, 0x11, 0x12, 0x14, 0xFF, 0xFFFF] {
+            assert_eq!(diag(&cfg, &mut regs, sub, &[0, 0]), [0x88, 1], "{sub:#x}");
+        }
+        for pdu in [&[][..], &[0], &[0, 0], &[0, 0, 1]] {
+            let r = process(&cfg, &mut regs, &crate::protocol::build(1, 1, 0x08, pdu));
+            assert!(matches!(r, Outcome::Reply(r) if r[7] == 0x88 && r[8] == 3));
+        }
+    }
 }

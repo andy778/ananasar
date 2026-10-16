@@ -169,7 +169,7 @@ What is not done or differs from the original, stated plainly. Greyed-out entrie
 
 | Area | Gap | Issue |
 | --- | --- | --- |
-| Server | FC8 (diagnostics) echoes the request for every sub-function; the original answers per sub-function. | [#91](https://github.com/andy778/ananasar/issues/91) |
+| Server | FC8 (diagnostics) with a PDU shorter than four bytes gets illegal data value; the original answers from stale data. The sub-functions themselves match the recordings. | [#91](https://github.com/andy778/ananasar/issues/91) |
 | Server | FC7 (exception status) always returns 0; the original's value follows register contents. | [#92](https://github.com/andy778/ananasar/issues/92) |
 | Server | The connection is closed on a bad protocol id or length high byte, as in the original. A length field that disagrees with the bytes sent is framed by the length field; the original answers from whatever bytes arrived. | [#93](https://github.com/andy778/ananasar/issues/93) |
 | Server options | Disable Nagle per connection and Purge Port Usage Blocking(s) are greyed out. | none |
