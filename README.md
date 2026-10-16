@@ -32,7 +32,7 @@ A port of Ananas, the free Modbus/TCP test tool by Tuomio, built with [REA](http
 | Client | Manual writes | FC6, FC16 and FC22 (mask write) from a dialog, plus FC7 exception status. | [GUI manual](docs/gui.md#manual-commands) |
 | Tools | Register scanner | Reads a range one register at a time and reports which answer (GUI and `ananasar scan`). | [GUI](docs/gui.md#register-scanner), [CLI](docs/cli.md#ananasar-scan) |
 | Tools | Data log | Every request and reply per connection as hex, optionally with decoded descriptions. | [GUI](docs/gui.md#data-log), [CLI](docs/cli.md#ananasar-server) |
-| Tools | Storm mode | `ananasar storm`: parallel connections, rate ramps, fault injection, connection churn, latency percentiles and a JSON/CSV report, for equipment you are authorised to test. Modbus-level, not a link-level storm generator. | [Storm testing](docs/storm-testing.md) |
+| Tools | Storm test | `ananasar storm` and Tools > Storm Test… in the GUI: parallel connections, rate ramps, fault injection, connection churn, latency percentiles and a JSON/CSV report, for equipment you are authorised to test. Modbus-level, not a link-level storm generator. | [Storm testing](docs/storm-testing.md), [GUI](docs/gui.md#storm-test) |
 | Tools | Register editing | Hex or decimal list, inline editing, bit editor, 32-bit Uint/Float views with four byte orders. | [GUI manual](docs/gui.md#set-register-value) |
 | Tools | Save / load | Register values as `*.ananas` text files. | [GUI manual](docs/gui.md#file-menu) |
 | Integrations | CLI | Headless `server`, `client`, `scan` and shell completions. | [CLI manual](docs/cli.md) |
@@ -119,7 +119,7 @@ Then ask, for example: *"Start a simulated Modbus server on port 15021, set hold
 | [Getting started](docs/getting-started.md) | Install, first run, default ports, a first client/server session |
 | [GUI manual](docs/gui.md) | Every window, menu and option of `ananasar-gui` |
 | [CLI manual](docs/cli.md) | `ananasar server`, `client`, `scan`, `storm` and `completions` |
-| [Storm testing](docs/storm-testing.md) | Load and robustness checks with `ananasar storm` |
+| [Storm testing](docs/storm-testing.md) | Load and robustness checks with `ananasar storm` and the Storm Test window |
 | [MCP manual](docs/mcp.md) | Using Ananasar from an AI assistant |
 | [DDE manual](docs/dde.md) | Serving registers to Excel and other DDE clients (Windows) |
 | [Troubleshooting](docs/troubleshooting.md) | Ports, firewalls, no reply, exceptions, reporting a bug |
@@ -171,7 +171,6 @@ What is not done or differs from the original, stated plainly. Greyed-out entrie
 | --- | --- | --- |
 | Server | The connection is closed on a bad protocol id or length high byte, as in the original. A length field that disagrees with the bytes sent is framed by the length field; the original answers from whatever bytes arrived. | [#93](https://github.com/andy778/ananasar/issues/93) |
 | Server options | Purge Port Usage Blocking(s) is greyed out on purpose: Ananasar finds a free port by binding and keeps no record of used ports, so nothing can go stale. | [#105](https://github.com/andy778/ananasar/issues/105) |
-| Storm mode | CLI only (`ananasar storm`); there is no GUI panel yet. | [#86](https://github.com/andy778/ananasar/issues/86) |
 | CLI | `ananasar client --write` writes zeros only, and there is no option for the address offset, the function code set or a forced exception. | none |
 | Alarm data | Alarm data with timestamps over Modbus is under investigation only. | [#32](https://github.com/andy778/ananasar/issues/32) |
 | Original's network-adapter features | Not planned. | none |
