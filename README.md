@@ -186,3 +186,14 @@ Ananas is a free Modbus/TCP test tool written by Tuomio. The program was distrib
 ## License
 
 [MIT](LICENSE). Ananasar is provided as is; see [SECURITY.md](SECURITY.md).
+
+### Third-party software
+
+The binaries include open-source libraries (mostly MIT and Apache-2.0, plus the BSD, ISC, Zlib and Unicode licences and the licences of the fonts bundled with egui). Every release attaches:
+
+- `licenses.txt`: the licence texts of all dependencies,
+- `dependencies.txt`: each dependency with its version and licence,
+- `advisories.txt`: the RustSec advisories known when the release was built,
+- `ananasar-cli.cdx.json`, `ananasar-mcp.cdx.json`, `ananasar-gui.cdx.json`: CycloneDX software bills of materials,
+
+all signed with cosign like the binaries. `ananasar about` prints the dependency list and the advisories embedded in the CLI binary, and `ananasar about --licenses` the licence texts. The binaries also carry `cargo auditable` data, so `cargo audit bin <file>` checks them against the current advisory database. CI rejects a dependency whose licence is not on the allow-list in `deny.toml`.
