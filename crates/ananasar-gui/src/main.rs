@@ -12,6 +12,7 @@ mod dialog;
 mod embed;
 mod scannerview;
 mod filewindow;
+mod licences;
 mod menu;
 mod setvalview;
 #[cfg(test)]
@@ -169,6 +170,7 @@ struct App {
     value_list_edit: bool,
     edit_buf: String,
     show_about: bool,
+    licences: licences::Licences,
     about_icon: Option<egui::TextureHandle>,
     local_ip: Option<std::net::IpAddr>,
     title: String,
@@ -237,6 +239,7 @@ impl App {
             value_list_edit: false,
             edit_buf: String::new(),
             show_about: false,
+            licences: licences::Licences::default(),
             about_icon: None,
             local_ip: local_ip(),
             title: String::new(),
@@ -346,8 +349,9 @@ impl App {
         let texture = icon.clone();
         let bits = if cfg!(target_pointer_width = "64") { "64-bit" } else { "32-bit" };
         let lines = [format!("Version: {}", env!("CARGO_PKG_VERSION")), bits.to_owned(), "MIT licence".to_owned()];
-        let closed = dialog::show(ctx, "about", "About Ananasar", [296.0, 340.0], 0, &mut |ui| {
-            let (area, _) = ui.allocate_exact_size(egui::vec2(296.0, 340.0), egui::Sense::hover());
+        let mut open_licences = false;
+        let closed = dialog::show(ctx, "about", "About Ananasar", [296.0, 376.0], 0, &mut |ui| {
+            let (area, _) = ui.allocate_exact_size(egui::vec2(296.0, 376.0), egui::Sense::hover());
             let at = |x: f32, y: f32, w: f32, h: f32| setvalview::client_rect(area, x, y, w, h);
             ui.painter().image(texture.id(), at(48.0, 12.0, 200.0, 200.0), egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), egui::Color32::WHITE);
             for (i, line) in lines.iter().enumerate() {
@@ -355,7 +359,12 @@ impl App {
                 ui.painter().text(at(280.0, y, 0.0, 0.0).min, egui::Align2::RIGHT_CENTER, line, egui::FontId::proportional(12.0), egui::Color32::BLACK);
             }
             ui.put(at(12.0, 290.0, 272.0, 40.0), egui::Label::new(egui::RichText::new("A port of Ananas, the free Modbus/TCP tool by Tuomio, built with REA.").size(11.0)).wrap());
+            let button = at(111.0, 342.0, 75.0, 23.0);
+            open_licences = theme::bevel_button(ui, button, "about_licences", "Licences", true, None).clicked();
         });
+        if open_licences {
+            self.licences.open = true;
+        }
         if closed {
             self.show_about = false;
         }
@@ -737,6 +746,7 @@ impl eframe::App for App {
         self.port_dialog_ui(&ctx);
         self.port_notice_ui(&ctx);
         self.about_ui(&ctx);
+        self.licences.show(&ctx);
         #[cfg(windows)]
         self.dde.show(&ctx, &self.regs, &mut self.message);
         self.message_ui(&ctx);

@@ -3,10 +3,7 @@
 //! the binary was built (see `build.rs` and `scripts/make-notices.sh`).
 
 use clap::Args;
-
-const DEPENDENCIES: &str = include_str!(concat!(env!("OUT_DIR"), "/dependencies.txt"));
-const ADVISORIES: &str = include_str!(concat!(env!("OUT_DIR"), "/advisories.txt"));
-const LICENSES: &str = include_str!(concat!(env!("OUT_DIR"), "/licenses.txt"));
+use ananasar_core::notices::{ADVISORIES, DEPENDENCIES, LICENSES};
 
 /// Which part to print; with none given, the version, dependencies and advisories.
 #[derive(Args)]
