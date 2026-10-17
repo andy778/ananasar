@@ -5,7 +5,7 @@ Releases are automated with [semantic-release](https://github.com/semantic-relea
 1. A push to `main` runs `.github/workflows/semantic-release.yml`.
 2. semantic-release reads the Conventional Commits since the last `v*` tag: `fix:` gives a patch, `feat:` a minor and a `!` or `BREAKING CHANGE:` a major release. `chore:`, `docs:`, `ci:` and `refactor:` alone release nothing.
 3. If a release is due it creates the `vX.Y.Z` tag and the GitHub Release with generated notes.
-4. The tag starts `build.yml`. Its `notices` job runs `scripts/make-notices.sh` (licence texts, dependency list, advisory report and one CycloneDX SBOM, embedded into `ananasar about`). The build jobs then stamp the version into the workspace (`scripts/stamp-version.sh`) and build Windows, macOS and Linux (one `ananasar` binary per platform: `ananasar.exe` on Windows, a tarball with `ananasar` on macOS and Linux). The `release` job zips the notices into `ananasar-<version>-notices.zip`, fails if an expected file is missing, writes `SHA256SUMS` for the three binaries and the zip, signs that one file with cosign (`SHA256SUMS.sigstore.json`) and attaches everything. A release has six files of our own (three binaries, the notices zip, `SHA256SUMS`, `SHA256SUMS.sigstore.json`) plus the source archives GitHub adds.
+4. The tag starts `build.yml`. Its `notices` job runs `scripts/make-notices.sh` (licence texts, dependency list, the advisory report that `ananasar about` embeds, and one CycloneDX SBOM). The build jobs then stamp the version into the workspace (`scripts/stamp-version.sh`) and build Windows, macOS and Linux (one `ananasar` binary per platform: `ananasar.exe` on Windows, a tarball with `ananasar` on macOS and Linux). The `release` job zips the licence texts, dependency list and SBOM (not the advisory report) into `ananasar-<version>-notices.zip`, fails if an expected file is missing, writes `SHA256SUMS` for the three binaries and the zip, signs that one file with cosign (`SHA256SUMS.sigstore.json`) and attaches everything. A release has six files of our own (three binaries, the notices zip, `SHA256SUMS`, `SHA256SUMS.sigstore.json`) plus the source archives GitHub adds.
 
 To verify a download, check the signature of `SHA256SUMS` with `cosign verify-blob`, then the files with `sha256sum -c`; the commands are in the README.
 
@@ -23,6 +23,8 @@ The tag has to be pushed with a GitHub App token. A push made with the default `
 6. If the first run reports that it cannot push, add the app as a bypass actor on the `protect-main` ruleset (Settings → Rules → Rulesets). Tags are not covered by that ruleset, but semantic-release also checks push access on the branch.
 
 Without the two secrets the `semantic-release` workflow fails at its first step and nothing is released.
+
+Advisories are not part of a release. `audit.yml` runs cargo-audit on every push to `main` and daily, converts the result with `scripts/audit-sarif.py` (findings accepted in `deny.toml` are left out) and uploads it to code scanning.
 
 ## See also
 
