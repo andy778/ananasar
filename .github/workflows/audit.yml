@@ -1,0 +1,36 @@
+name: audit
+
+# RustSec advisories as GitHub code scanning alerts (Security tab), not as a
+# release file. Runs on main and daily, because new advisories appear without
+# any commit. Findings accepted in deny.toml are left out.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sarif:
+    name: cargo-audit to code scanning
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
+        with:
+          tool: cargo-audit
+      - name: Run cargo-audit and convert to SARIF
+        run: |
+          # A finding makes cargo-audit exit non-zero; the SARIF carries it.
+          cargo audit --json --color never > audit.json || true
+          python3 scripts/audit-sarif.py deny.toml < audit.json > audit.sarif
+      - uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: audit.sarif
+          category: cargo-audit

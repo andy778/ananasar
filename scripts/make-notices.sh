@@ -3,7 +3,7 @@
 # (default: target/notices):
 #   licenses.txt      the licence texts of all dependencies   (cargo-about)
 #   dependencies.txt  one line per dependency: name version<TAB>licence
-#   advisories.txt    RustSec advisories known when this ran   (cargo-audit)
+#   advisories.txt    RustSec advisories known when this ran   (cargo-audit); embedded into `ananasar about` only, not shipped
 #   ananasar.cdx.json CycloneDX software bill of materials     (cargo-cyclonedx)
 # The release build points ANANASAR_NOTICES at this directory, which embeds the
 # first three into `ananasar about`. Needs cargo-about, cargo-audit and
