@@ -2,13 +2,10 @@
 name = "ananasar-gui"
 version.workspace = true
 edition.workspace = true
+description = "The Ananasar GUI (egui); run it with `ananasar gui`."
 # egui/eframe 0.36 require Rust 1.95, higher than the workspace default (1.92).
 rust-version = "1.95"
 license.workspace = true
-
-[[bin]]
-name = "ananasar-gui"
-path = "src/main.rs"
 
 [dependencies]
 ananasar-core = { path = "../ananasar-core" }

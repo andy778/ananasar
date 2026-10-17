@@ -1,6 +1,6 @@
-# MCP server (`ananasar-mcp`)
+# MCP server (`ananasar mcp`)
 
-`ananasar-mcp` lets an AI assistant (Claude Code, Claude Desktop or any other [Model Context Protocol](https://modelcontextprotocol.io) client) use Ananasar's engine:
+`ananasar mcp` lets an AI assistant (Claude Code, Claude Desktop or any other [Model Context Protocol](https://modelcontextprotocol.io) client) use Ananasar's engine:
 
 - as a **Modbus/TCP client** against real devices (read registers; write them only if you allow it), and
 - to **run and inspect a simulated Modbus server** on your machine: set register values, change which function codes it answers, force exception replies, and read its statistics and data log.
@@ -9,20 +9,22 @@ Typical uses: testing a PLC or gateway integration, reproducing a device's behav
 
 ## Install and register
 
-Download `ananasar-mcp` (`ananasar-mcp.exe` on Windows) from the [release page](https://github.com/andy778/ananasar/releases/latest), or build it:
+The MCP server is the `mcp` subcommand of the single `ananasar` program. Download `ananasar` (`ananasar.exe` on Windows) from the [release page](https://github.com/andy778/ananasar/releases/latest), or build it:
 
 ```bash
-cargo install --path crates/ananasar-mcp   # from a checkout; or: cargo build --release -p ananasar-mcp
+cargo install --path crates/ananasar-cli   # from a checkout; or: cargo build --release -p ananasar-cli
 ```
 
-Use the full path to the binary in the commands below. `ananasar-mcp --help` lists its options and `ananasar-mcp --version` prints the version.
+Use the full path to the binary in the commands below. `ananasar mcp --help` lists the options (`--allow-write`, `--read-only`, `--bind <IP>`) and `ananasar --version` prints the version. A build without the `mcp` cargo feature has no `mcp` subcommand.
+
+> **Upgrading from 0.x?** The separate `ananasar-mcp` executable is gone. Change the command in your client configuration to `ananasar` and put `mcp` first in the arguments, as in the examples below.
 
 ### Claude Code
 
 ```bash
-claude mcp add ananasar -- /full/path/to/ananasar-mcp
+claude mcp add ananasar -- /full/path/to/ananasar mcp
 # let it write to remote devices (see "Safety and threat model" first):
-claude mcp add ananasar -- /full/path/to/ananasar-mcp --allow-write
+claude mcp add ananasar -- /full/path/to/ananasar mcp --allow-write
 ```
 
 `claude mcp list` shows whether the server connects.
@@ -40,14 +42,14 @@ Edit `claude_desktop_config.json`, then restart Claude Desktop:
 {
   "mcpServers": {
     "ananasar": {
-      "command": "C:\path\to\ananasar-mcp.exe",
-      "args": []
+      "command": "C:\\path\\to\\ananasar.exe",
+      "args": ["mcp"]
     }
   }
 }
 ```
 
-On macOS use a path such as `/Users/you/bin/ananasar-mcp`. Add `"--allow-write"` to `args` to enable writes. In JSON, backslashes in Windows paths must be doubled.
+On macOS use a path such as `/Users/you/bin/ananasar`. Add `"--allow-write"` after `"mcp"` in `args` to enable writes: `"args": ["mcp", "--allow-write"]`. In JSON, backslashes in Windows paths must be doubled.
 
 ### Other clients
 
@@ -125,7 +127,7 @@ An MCP tool call is made by a language model, on the basis of text it read, whic
 - **Writes to remote devices change real hardware.** They are off unless you start the server with `--allow-write`, and each write tool says so in its description. Most MCP clients also ask you to approve each tool call; keep that on for the write tools. Modbus/TCP has no authentication, so anything that can reach a device can write to it.
 - **The simulated server listens on `127.0.0.1`** unless you pass `--bind`. The bind address is a startup option, not a tool argument, so the assistant cannot widen it. It only holds a register file in memory and writes nothing to disk. Use a port that is free; the server never guesses one, so it will not collide with a port you use for a real device simulation (for example 15020), unless you ask for that port.
 - **Sizes are capped** (125 registers per read, 123 per write, 1 MiB per input line, 1 MiB of log). Timeouts are bounded (50 ms to 60 s).
-- **The client can connect to any host** the machine can reach, which is the point of the tool. If that is too much, run `ananasar-mcp` in a container or on a host whose network access you have restricted.
+- **The client can connect to any host** the machine can reach, which is the point of the tool. If that is too much, run `ananasar mcp` in a container or on a host whose network access you have restricted.
 - **Output is data.** Register contents and log text come from remote devices; a client should treat them as untrusted, like any tool output.
 - Nothing is written to stdout except protocol messages; diagnostics go to stderr. The server uses no network except the connections you ask for.
 
@@ -135,17 +137,17 @@ Read-only mode only stops this server's own write tools; it is not a network fir
 
 | Symptom | Check |
 | --- | --- |
-| The client does not list the server, or it shows as failed | Run the binary by hand (`ananasar-mcp --version`) to see that it starts. Use the full path in the configuration, and on Windows double the backslashes in JSON. Restart Claude Desktop after editing its configuration. |
+| The client does not list the server, or it shows as failed | Run the binary by hand (`ananasar --version`, then `ananasar mcp --help`) to see that it starts. Use the full path in the configuration, and on Windows double the backslashes in JSON. Restart Claude Desktop after editing its configuration. |
 | "Writes are disabled" or a similar error from a write tool | The server runs read-only. Add `--allow-write` to the command and restart the client. |
 | `server_start` fails with a bind error | The port is in use or needs privileges (ports below 1024 on Linux and macOS). Use another port, or `0` for any free one. |
-| Another machine cannot reach the simulated server | It listens on `127.0.0.1` by default; start `ananasar-mcp` with `--bind 0.0.0.0` (or a specific address). Also check the firewall. |
+| Another machine cannot reach the simulated server | It listens on `127.0.0.1` by default; start `ananasar mcp` with `--bind 0.0.0.0` (or a specific address). Also check the firewall. |
 | Reads time out | Check the unit id given to `modbus_connect`, remember that addresses are 0-based, and raise `timeout_ms`. See [Troubleshooting](troubleshooting.md#no-reply-from-a-device). |
 | A tool says the address range is invalid | At most 125 registers per read and 123 per write; the range must stay within 0-65535. |
 | Nothing at all happens | The server writes protocol messages to stdout and diagnostics to stderr. Look at the client's MCP log for stderr output. |
 
 ## Design notes
 
-- **Where it lives:** a separate crate and binary (`crates/ananasar-mcp`) instead of an `ananasar mcp` subcommand. The CLI stays free of the JSON dependency, and an MCP entry in a config file can point at a binary that has no other behaviour. It depends only on `ananasar-core`, `ananasar-net` and `serde_json`.
+- **Where it lives:** the library crate `crates/ananasar-mcp` (depending only on `ananasar-core`, `ananasar-net` and `serde_json`), exposed as the `ananasar mcp` subcommand through the CLI's `mcp` cargo feature. A headless build with `--no-default-features` leaves it, and the JSON dependency, out.
 - **Implementation:** the stdio transport is newline-delimited JSON-RPC 2.0, which is small enough to write by hand (`initialize`, `ping`, `tools/list`, `tools/call`). That avoids an async runtime and a large SDK, builds on Rust 1.92 like the core, net and CLI crates, and keeps the supply chain short. Tool arguments are validated against the same JSON Schema the server publishes.
 - **Protocol versions:** it answers the `initialize` handshake of revisions 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05, echoing the version the client asks for. The newer stateless revision (2026-07-28, no `initialize`) is not implemented; clients that speak both fall back to the handshake.
 - **Not included:** resources and prompts, multiple simultaneous client connections, TLS, per-host allow lists.

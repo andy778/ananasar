@@ -1,11 +1,11 @@
 # Ananasar: instructions for Claude
 
-Rust port of Ananas, the free Modbus/TCP tool by Tuomio. Crates: `ananasar-core` (std-only, I/O-free engine), `ananasar-net` (blocking server + frame reader), `ananasar-cli` (clap), `ananasar-gui` (egui), `fuzz` (excluded from the workspace).
+Rust port of Ananas, the free Modbus/TCP tool by Tuomio. Crates: `ananasar-core` (std-only, I/O-free engine), `ananasar-net` (blocking server + frame reader), `ananasar-cli` (clap; produces the one `ananasar` binary, which also embeds `ananasar-gui` (egui, `ananasar gui`) and `ananasar-mcp` (`ananasar mcp`) through the default features `gui` and `mcp`), `fuzz` (excluded from the workspace).
 
 ## Workflow
 - `main` is protected by a ruleset: change it through a branch and PR, with `test (linux)` and `build windows x64 exes` passing.
 - Before pushing: `cargo clippy --workspace --all-targets -- -D warnings` and `cargo test --workspace`. Workspace lints are in `Cargo.toml`.
-- Core, net and CLI must build on Rust 1.92; only the GUI needs 1.95.
+- Core, net, storm, mcp and the CLI built with `--no-default-features` must build on Rust 1.92; only the GUI (and so the default `ananasar` binary) needs 1.95.
 - All GitHub Actions stay pinned to commit SHAs, with `permissions: contents: read` unless a job needs more.
 - Commit messages use Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `ci:`, `chore:`), with a `!` or a `BREAKING CHANGE:` footer for breaking changes.
 

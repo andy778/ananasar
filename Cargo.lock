@@ -161,10 +161,14 @@ name = "ananasar-cli"
 version = "0.1.0"
 dependencies = [
  "ananasar-core",
+ "ananasar-gui",
+ "ananasar-mcp",
  "ananasar-net",
  "ananasar-storm",
  "clap",
  "clap_complete",
+ "serde_json",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

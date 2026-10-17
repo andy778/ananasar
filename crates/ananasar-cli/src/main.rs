@@ -1,7 +1,11 @@
 //! Headless Ananasar: a Modbus/TCP server and client driven from the command
 //! line, built on the shared `ananasar-core` engine and `ananasar-net` server.
+//! With the default features the same binary also runs the GUI (`ananasar gui`)
+//! and the MCP server (`ananasar mcp`).
 
 mod about;
+#[cfg(feature = "gui")]
+mod console;
 mod storm;
 
 use ananasar_core::ananas_file;
@@ -22,9 +26,9 @@ use std::time::Duration;
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
 
-/// Modbus/TCP client and server (headless).
+/// Modbus/TCP client and server: command line, GUI and MCP server in one program.
 #[derive(Parser)]
-#[command(name = "ananasar", version, about)]
+#[command(name = "ananasar", version, about, arg_required_else_help = true)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -46,8 +50,36 @@ enum Command {
     /// Load-test a Modbus/TCP target (only equipment you may test): rate, ramp, faults, churn
     #[command(alias = "stress")]
     Storm(Box<storm::StormArgs>),
+    /// Open the graphical client and server (the window starts a server of its own)
+    #[cfg(feature = "gui")]
+    Gui(GuiArgs),
+    /// Run the MCP server on stdin/stdout, for AI assistants
+    #[cfg(feature = "mcp")]
+    Mcp(McpArgs),
     /// Show the version, dependencies, licences and advisories known at build time
     About(about::AboutArgs),
+}
+
+#[cfg(feature = "gui")]
+#[derive(Args)]
+struct GuiArgs {
+    /// Listen on exactly this port (no fallback to the next free one)
+    #[arg(short, long, value_parser = clap::value_parser!(u16).range(1..))]
+    port: Option<u16>,
+}
+
+#[cfg(feature = "mcp")]
+#[derive(Args)]
+struct McpArgs {
+    /// Let the assistant write to remote Modbus devices (FC6, FC16, FC22); without it the server is read-only
+    #[arg(long, conflicts_with = "read_only")]
+    allow_write: bool,
+    /// Refuse remote writes (the default; accepted for clarity)
+    #[arg(long)]
+    read_only: bool,
+    /// Address the simulated server listens on
+    #[arg(long, value_name = "IP", default_value = "127.0.0.1")]
+    bind: std::net::IpAddr,
 }
 
 #[derive(Args)]
@@ -142,6 +174,12 @@ struct ScanArgs {
 }
 
 fn main() {
+    // Started by a double-click (the process owns its console alone) there is
+    // no command line to read: open the GUI instead of printing help.
+    #[cfg(feature = "gui")]
+    if std::env::args_os().len() == 1 && console::owns_console_alone() {
+        std::process::exit(run_gui(None));
+    }
     let code = match Cli::parse().command {
         Command::Server(a) => run_server(&a),
         Command::Client(a) => run_client(a),
@@ -152,8 +190,29 @@ fn main() {
         Command::Scan(a) => run_scan(&a),
         Command::Storm(a) => storm::run_storm(&a),
         Command::About(a) => about::run_about(&a),
+        #[cfg(feature = "gui")]
+        Command::Gui(a) => run_gui(a.port),
+        #[cfg(feature = "mcp")]
+        Command::Mcp(a) => {
+            let cfg = ananasar_mcp::Config { allow_write: a.allow_write, bind: a.bind };
+            ananasar_mcp::serve(cfg)
+        }
     };
     std::process::exit(code);
+}
+
+/// Run the GUI. On Windows the console is released first when this process is
+/// its only user, so a double-click shows no console window.
+#[cfg(feature = "gui")]
+fn run_gui(port: Option<u16>) -> i32 {
+    console::detach_if_alone();
+    match ananasar_gui::run(port) {
+        Ok(()) => 0,
+        Err(e) => {
+            eprintln!("cannot open the window: {e}");
+            1
+        }
+    }
 }
 
 fn run_server(args: &ServerArgs) -> i32 {

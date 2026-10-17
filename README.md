@@ -44,7 +44,7 @@ A port of Ananas, the free Modbus/TCP test tool by Tuomio, built with [REA](http
 
 ## Why Ananasar
 
-- **One engine, three front ends.** The GUI, the CLI and the MCP server share the same register model and protocol code, so they behave the same way.
+- **One binary, one engine.** `ananasar` is the GUI, the CLI and the MCP server in a single file; they share the same register model and protocol code, so they behave the same way.
 - **Runs where you work.** The original is a Windows program whose download site no longer exists. Ananasar builds for Windows, macOS and Linux and is MIT licensed.
 - **Familiar, with the sharp edges filed off.** The menus, dialogs and Server panel follow the original's, while the server enforces the Modbus size limits instead of overflowing a buffer (see [design notes](#design-notes)).
 - **Checkable.** Releases are signed, parsers are fuzzed and the replies are compared with the original's at wire level. It is still a hobby project, provided as is with no support commitment ([SECURITY.md](SECURITY.md)).
@@ -55,16 +55,18 @@ Prebuilt binaries are attached to every [release](https://github.com/andy778/ana
 
 | Platform | Files |
 | --- | --- |
-| Windows x64 | `ananasar.exe` (CLI), `ananasar-mcp.exe` (MCP server), `ananasar-gui.exe` (GUI) |
+| Windows x64 | `ananasar.exe` |
 | macOS (Apple silicon + Intel) | `ananasar-macos-universal.tar.gz` |
 | Linux x86_64 | `ananasar-linux-x86_64.tar.gz` |
+
+One program does everything: `ananasar` is the command line tool, `ananasar gui` opens the window and `ananasar mcp` runs the MCP server. On Windows, double-clicking `ananasar.exe` opens the GUI.
 
 The macOS build is unsigned, so Gatekeeper blocks it on first run. Clear the quarantine flag after extracting:
 
 ```bash
 tar xzf ananasar-macos-universal.tar.gz
-xattr -dr com.apple.quarantine ananasar ananasar-mcp ananasar-gui
-./ananasar-gui
+xattr -dr com.apple.quarantine ananasar
+./ananasar gui
 ```
 
 The Windows executables are not code-signed either, so Windows SmartScreen may warn the first time you run them ("More info" → "Run anyway").
@@ -87,7 +89,7 @@ The binaries are built with [cargo-auditable](https://github.com/rust-secure-cod
 
 ## Quick start
 
-**GUI.** Run `ananasar-gui`. It starts a server on port 502 on Windows (15020 on other platforms, where ports below 1024 need privileges). If that port is taken, it moves to the next free port and shows a notice. Press **Show** in the Client box to open the client window and poll the server, or point the client at any other Modbus/TCP device.
+**GUI.** Double-click `ananasar.exe` on Windows, or run `ananasar gui`. It starts a server on port 502 on Windows (15020 on other platforms, where ports below 1024 need privileges). If that port is taken, it moves to the next free port and shows a notice. Press **Show** in the Client box to open the client window and poll the server, or point the client at any other Modbus/TCP device.
 
 **CLI.** Two terminals:
 
@@ -104,10 +106,10 @@ More in [Getting started](docs/getting-started.md), the [GUI manual](docs/gui.md
 
 ## Use it from an AI assistant (MCP)
 
-`ananasar-mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio. It gives an assistant tools to read Modbus/TCP devices, run a simulated server on your machine and inspect its traffic. It is **read-only by default**: writes to remote devices need `--allow-write`.
+`ananasar mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio. It gives an assistant tools to read Modbus/TCP devices, run a simulated server on your machine and inspect its traffic. It is **read-only by default**: writes to remote devices need `--allow-write`.
 
 ```bash
-claude mcp add ananasar -- ananasar-mcp
+claude mcp add ananasar -- ananasar mcp
 ```
 
 Then ask, for example: *"Start a simulated Modbus server on port 15021, set holding registers 100-103 to 1, 2, 3, 4, then read them back through the client."* Setup for Claude Desktop, the full tool list and the safety model are in the [MCP manual](docs/mcp.md).
@@ -117,7 +119,7 @@ Then ask, for example: *"Start a simulated Modbus server on port 15021, set hold
 | Page | Contents |
 | --- | --- |
 | [Getting started](docs/getting-started.md) | Install, first run, default ports, a first client/server session |
-| [GUI manual](docs/gui.md) | Every window, menu and option of `ananasar-gui` |
+| [GUI manual](docs/gui.md) | Every window, menu and option of `ananasar gui` |
 | [CLI manual](docs/cli.md) | `ananasar server`, `client`, `scan`, `storm` and `completions` |
 | [Storm testing](docs/storm-testing.md) | Load and robustness checks with `ananasar storm` and the Storm Test window |
 | [MCP manual](docs/mcp.md) | Using Ananasar from an AI assistant |
@@ -150,11 +152,11 @@ The README screenshot is rendered headlessly from the real window; see [docs/scr
   - `server`: request validation and dispatch
   - `log`: raw and interpretive log entry formatting
   - `client`: the poll engine and query builders
-- [`crates/ananasar-cli`](crates/ananasar-cli): the headless `ananasar` binary
+- [`crates/ananasar-cli`](crates/ananasar-cli): the `ananasar` binary: the command line tool, plus `ananasar gui` and `ananasar mcp` (cargo features `gui` and `mcp`, on by default; `--no-default-features` builds the small headless CLI)
 - [`crates/ananasar-storm`](crates/ananasar-storm): the library behind `ananasar storm`, see [docs/storm-testing.md](docs/storm-testing.md)
-- [`crates/ananasar-mcp`](crates/ananasar-mcp): the `ananasar-mcp` binary, an MCP server for AI assistants, see [docs/mcp.md](docs/mcp.md)
+- [`crates/ananasar-mcp`](crates/ananasar-mcp): the MCP server library behind `ananasar mcp`, see [docs/mcp.md](docs/mcp.md)
 - [`crates/ananasar-dde`](crates/ananasar-dde): the Windows DDE server used by the GUI, see [docs/dde.md](docs/dde.md)
-- [`crates/ananasar-gui`](crates/ananasar-gui): the egui application (`ananasar-gui`)
+- [`crates/ananasar-gui`](crates/ananasar-gui): the egui application library behind `ananasar gui`
 - [`crates/ananasar-parity`](crates/ananasar-parity): wire-level scenario runner, recording proxy and diff for comparing servers, see [docs/parity-testing.md](docs/parity-testing.md)
 - [`fuzz`](fuzz): cargo-fuzz targets for the frame parser and the server handler
 
