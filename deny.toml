@@ -5,6 +5,12 @@ ignore = [
   # ttf-parser is unmaintained (informational, no exploit, no patched version).
   # Transitive only, via the eframe GUI font stack on Linux. Tracked upstream.
   "RUSTSEC-2026-0192",
+  # zvariant, zvariant_derive and zbus_names are unmaintained (informational,
+  # no exploit, no patched version; merged into zbus). Transitive only, via
+  # eframe -> accesskit_winit -> accesskit_unix -> zbus (Linux accessibility).
+  "RUSTSEC-2026-0370",
+  "RUSTSEC-2026-0371",
+  "RUSTSEC-2026-0372",
 ]
 
 [licenses]
