@@ -211,7 +211,7 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           mkdir release
           cp artifacts/ananasar-windows-x64/ananasar.exe              artifacts/ananasar-macos-universal/ananasar-macos-universal.tar.gz              artifacts/ananasar-linux-x86_64/ananasar-linux-x86_64.tar.gz release/
-          zip -j "release/ananasar-${version}-notices.zip"              artifacts/notices/licenses.txt              artifacts/notices/dependencies.txt              artifacts/notices/advisories.txt              artifacts/notices/ananasar.cdx.json
+          zip -j "release/ananasar-${version}-notices.zip"              artifacts/notices/licenses.txt              artifacts/notices/dependencies.txt             artifacts/notices/ananasar.cdx.json
       - name: Check that every expected asset was built
         shell: bash
         run: |
