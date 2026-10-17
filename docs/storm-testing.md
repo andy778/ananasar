@@ -120,7 +120,7 @@ Against `ananasar server` the run should have no mismatches. Note that `ananasar
 
 ## The GUI
 
-Tools > Storm Test… in `ananasar-gui` opens the same tool in a window, built on the same library, so the load, the request mix, the faults, the churn and the report files are the ones described above. See [Storm Test](gui.md#storm-test) in the GUI manual. It is an Ananasar addition; the original program has no storm test.
+Tools > Storm Test… in `ananasar gui` opens the same tool in a window, built on the same library, so the load, the request mix, the faults, the churn and the report files are the ones described above. See [Storm Test](gui.md#storm-test) in the GUI manual. It is an Ananasar addition; the original program has no storm test.
 
 - The window shows the same notice and the same modest defaults, and the target field starts empty.
 - The authorisation box, "I am authorised to test this equipment", is required for exactly what `--i-am-authorised` is required for (see Safety first), and the library checks the rules again before anything is sent. The box is cleared when a test starts.
