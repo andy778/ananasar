@@ -348,7 +348,7 @@ impl App {
                 let y = 232.0 + 18.0 * f32::from(u8::try_from(i).unwrap_or(0));
                 ui.painter().text(at(280.0, y, 0.0, 0.0).min, egui::Align2::RIGHT_CENTER, line, egui::FontId::proportional(12.0), egui::Color32::BLACK);
             }
-            ui.put(at(12.0, 290.0, 272.0, 40.0), egui::Label::new(egui::RichText::new("A port of Ananas, the free Modbus/TCP tool by Tuomio, built with REA.").size(11.0)).wrap());
+            ui.put(at(12.0, 290.0, 272.0, 40.0), egui::Label::new(egui::RichText::new("A port of Ananas, the free Modbus/TCP tool from http://www.tuomio.fi/ananas/, built with REA.").size(11.0)).wrap());
             let button = at(111.0, 342.0, 75.0, 23.0);
             open_licences = theme::bevel_button(ui, button, "about_licences", "Licences", true, None).clicked();
         });
