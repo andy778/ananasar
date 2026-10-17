@@ -13,6 +13,7 @@ pub mod rpc;
 pub mod schema;
 mod session;
 mod sim;
+mod stdio;
 
 use ananasar_core::log::LogMode;
 use ananasar_core::registers::{Bank, InitMode};
@@ -23,6 +24,8 @@ use sim::{FUNCTION_CODES, Sim, exception_from_code};
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::atomic::Ordering;
 use std::time::Duration;
+
+pub use stdio::serve;
 
 /// What the tools may do.
 #[derive(Clone, Copy, Debug)]
@@ -117,7 +120,7 @@ impl Mcp {
         }
         if Self::is_remote_write(name) && !self.cfg.allow_write {
             return Some(Err(format!(
-                "{name} is disabled: ananasar-mcp is running in read-only mode, so nothing is written \
+                "{name} is disabled: the MCP server is running in read-only mode, so nothing is written \
                  to remote devices. Ask the user to restart it with --allow-write if they really want this."
             )));
         }

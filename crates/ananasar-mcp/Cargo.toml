@@ -6,10 +6,6 @@ rust-version.workspace = true
 license.workspace = true
 description = "Model Context Protocol (MCP) server that lets an AI assistant drive Modbus/TCP through Ananasar."
 
-[[bin]]
-name = "ananasar-mcp"
-path = "src/main.rs"
-
 [dependencies]
 ananasar-core = { path = "../ananasar-core" }
 ananasar-net = { path = "../ananasar-net" }

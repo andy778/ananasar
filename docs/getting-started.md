@@ -4,15 +4,15 @@ Install Ananasar, start it, and run a first Modbus/TCP server and client session
 
 ## Install
 
-Download the files for your platform from the [latest release](https://github.com/andy778/ananasar/releases/latest). You can [verify the download](../README.md#verify-a-download) with cosign first.
+Download the file for your platform from the [latest release](https://github.com/andy778/ananasar/releases/latest). You can [verify the download](../README.md#verify-a-download) with cosign first.
 
 | Platform | Download | Contains |
 | --- | --- | --- |
-| Windows x64 | `ananasar-gui.exe`, `ananasar.exe`, `ananasar-mcp.exe` | GUI, CLI, MCP server |
-| macOS (Apple silicon and Intel) | `ananasar-macos-universal.tar.gz` | `ananasar-gui`, `ananasar`, `ananasar-mcp` |
-| Linux x86_64 | `ananasar-linux-x86_64.tar.gz` | `ananasar-gui`, `ananasar`, `ananasar-mcp` |
+| Windows x64 | `ananasar.exe` | the single program |
+| macOS (Apple silicon and Intel) | `ananasar-macos-universal.tar.gz` | `ananasar` |
+| Linux x86_64 | `ananasar-linux-x86_64.tar.gz` | `ananasar` |
 
-There is no installer. Put the files anywhere you like, for example in a folder on your `PATH`.
+There is one program, `ananasar`. `ananasar gui` opens the window, `ananasar mcp` runs the MCP server and the other subcommands (`server`, `client`, `scan`, `storm`) are the command line tool. On Windows, double-clicking `ananasar.exe` opens the GUI; run from a terminal without arguments it prints the help. There is no installer. Put the file anywhere you like, for example in a folder on your `PATH`.
 
 **Windows.** The executables are not code-signed, so SmartScreen may warn on first run: choose "More info", then "Run anyway".
 
@@ -20,15 +20,15 @@ There is no installer. Put the files anywhere you like, for example in a folder 
 
 ```bash
 tar xzf ananasar-macos-universal.tar.gz
-xattr -dr com.apple.quarantine ananasar ananasar-mcp ananasar-gui
-./ananasar-gui
+xattr -dr com.apple.quarantine ananasar
+./ananasar gui
 ```
 
 **Linux.**
 
 ```bash
 tar xzf ananasar-linux-x86_64.tar.gz
-./ananasar-gui
+./ananasar gui
 ```
 
 To build from source instead, see [Build from source](../README.md#build-from-source).
@@ -39,15 +39,15 @@ Modbus/TCP uses port 502. Ports below 1024 need administrator rights on Linux an
 
 | Program | Default port | If the port is busy |
 | --- | --- | --- |
-| `ananasar-gui` on Windows | 502 | Tries the next free port (up to 20 in a row) and shows a notice. |
-| `ananasar-gui` on Linux and macOS | 15020 | Same. |
+| `ananasar gui` on Windows | 502 | Tries the next free port (up to 20 in a row) and shows a notice. |
+| `ananasar gui` on Linux and macOS | 15020 | Same. |
 | `ananasar server` (all platforms) | 502 | Fails with "Socket initialisation failed on port 502". Pass `--port`. |
 
-`ananasar-gui --port N` and `ananasar server --port N` use exactly the port you give. See [Troubleshooting](troubleshooting.md#port-problems) if the port cannot be used.
+`ananasar gui --port N` and `ananasar server --port N` use exactly the port you give. See [Troubleshooting](troubleshooting.md#port-problems) if the port cannot be used.
 
 ## First session in the GUI
 
-1. Start `ananasar-gui`. The server is already running; the Server box in the main window shows the port as *Local port*.
+1. Start `ananasar gui` (or double-click `ananasar.exe` on Windows). The server is already running; the Server box in the main window shows the port as *Local port*.
 2. Give a register a value: choose Edit > Value List > Edit (Ctrl+E), double-click a value in the register list, type `1234` and press Enter.
 3. Press **Show** in the Client box. In the client window press **Connect…** and then **OK**. The IP and port already point at the embedded server.
 4. In *Read Input/Holding register* choose Holding registers, pick address 0 and press **Add**. Select **Cyclic read/write** under Polling.

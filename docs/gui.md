@@ -1,15 +1,17 @@
 # GUI manual
 
-A tour of `ananasar-gui`, window by window: the main window with its embedded server, the client window, and the tool windows opened from the menus.
+A tour of the GUI (`ananasar gui`), window by window: the main window with its embedded server, the client window, and the tool windows opened from the menus.
 
 In shortcuts, **Ctrl** is **Cmd** on macOS. Menu entries are written as File > Open…, with the same captions as in the program.
 
 ## Starting the GUI
 
 ```bash
-ananasar-gui              # default port, see below
-ananasar-gui --port 15020 # or -p 15020: use exactly this port
+ananasar gui              # default port, see below
+ananasar gui --port 15020 # or -p 15020: use exactly this port
 ```
+
+On Windows, double-clicking `ananasar.exe` does the same as `ananasar gui` and, because the program owns its console alone then, closes the console window before the main window opens. Started from a terminal, `ananasar gui` keeps the terminal attached and returns the prompt when the window is closed. The GUI is the `gui` cargo feature of the CLI crate; a headless build (`--no-default-features`) has no `gui` subcommand.
 
 The GUI starts a Modbus/TCP server straight away. The default port is **502 on Windows** and **15020 on other platforms**. Without `--port`, a busy default port is not an error: the GUI tries the next free port (up to 20 ports in a row) and shows a notice, "Port changed to N. Default port D is currently used by other instance of Ananas." With `--port`, the port is used exactly; if it cannot be bound, a message box says so and the server stays off. You can change the port later with Options > TCP > Port > Change Port….
 
