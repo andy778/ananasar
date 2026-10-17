@@ -4,7 +4,7 @@
 #   licenses.txt      the licence texts of all dependencies   (cargo-about)
 #   dependencies.txt  one line per dependency: name version<TAB>licence
 #   advisories.txt    RustSec advisories known when this ran   (cargo-audit)
-#   sbom.cdx.json     CycloneDX software bill of materials     (cargo-cyclonedx)
+#   ananasar.cdx.json CycloneDX software bill of materials     (cargo-cyclonedx)
 # The release build points ANANASAR_NOTICES at this directory, which embeds the
 # first three into `ananasar about`. Needs cargo-about, cargo-audit and
 # cargo-cyclonedx.
@@ -67,12 +67,11 @@ found="$(printf '%s
   fi
 } > "$out/advisories.txt"
 
-# The SBOM covers the three shipped programs. cargo-cyclonedx writes the files
-# next to each crate's Cargo.toml.
+# One SBOM for the shipped program. The gui and mcp libraries are built into
+# `ananasar-cli` through its default features, so its SBOM covers them.
+# cargo-cyclonedx writes a file next to each crate's Cargo.toml.
 cargo cyclonedx --format json --spec-version 1.5 --override-filename sbom
-for crate in ananasar-cli ananasar-mcp ananasar-gui; do
-  mv "crates/$crate/sbom.json" "$out/$crate.cdx.json"
-done
+mv crates/ananasar-cli/sbom.json "$out/ananasar.cdx.json"
 # The remaining workspace crates get an sbom.json too; remove them.
 rm -f crates/*/sbom.json
 echo "notices written to $out"
