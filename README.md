@@ -73,15 +73,18 @@ The Windows executables are not code-signed either, so Windows SmartScreen may w
 
 ### Verify a download
 
-Every release file is signed with [cosign](https://github.com/sigstore/cosign) (keyless, from the release workflow); the signature is the matching `.sigstore.json` file on the release page:
+Each release has a `SHA256SUMS` file covering every file you download, signed with [cosign](https://github.com/sigstore/cosign) (keyless, from the release workflow); the signature is `SHA256SUMS.sigstore.json`. Download the files you want together with those two, then check the signature and the checksums:
 
 ```bash
 cosign verify-blob \
-  --bundle ananasar-linux-x86_64.tar.gz.sigstore.json \
+  --bundle SHA256SUMS.sigstore.json \
   --certificate-identity-regexp '^https://github.com/andy778/ananasar/\.github/workflows/build\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  ananasar-linux-x86_64.tar.gz
+  SHA256SUMS
+sha256sum --ignore-missing -c SHA256SUMS
 ```
+
+On macOS use `shasum -a 256 -c SHA256SUMS` (it reports files you did not download as missing; ignore those).
 
 The binaries are built with [cargo-auditable](https://github.com/rust-secure-code/cargo-auditable), so their dependency list is embedded and can be checked for known vulnerabilities with `cargo audit bin ananasar`.
 
@@ -190,12 +193,11 @@ Ananas is a free Modbus/TCP test tool written by Tuomio. The program was distrib
 
 ### Third-party software
 
-The binaries include open-source libraries (mostly MIT and Apache-2.0, plus the BSD, ISC, Zlib and Unicode licences and the licences of the fonts bundled with egui). Every release attaches:
+The binaries include open-source libraries (mostly MIT and Apache-2.0, plus the BSD, ISC, Zlib and Unicode licences and the licences of the fonts bundled with egui). Every release attaches `ananasar-<version>-notices.zip`, which contains:
 
 - `licenses.txt`: the licence texts of all dependencies,
 - `dependencies.txt`: each dependency with its version and licence,
 - `advisories.txt`: the RustSec advisories known when the release was built,
-- `ananasar-cli.cdx.json`, `ananasar-mcp.cdx.json`, `ananasar-gui.cdx.json`: CycloneDX software bills of materials,
-- `ananasar-<version>-source.tar.gz` and `.zip`: the source of the tagged commit,
+- `ananasar.cdx.json`: a CycloneDX software bill of materials (the GUI and MCP server are part of the one `ananasar` package),
 
-all signed with cosign like the binaries. `ananasar about` prints the dependency list and the advisories embedded in the CLI binary, and `ananasar about --licenses` the licence texts. The binaries also carry `cargo auditable` data, so `cargo audit bin <file>` checks them against the current advisory database. CI rejects a dependency whose licence is not on the allow-list in `deny.toml`.
+and its checksum is in the signed `SHA256SUMS`. GitHub adds the source code archives of the tag automatically. `ananasar about` prints the dependency list and the advisories embedded in the binary, and `ananasar about --licenses` the licence texts. The binaries also carry `cargo auditable` data, so `cargo audit bin <file>` checks them against the current advisory database. CI rejects a dependency whose licence is not on the allow-list in `deny.toml`.
