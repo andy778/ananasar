@@ -894,14 +894,18 @@ mod tests {
         assert!(h.state().running());
         wait_until_idle(&mut h, Duration::from_secs(20));
 
-        let (totals, latency, error) = {
+        // The final partial second is not always a tick, so the run's own totals decide.
+        let (stats, ticks, latency, error) = {
             let st = lock(&h.state().shared.state);
-            (Totals::of(&st.ticks), st.latency, st.error.clone())
+            (st.report.as_ref().map(|r| r.stats.clone()), st.ticks.len(), st.latency, st.error.clone())
         };
         assert_eq!(error, None);
-        assert!(totals.sent >= 100, "{totals:?}");
-        assert_eq!(totals.sent, totals.replies, "our server answers every read: {totals:?}");
-        assert_eq!((totals.timeouts, totals.errors, totals.mismatches, totals.faults), (0, 0, 0, 0));
+        let stats = stats.expect("a finished run has a report");
+        assert!(ticks >= 1);
+        assert!(stats.sent >= 100, "{stats:?}");
+        assert_eq!(stats.sent, stats.ok, "our server answers every read: {stats:?}");
+        assert_eq!(stats.sent, stats.accounted(), "{stats:?}");
+        assert_eq!((stats.timeouts, stats.resets, stats.io_errors, stats.mismatch_total(), stats.fault_total()), (0, 0, 0, 0, 0));
         assert!(latency.count > 0 && latency.p95.is_some());
         assert!(!h.state().form.authorised, "the box is for one run");
         h.get_by_label("Save report");
@@ -944,7 +948,7 @@ mod tests {
         use egui_kittest::kittest::Queryable;
         let server = TestServer::start();
         let mut form = Form { target: format!("127.0.0.1:{}", server.port), duration: "1".to_owned(), ..Form::default() };
-        form.faults[6] = "5".to_owned();
+        form.faults[6] = "100".to_owned();
         let mut h = harness(form);
         h.run();
         // The button is disabled, and starting by other means is refused too.
@@ -960,7 +964,9 @@ mod tests {
         h.step();
         wait_until_idle(&mut h, Duration::from_secs(20));
         let st = lock(&h.state().shared.state);
-        assert!(st.error.is_none() && st.report.as_ref().is_some_and(|r| r.stats.fault_total() > 0));
+        assert!(st.error.is_none(), "{:?}", st.error);
+        let report = st.report.as_ref().expect("a finished run has a report");
+        assert!(report.stats.fault_total() > 0, "{:?}", report.stats);
     }
 
     #[test]
