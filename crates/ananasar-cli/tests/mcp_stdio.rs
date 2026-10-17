@@ -1,4 +1,5 @@
-//! Run the real binary and speak newline-delimited JSON-RPC over its pipes.
+//! Run the real binary (`ananasar mcp`) and speak newline-delimited JSON-RPC over its pipes.
+#![cfg(feature = "mcp")]
 #![allow(
     clippy::arithmetic_side_effects,
     clippy::indexing_slicing,
@@ -13,7 +14,8 @@ use std::process::{Command, Stdio};
 
 #[test]
 fn stdio_session_answers_one_line_per_request() {
-    let mut child = Command::new(env!("CARGO_BIN_EXE_ananasar-mcp"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_ananasar"))
+        .arg("mcp")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())

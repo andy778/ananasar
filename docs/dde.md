@@ -2,7 +2,7 @@
 
 On Windows, Ananasar can serve its registers to other programs through DDE, so that a spreadsheet cell can show a register and follow it as it changes.
 
-Dynamic Data Exchange (DDE) is an old Windows mechanism for programs to share values by name. A DDE client connects to a **service**, picks a **topic** and asks for an **item**; it can read the item once, write ("poke") it, or ask to be told whenever it changes (a **hot link**). Excel and LibreOffice Calc are DDE clients. The DDE server is part of `ananasar-gui` and exists on Windows only.
+Dynamic Data Exchange (DDE) is an old Windows mechanism for programs to share values by name. A DDE client connects to a **service**, picks a **topic** and asks for an **item**; it can read the item once, write ("poke") it, or ask to be told whenever it changes (a **hot link**). Excel and LibreOffice Calc are DDE clients. The DDE server is part of the GUI (`ananasar gui`) and exists on Windows only.
 
 ## Names
 
@@ -23,7 +23,7 @@ Values are exchanged as text. A read returns the register as a decimal number.
 
 ## Enabling it
 
-1. Start `ananasar-gui` and choose Options > DDE Server….
+1. Start `ananasar gui` and choose Options > DDE Server….
 2. In **Server activation** choose which registers are offered:
    - All Input and Holding registers
    - Input registers

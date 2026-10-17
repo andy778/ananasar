@@ -8,8 +8,8 @@ Common problems with ports, firewalls, silent devices and Modbus exceptions, and
 
 **The port is already in use.** Another program, or a second Ananasar, owns it.
 
-- `ananasar-gui` without `--port` moves to the next free port (up to 20 in a row) and shows "Port changed to N. Default port D is currently used by other instance of Ananas." The port in use is the *Local port* row of the Server panel and in the Options > TCP > Port menu entry.
-- `ananasar-gui --port N` and `ananasar server` do not fall back. The GUI shows "Cannot listen on port N: ..."; the CLI prints "Socket initialisation failed on port N" and exits with status 1. Pick another port or stop the other program.
+- `ananasar gui` without `--port` moves to the next free port (up to 20 in a row) and shows "Port changed to N. Default port D is currently used by other instance of Ananas." The port in use is the *Local port* row of the Server panel and in the Options > TCP > Port menu entry.
+- `ananasar gui --port N` and `ananasar server` do not fall back. The GUI shows "Cannot listen on port N: ..."; the CLI prints "Socket initialisation failed on port N" and exits with status 1. Pick another port or stop the other program.
 - If the port was just freed it may take a moment before it can be bound again.
 
 **The GUI shows a different port than I expected.** Check the notice at startup, or look at *Local port*. Use Options > TCP > Port > Change Port… to move it.
@@ -19,7 +19,7 @@ Common problems with ports, firewalls, silent devices and Modbus exceptions, and
 - **Windows Firewall** asks whether to allow the program on first start, because the server listens on all network interfaces. Allow it on the networks where clients will connect, or leave it blocked if you only test on the same machine.
 - **A client on another machine cannot connect.** Check the firewall of the machine running the server, that the server listens (Options > TCP > Port > Monitor Port is checked), and that the client uses the machine's address, not `127.0.0.1`.
 - **Windows SmartScreen** warns about the executables because they are not code-signed. Choose "More info", then "Run anyway". You can [verify the release signature](../README.md#verify-a-download) first.
-- **macOS Gatekeeper** blocks the unsigned binaries. Run `xattr -dr com.apple.quarantine ananasar ananasar-mcp ananasar-gui` in the extracted folder; see [Getting started](getting-started.md#install).
+- **macOS Gatekeeper** blocks the unsigned binary. Run `xattr -dr com.apple.quarantine ananasar` in the extracted folder; see [Getting started](getting-started.md#install).
 
 Modbus/TCP has no authentication or encryption. Do not expose the server to untrusted networks ([SECURITY.md](../SECURITY.md)).
 

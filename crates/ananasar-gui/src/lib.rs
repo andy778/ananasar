@@ -1,9 +1,9 @@
 //! Ananasar — a menu-driven Modbus/TCP client/server, consolidating the server
 //! (Values list), client and Set-value views into one app around a single
 //! in-process register model and embedded server. The GUI is egui/eframe.
-
-// Release builds on Windows are GUI-subsystem apps, so no console window opens.
-#![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
+//!
+//! This crate is a library; the `ananasar` binary (crate `ananasar-cli`) calls
+//! [`run`] for its `gui` subcommand.
 
 mod clientview;
 #[cfg(windows)]
@@ -55,28 +55,6 @@ const CLIENT_H: f32 = 548.0;
 /// Inner size of the client window: its 301 x 522 client area, menu bar and margins.
 const CLIENT_WINDOW_W: f32 = 309.0;
 const CLIENT_WINDOW_H: f32 = 560.0;
-
-/// The port from `--port N` / `-p N` on the command line, if given.
-/// An unusable value exits with a message rather than silently using the default.
-fn cli_port() -> Option<u16> {
-    let mut args = std::env::args().skip(1);
-    while let Some(a) = args.next() {
-        if a == "--port" || a == "-p" {
-            match args.next().as_deref().map(parse_port) {
-                Some(Ok(p)) => return Some(p),
-                Some(Err(e)) => {
-                    eprintln!("{a}: {e}");
-                    std::process::exit(2);
-                }
-                None => {
-                    eprintln!("{a} needs a port number");
-                    std::process::exit(2);
-                }
-            }
-        }
-    }
-    None
-}
 
 /// How many ports are tried in total (the default and the ones after it).
 const PORT_SEARCH_ATTEMPTS: u16 = 20;
@@ -130,12 +108,18 @@ struct PortDialog {
     error: String,
 }
 
-fn main() -> eframe::Result<()> {
+/// Open the main window and run until it is closed. `port` is the port given
+/// on the command line: with it the embedded server uses exactly that port,
+/// without it the server starts at the default and moves on if it is taken.
+///
+/// # Errors
+/// Returns the windowing or graphics error if the window cannot be created.
+pub fn run(port: Option<u16>) -> eframe::Result<()> {
     let mut viewport = egui::ViewportBuilder::default()
         .with_inner_size([CLIENT_W, CLIENT_H + 48.0])
         .with_resizable(false)
         .with_maximize_button(false)
-        .with_title(window_title(&local_ip(), cli_port().unwrap_or(DEFAULT_PORT)));
+        .with_title(window_title(&local_ip(), port.unwrap_or(DEFAULT_PORT)));
     // Window/taskbar icon — the two-pineapple logo (assets/icon.png).
     if let Ok(icon) = eframe::icon_data::from_png_bytes(include_bytes!("../../../assets/icon.png")) {
         viewport = viewport.with_icon(std::sync::Arc::new(icon));
@@ -146,7 +130,7 @@ fn main() -> eframe::Result<()> {
         cc.egui_ctx.set_theme(egui::ThemePreference::Light);
         theme::apply(&cc.egui_ctx, true);
         theme::load_monospace_font(&cc.egui_ctx);
-        Ok(Box::new(App::new(&cc.egui_ctx)))
+        Ok(Box::new(App::new(&cc.egui_ctx, port)))
     }))
 }
 
@@ -194,15 +178,15 @@ struct App {
 impl App {
     /// Build the app and start its embedded server. Worker threads keep a
     /// clone of `ctx` and repaint only when something changes.
-    fn new(ctx: &egui::Context) -> Self {
+    fn new(ctx: &egui::Context, requested_port: Option<u16>) -> Self {
         let regs: SharedRegs = Arc::new(Mutex::new(RegisterFile::new()));
         let server = ServerHandle::new();
         let stop = Arc::new(AtomicBool::new(false));
-        let mut port = cli_port().unwrap_or(DEFAULT_PORT);
+        let mut port = requested_port.unwrap_or(DEFAULT_PORT);
         let mut port_notice = None;
         let mut startup_error = None;
         let start = |p: u16| embed::start(ctx.clone(), regs.clone(), server.clone(), p, stop.clone());
-        if cli_port().is_some() {
+        if requested_port.is_some() {
             if let Err(e) = start(port) {
                 *lock(&server.status) = format!("bind :{port} failed: {e}");
                 startup_error = Some(format!("Cannot listen on port {port}: {e}"));

@@ -42,8 +42,11 @@ jobs:
         with:
           toolchain: "1.92"
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
-      # The GUI needs a newer Rust (egui 0.36), so only the other crates are checked.
-      - run: cargo test --locked -p ananasar-core -p ananasar-net -p ananasar-cli -p ananasar-mcp -p ananasar-storm
+      # The GUI needs a newer Rust (egui 0.36), so the CLI is built without its
+      # `gui` feature here (the headless build); the default build needs 1.95.
+      - run: cargo test --locked -p ananasar-core -p ananasar-net -p ananasar-storm -p ananasar-mcp
+      - run: cargo test --locked -p ananasar-cli --no-default-features
+      - run: cargo test --locked -p ananasar-cli --no-default-features --features mcp
 
   deny:
     name: cargo-deny (supply chain)
@@ -100,8 +103,6 @@ jobs:
         run: |
           mkdir dist
           cp target/release/ananasar.exe dist/
-          cp target/release/ananasar-mcp.exe dist/
-          cp target/release/ananasar-gui.exe dist/
           ls -la dist
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -140,14 +141,14 @@ jobs:
       - name: Make universal binaries
         run: |
           mkdir -p dist
-          for bin in ananasar ananasar-mcp ananasar-gui; do
+          for bin in ananasar; do
             lipo -create -output "dist/$bin" \
               "target/aarch64-apple-darwin/release/$bin" \
               "target/x86_64-apple-darwin/release/$bin"
             chmod +x "dist/$bin"
             lipo -info "dist/$bin"
           done
-          tar -C dist -czf ananasar-macos-universal.tar.gz ananasar ananasar-mcp ananasar-gui
+          tar -C dist -czf ananasar-macos-universal.tar.gz ananasar
           ls -la dist ananasar-macos-universal.tar.gz
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -183,10 +184,8 @@ jobs:
         run: |
           mkdir -p dist
           cp target/release/ananasar dist/
-          cp target/release/ananasar-mcp dist/
-          cp target/release/ananasar-gui dist/
           chmod +x dist/*
-          tar -C dist -czf ananasar-linux-x86_64.tar.gz ananasar ananasar-mcp ananasar-gui
+          tar -C dist -czf ananasar-linux-x86_64.tar.gz ananasar
           ls -la dist ananasar-linux-x86_64.tar.gz
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -231,7 +230,7 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           missing=0
-          for f in             artifacts/ananasar-windows-x64/ananasar.exe             artifacts/ananasar-windows-x64/ananasar-mcp.exe             artifacts/ananasar-windows-x64/ananasar-gui.exe             artifacts/ananasar-macos-universal/ananasar-macos-universal.tar.gz             artifacts/ananasar-linux-x86_64/ananasar-linux-x86_64.tar.gz             artifacts/notices/licenses.txt             artifacts/notices/dependencies.txt             artifacts/notices/advisories.txt             artifacts/notices/ananasar-cli.cdx.json             artifacts/notices/ananasar-mcp.cdx.json             artifacts/notices/ananasar-gui.cdx.json             "artifacts/source/ananasar-${version}-source.tar.gz"             "artifacts/source/ananasar-${version}-source.zip"; do
+          for f in             artifacts/ananasar-windows-x64/ananasar.exe             artifacts/ananasar-macos-universal/ananasar-macos-universal.tar.gz             artifacts/ananasar-linux-x86_64/ananasar-linux-x86_64.tar.gz             artifacts/notices/licenses.txt             artifacts/notices/dependencies.txt             artifacts/notices/advisories.txt             artifacts/notices/ananasar-cli.cdx.json             artifacts/notices/ananasar-mcp.cdx.json             artifacts/notices/ananasar-gui.cdx.json             "artifacts/source/ananasar-${version}-source.tar.gz"             "artifacts/source/ananasar-${version}-source.zip"; do
             if [ ! -f "$f" ]; then echo "::error::missing release asset: $f"; missing=1; fi
           done
           exit "$missing"

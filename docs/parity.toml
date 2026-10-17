@@ -68,7 +68,7 @@ id = "server-port-dialog"
 area = "gui"
 feature = "Dialog to change the server listening port"
 status = "partial"
-tests = ["crates/ananasar-gui/src/main.rs::port_must_be_1_to_65535"]
+tests = ["crates/ananasar-gui/src/lib.rs::port_must_be_1_to_65535"]
 issue = 50
 note = "port validation is tested; the dialog and the rebind are a manual check"
 
@@ -77,7 +77,7 @@ id = "server-port-fallback"
 area = "gui"
 feature = "At startup, when the default port is used by another instance, the server moves to the next free port and shows a notice"
 status = "partial"
-tests = ["crates/ananasar-gui/src/main.rs::first_free_port_skips_busy_ports", "crates/ananasar-gui/src/main.rs::first_free_port_gives_up_after_the_bound", "crates/ananasar-gui/src/main.rs::first_free_port_stops_at_65535_and_on_other_errors", "crates/ananasar-gui/src/main.rs::port_changed_text_names_both_ports"]
+tests = ["crates/ananasar-gui/src/lib.rs::first_free_port_skips_busy_ports", "crates/ananasar-gui/src/lib.rs::first_free_port_gives_up_after_the_bound", "crates/ananasar-gui/src/lib.rs::first_free_port_stops_at_65535_and_on_other_errors", "crates/ananasar-gui/src/lib.rs::port_changed_text_names_both_ports"]
 issue = 50
 note = "the port search and message are tested; the notice dialog is a manual check"
 
@@ -204,21 +204,21 @@ id = "server-active-functions"
 area = "server"
 feature = "Each of function codes 3, 4, 6, 7, 8, 16, 22 and 23 can be switched off, then gets an Illegal Function reply"
 status = "shipped"
-tests = ["crates/ananasar-core/src/lib.rs::disabled_function_code_yields_illegal_function", "crates/ananasar-core/src/lib.rs::fc7_and_fc8_are_enabled_by_default_and_can_be_disabled", "crates/ananasar-gui/src/main.rs::option_menus_match_the_original_entries"]
+tests = ["crates/ananasar-core/src/lib.rs::disabled_function_code_yields_illegal_function", "crates/ananasar-core/src/lib.rs::fc7_and_fc8_are_enabled_by_default_and_can_be_disabled", "crates/ananasar-gui/src/lib.rs::option_menus_match_the_original_entries"]
 
 [[feature]]
 id = "server-return-exception"
 area = "server"
 feature = "Option to answer every request with a chosen exception code"
 status = "shipped"
-tests = ["crates/ananasar-core/src/lib.rs::forced_exception_answers_every_request", "crates/ananasar-core/src/lib.rs::forced_exception_still_drops_unit_id_mismatch", "crates/ananasar-gui/src/main.rs::choosing_the_active_exception_again_turns_it_off"]
+tests = ["crates/ananasar-core/src/lib.rs::forced_exception_answers_every_request", "crates/ananasar-core/src/lib.rs::forced_exception_still_drops_unit_id_mismatch", "crates/ananasar-gui/src/lib.rs::choosing_the_active_exception_again_turns_it_off"]
 
 [[feature]]
 id = "server-disable-nagle"
 area = "server"
 feature = "Disable Nagle's algorithm on a connected client from the Options menu"
 status = "shipped"
-tests = ["crates/ananasar-net/tests/connections.rs::nagle_is_switched_on_a_live_connection_and_only_while_it_exists", "crates/ananasar-net/src/stats.rs::set_nagle_changes_the_socket_option_of_that_slot", "crates/ananasar-gui/src/main.rs::nagle_toggle_flips_a_live_connection_and_ignores_a_free_slot", "crates/ananasar-gui/src/menu/spec_tests.rs::nagle_entries_follow_the_connections"]
+tests = ["crates/ananasar-net/tests/connections.rs::nagle_is_switched_on_a_live_connection_and_only_while_it_exists", "crates/ananasar-net/src/stats.rs::set_nagle_changes_the_socket_option_of_that_slot", "crates/ananasar-gui/src/lib.rs::nagle_toggle_flips_a_live_connection_and_ignores_a_free_slot", "crates/ananasar-gui/src/menu/spec_tests.rs::nagle_entries_follow_the_connections"]
 note = "Connection #1 and #2 are enabled only while that connection exists, tick while Nagle is off, and the Server panel shows the new state"
 
 [[feature]]
@@ -269,7 +269,7 @@ id = "server-fault-options"
 area = "server"
 feature = "Return Incorrect TI, Protocol ID and Length High Byte, Reply Out of Synch, Use Address Offset"
 status = "shipped"
-tests = ["crates/ananasar-core/src/lib.rs::incorrect_transaction_id_marks_every_reply", "crates/ananasar-core/src/lib.rs::incorrect_protocol_id_and_length_high_spare_exceptions", "crates/ananasar-core/src/lib.rs::out_of_synch_answers_one_request_late", "crates/ananasar-core/src/lib.rs::address_offset_moves_the_window_up_by_one", "crates/ananasar-core/tests/properties.rs::header_fault_options_change_only_their_header_bytes", "crates/ananasar-core/tests/properties.rs::address_offset_stores_one_register_up_and_refuses_the_last_wire_address", "crates/ananasar-core/tests/properties.rs::out_of_synch_shifts_the_replies_by_one", "crates/ananasar-net/tests/connections.rs::reply_out_of_synch_answers_one_request_late", "crates/ananasar-gui/src/main.rs::menu_options_flip_their_own_switch"]
+tests = ["crates/ananasar-core/src/lib.rs::incorrect_transaction_id_marks_every_reply", "crates/ananasar-core/src/lib.rs::incorrect_protocol_id_and_length_high_spare_exceptions", "crates/ananasar-core/src/lib.rs::out_of_synch_answers_one_request_late", "crates/ananasar-core/src/lib.rs::address_offset_moves_the_window_up_by_one", "crates/ananasar-core/tests/properties.rs::header_fault_options_change_only_their_header_bytes", "crates/ananasar-core/tests/properties.rs::address_offset_stores_one_register_up_and_refuses_the_last_wire_address", "crates/ananasar-core/tests/properties.rs::out_of_synch_shifts_the_replies_by_one", "crates/ananasar-net/tests/connections.rs::reply_out_of_synch_answers_one_request_late", "crates/ananasar-gui/src/lib.rs::menu_options_flip_their_own_switch"]
 note = "the wrong transaction id is also put into exception replies, the wrong protocol id and length high byte are not, as recorded in the goldens; the address offset maps wire address n to register n + 1, which follows the recording and is not checked against the original's register display"
 
 [[feature]]

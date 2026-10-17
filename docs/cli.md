@@ -1,6 +1,6 @@
 # CLI manual
 
-The `ananasar` command runs a Modbus/TCP server, polls a server, scans for registers that answer and generates shell completions, with the same engine as the GUI.
+The `ananasar` command runs a Modbus/TCP server, polls a server, scans for registers that answer and generates shell completions, with the same engine as the GUI. The same program also opens the GUI (`ananasar gui`) and runs the [MCP server](mcp.md) (`ananasar mcp`); both are on by default and left out of a `--no-default-features` build, which is the small headless CLI.
 
 ```text
 ananasar <COMMAND>

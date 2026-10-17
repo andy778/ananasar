@@ -63,7 +63,7 @@ fn render_readme_screenshot() {
             theme::apply(&cc.egui_ctx, true);
             // The Courier face is read from the Windows fonts folder, so it is
             // left out: the image must look the same on every machine.
-            let mut app = App::new(&cc.egui_ctx);
+            let mut app = App::new(&cc.egui_ctx, None);
             app.port_notice = None;
             app.message = None;
             app.bank = Bank::Holding;
