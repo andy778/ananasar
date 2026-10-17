@@ -18,11 +18,53 @@ cargo about generate about-deps.hbs --workspace -o "$out/dependencies.txt.raw"
 grep -v '^$' "$out/dependencies.txt.raw" | LC_ALL=C sort -u > "$out/dependencies.txt"
 rm -f "$out/dependencies.txt.raw"
 
+# Findings the project accepts, with the reason, from the ignore list in
+# deny.toml: one "ID<TAB>reason" line each.
+accepted="$(awk '
+  /^ignore *= *\[/ { in_list = 1; next }
+  in_list && /^\]/ { in_list = 0 }
+  in_list && /^ *#/ { sub(/^ *# ?/, ""); reason = reason (reason ? " " : "") $0; next }
+  in_list && /"RUSTSEC-/ { id = $0; gsub(/[ ",]/, "", id); print id "	" reason; reason = "" }
+' deny.toml)"
+
+# No colour codes, and no --deny: that mode only adds a bare "error:" line for
+# warnings such as unmaintained crates. A vulnerability still makes cargo-audit
+# exit non-zero; the report is wanted either way.
+audit="$(cargo audit --quiet --color never 2>&1 || true)"
+found="$(printf '%s
+' "$audit" | sed -n 's/^ID: *//p')"
+
 {
   echo "Checked on $(date -u +%Y-%m-%d) against the RustSec advisory database."
   echo
-  # A vulnerability makes cargo-audit exit non-zero; the report is still wanted.
-  cargo audit --quiet --deny warnings 2>&1 || true
+  if [ -n "$audit" ]; then
+    printf '%s
+' "$audit"
+  else
+    echo "No advisories found."
+  fi
+  echo
+  unaccepted=""
+  for id in $found; do
+    printf '%s
+' "$accepted" | cut -f1 | grep -qx "$id" || unaccepted="$unaccepted $id"
+  done
+  if [ -n "$unaccepted" ]; then
+    echo "NOT ACCEPTED: the findings above include${unaccepted}, which the project"
+    echo "has not accepted. They are reported in full above."
+    echo
+  fi
+  echo "Accepted findings (ignored in deny.toml; informational notices only):"
+  if [ -n "$accepted" ]; then
+    printf '%s
+' "$accepted" | while IFS="$(printf '	')" read -r id reason; do
+      if printf '%s
+' "$found" | grep -qx "$id"; then state="present"; else state="not present now"; fi
+      echo "  $id ($state): $reason"
+    done
+  else
+    echo "  none"
+  fi
 } > "$out/advisories.txt"
 
 # The SBOM covers the three shipped programs. cargo-cyclonedx writes the files
