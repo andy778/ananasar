@@ -143,6 +143,27 @@ cargo build --release      # binaries in target/release/
 cargo test                 # protocol and optimizer tests
 ```
 
+### Debian / Ubuntu
+
+Debian's packaged Rust is older than 1.92, so install the toolchain with [rustup](https://rustup.rs) instead of `apt`.
+
+```bash
+sudo apt install build-essential pkg-config git curl
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+. "$HOME/.cargo/env"
+
+git clone https://github.com/andy778/ananasar.git && cd ananasar
+cargo build --release
+```
+
+The CLI and server (`target/release/ananasar`) run headless and need nothing more. The GUI (`target/release/ananasar-gui`) needs a desktop session (X11 or Wayland). The windowing libraries are loaded at run time, so a minimal install may need them:
+
+```bash
+sudo apt install libxkbcommon-x11-0 libwayland-client0 libx11-6 libxcursor1 libxi6 libxrandr2 libgl1 libegl1
+```
+
+To skip building, download the `ananasar-linux-x86_64.tar.gz` release; it is built on Ubuntu 24.04, so it needs a comparably recent glibc.
+
 The parsers that read network input are also fuzzed (`cargo +nightly fuzz run frame` from the repository root, using [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz)). CI builds and releases the Windows, macOS and Linux binaries.
 
 The README screenshot is rendered headlessly from the real window; see [docs/screenshots.md](docs/screenshots.md) to regenerate it.
