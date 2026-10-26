@@ -88,8 +88,8 @@ struct ServerArgs {
     #[arg(short, long, default_value_t = DEFAULT_PORT)]
     port: u16,
     /// Accepted unit id; 0 accepts any
-    #[arg(short, long, default_value_t = 0)]
-    uid: u8,
+    #[arg(short = 'u', long = "uid", default_value_t = 0)]
+    unit_id: u8,
     /// Load register values from a *.ananas file before serving
     #[arg(long, value_name = "FILE")]
     load: Option<PathBuf>,
@@ -121,8 +121,8 @@ struct ClientArgs {
     /// Server address as host:port
     target: String,
     /// Unit id to address
-    #[arg(short, long, default_value_t = 1)]
-    uid: u8,
+    #[arg(short = 'u', long = "uid", default_value_t = 1)]
+    unit_id: u8,
     /// Holding registers to read (FC3), comma-separated
     #[arg(long, value_delimiter = ',', value_name = "ADDR,...")]
     read_holding: Vec<u16>,
@@ -154,8 +154,8 @@ struct ScanArgs {
     /// Server address as host:port
     target: String,
     /// Unit id to address
-    #[arg(short, long, default_value_t = 1)]
-    uid: u8,
+    #[arg(short = 'u', long = "uid", default_value_t = 1)]
+    unit_id: u8,
     /// Register bank to scan
     #[arg(short, long, value_enum, default_value_t = BankArg::Holding)]
     bank: BankArg,
@@ -216,7 +216,7 @@ fn run_gui(port: Option<u16>) -> i32 {
 }
 
 fn run_server(args: &ServerArgs) -> i32 {
-    let ServerArgs { port, uid, .. } = *args;
+    let ServerArgs { port, unit_id, .. } = *args;
     let mut registers = RegisterFile::new();
     if let Some(path) = args.load.as_deref() {
         let loaded = std::fs::read_to_string(path)
@@ -236,7 +236,7 @@ fn run_server(args: &ServerArgs) -> i32 {
             return 1;
         }
     };
-    println!("Ananasar server listening on 0.0.0.0:{port} (uid {uid}, max {MAX_CLIENTS} clients)");
+    println!("Ananasar server listening on 0.0.0.0:{port} (unit id {unit_id}, max {MAX_CLIENTS} clients)");
 
     let log = match &args.log_dir {
         Some(dir) => {
@@ -261,7 +261,7 @@ fn run_server(args: &ServerArgs) -> i32 {
     let server = Server {
         regs: Arc::new(Mutex::new(registers)),
         cfg: Arc::new(Mutex::new(ServerConfig {
-            unit_id: uid,
+            unit_id,
             wrong_transaction_id: args.wrong_ti,
             wrong_protocol_id: args.wrong_protocol_id,
             wrong_length_high: args.wrong_length_high,
@@ -284,10 +284,10 @@ fn run_server(args: &ServerArgs) -> i32 {
 }
 
 fn run_client(args: ClientArgs) -> i32 {
-    let ClientArgs { target, uid, read_holding, read_input, write, count: polls, interval_ms, zero_ti } = args;
+    let ClientArgs { target, unit_id, read_holding, read_input, write, count: polls, interval_ms, zero_ti } = args;
     let interval = Duration::from_millis(interval_ms);
     let regs = RegisterFile::new();
-    let mut eng = PollEngine::new(uid);
+    let mut eng = PollEngine::new(unit_id);
     eng.force_zero_txn = zero_ti;
     eng.read_holding = PollList::new(read_holding);
     eng.read_input = PollList::new(read_input);
@@ -352,7 +352,7 @@ fn run_scan(args: &ScanArgs) -> i32 {
     };
     stream.set_read_timeout(Some(Duration::from_millis(args.timeout_ms))).ok();
     let started = std::time::Instant::now();
-    let mut scan = Scanner::new(args.uid, bank, args.start, args.end);
+    let mut scan = Scanner::new(args.unit_id, bank, args.start, args.end);
     while let Some((addr, query)) = scan.next_query() {
         let response = stream.write_all(&query).ok().and_then(|()| read_frame(&mut stream).ok());
         let broken = response.is_none();

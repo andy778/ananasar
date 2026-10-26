@@ -45,7 +45,7 @@ ananasar server --port 15020 --load plant.ananas --log-dir logs --interpretive
 It prints one line when it starts and one for each client that connects or disconnects:
 
 ```text
-Ananasar server listening on 0.0.0.0:15020 (uid 0, max 2 clients)
+Ananasar server listening on 0.0.0.0:15020 (unit id 0, max 2 clients)
 logging to logs/ananasar-15020-2026-10-15_09-30-00.log
 client connected: 127.0.0.1:50422
 ```
