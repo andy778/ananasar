@@ -41,7 +41,6 @@ rustPlatform.buildRustPackage (finalAttrs: {
       ../clippy.toml
       ../crates
       ../assets
-      ../docs
     ];
   };
 
@@ -51,6 +50,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
     "--package"
     "ananasar-cli"
   ];
+  # Only the CLI's own tests; the other crates' tests read files (docs/)
+  # that are not in the source.
+  cargoTestFlags = finalAttrs.cargoBuildFlags;
   buildNoDefaultFeatures = true;
   buildFeatures = lib.optional withGui "gui" ++ lib.optional withMcp "mcp";
 
