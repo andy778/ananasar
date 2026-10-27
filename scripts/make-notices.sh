@@ -12,6 +12,19 @@ set -euo pipefail
 out="${1:-target/notices}"
 mkdir -p "$out"
 
+# The SBOM and the advisory scan do not depend on the licence texts, so they
+# run alongside them. cargo-cyclonedx writes a file next to each crate's
+# Cargo.toml; the rest of the script only reads Cargo.lock.
+cargo cyclonedx --format json --spec-version 1.5 --override-filename sbom &
+sbom_pid=$!
+# No colour codes, and no --deny: that mode only adds a bare "error:" line for
+# warnings such as unmaintained crates. A vulnerability still makes cargo-audit
+# exit non-zero; the report is wanted either way.
+audit_file="$(mktemp)"
+trap 'rm -f "$audit_file"' EXIT
+{ cargo audit --quiet --color never > "$audit_file" 2>&1 || true; } &
+audit_pid=$!
+
 cargo about generate about.hbs --workspace -o "$out/licenses.txt"
 cargo about generate about-deps.hbs --workspace -o "$out/dependencies.txt.raw"
 # One sorted, de-duplicated line per dependency; the template leaves blank lines.
@@ -27,10 +40,8 @@ accepted="$(awk '
   in_list && /"RUSTSEC-/ { id = $0; gsub(/[ ",]/, "", id); print id "	" reason; reason = "" }
 ' deny.toml)"
 
-# No colour codes, and no --deny: that mode only adds a bare "error:" line for
-# warnings such as unmaintained crates. A vulnerability still makes cargo-audit
-# exit non-zero; the report is wanted either way.
-audit="$(cargo audit --quiet --color never 2>&1 || true)"
+wait "$audit_pid"
+audit="$(cat "$audit_file")"
 found="$(printf '%s
 ' "$audit" | sed -n 's/^ID: *//p')"
 
@@ -69,8 +80,7 @@ found="$(printf '%s
 
 # One SBOM for the shipped program. The gui and mcp libraries are built into
 # `ananasar-cli` through its default features, so its SBOM covers them.
-# cargo-cyclonedx writes a file next to each crate's Cargo.toml.
-cargo cyclonedx --format json --spec-version 1.5 --override-filename sbom
+wait "$sbom_pid"
 mv crates/ananasar-cli/sbom.json "$out/ananasar.cdx.json"
 # The remaining workspace crates get an sbom.json too; remove them.
 rm -f crates/*/sbom.json
