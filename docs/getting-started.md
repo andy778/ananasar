@@ -31,6 +31,8 @@ tar xzf ananasar-linux-x86_64.tar.gz
 ./ananasar gui
 ```
 
+**Nix.** The repository is a flake; `nix run github:andy778/ananasar -- gui` runs the GUI, and `nix build .#ananasar-cli` builds the headless CLI. The GUI needs Rust 1.95, so use a recent nixpkgs. Outside NixOS the GUI cannot find the host's GPU driver; with NVIDIA, run it through [nixGL](https://github.com/nix-community/nixGL) (`nixVulkanNvidia nixGLNvidia ananasar gui`).
+
 To build from source instead, see [Build from source](../README.md#build-from-source).
 
 ## Default port
