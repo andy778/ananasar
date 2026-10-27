@@ -9,12 +9,23 @@ updates:
       semver-major-days: 14
       semver-minor-days: 7
       semver-patch-days: 3
+    groups:
+      # The egui crates are released together and must stay on one version.
+      egui:
+        patterns:
+          - "eframe"
+          - "egui*"
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: weekly
     cooldown:
       default-days: 7
+    groups:
+      # init, analyze and upload-sarif are one action released together.
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
