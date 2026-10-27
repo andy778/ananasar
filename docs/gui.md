@@ -21,7 +21,7 @@ The window title shows the machine's outgoing IP address (or the port, if none c
 
 | Area | What it shows |
 | --- | --- |
-| Registers (left) | A list of 26 registers with the columns Register, Value and R/W. |
+| Registers (left) | A list of 26 registers of this window's own server, with the columns Register, Value and R/W. |
 | Type Shown | Input or Holding: which bank the list displays. |
 | Start Address | First address in the list. Pick or type it. |
 | UID | The unit id the server answers to; 0 answers any unit id (the default). |
@@ -31,6 +31,8 @@ The window title shows the machine's outgoing IP address (or the port, if none c
 | Status bar | Date and time. Hover for the server state, port and number of clients. |
 
 ### Register list
+
+The list shows the registers of the server the GUI runs, the values that clients connected to it read and write. It does not show what the [client window](#client-window) reads from another server; those values appear in the client window's log. Hover the **Registers** caption for a reminder (with tooltips on).
 
 - The mouse wheel over the list scrolls by ten registers.
 - Click a value to select it. The R/W column always reads `-/-`.
