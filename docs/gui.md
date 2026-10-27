@@ -164,7 +164,7 @@ Press **Show** in the Client box of the main window. The client window is a sepa
 **Connect…** opens the **Server connection** dialog:
 
 - **IP**: four fields, one per octet. Only dotted IPv4 addresses can be entered here (no host names).
-- **Port**: 1-65535. It starts with the embedded server's port.
+- **Port**: 1-65535. It starts at 502, the Modbus/TCP port, on every platform.
 - **Send Keepalives to server**: enable TCP keepalives.
 
 **OK** connects. While connected the dialog is locked; press **Disconnect** first. The *Connection partner* line shows the server's IP and port. Connection events and errors appear in the log at the bottom; double-click it to clear it and right-click for Copy.
