@@ -17,3 +17,6 @@ timeframe. Fixes, if any, land on `main`.
 - Known transitive advisory: `ttf-parser` (RUSTSEC-2026-0192, *unmaintained*)
   is pulled in via the `eframe` GUI stack on Linux only. It is informational
   (no known exploit, no patched version); tracked upstream in `egui`/`winit`.
+- Known transitive advisories: `zvariant`, `zbus_names` and `zvariant_derive`
+  (RUSTSEC-2026-0370, -0371, -0372, *unmaintained*, merged into `zbus`) are pulled in via `eframe` ->
+  `accesskit` on Linux only. It is informational (no known exploit, no patched version).

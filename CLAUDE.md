@@ -1,6 +1,6 @@
 # Ananasar: instructions for Claude
 
-Rust port of Ananas, the free Modbus/TCP tool by Tuomio. Crates: `ananasar-core` (std-only, I/O-free engine), `ananasar-net` (blocking server + frame reader), `ananasar-cli` (clap; produces the one `ananasar` binary, which also embeds `ananasar-gui` (egui, `ananasar gui`) and `ananasar-mcp` (`ananasar mcp`) through the default features `gui` and `mcp`), `fuzz` (excluded from the workspace).
+Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/ananas/. Crates: `ananasar-core` (std-only, I/O-free engine), `ananasar-net` (blocking server + frame reader), `ananasar-cli` (clap; produces the one `ananasar` binary, which also embeds `ananasar-gui` (egui, `ananasar gui`) and `ananasar-mcp` (`ananasar mcp`) through the default features `gui` and `mcp`), `fuzz` (excluded from the workspace).
 
 ## Workflow
 - `main` is protected by a ruleset: change it through a branch and PR, with `test (linux)` and `build windows x64 exes` passing.
@@ -16,6 +16,6 @@ Rust port of Ananas, the free Modbus/TCP tool by Tuomio. Crates: `ananasar-core`
 
 ## Never
 - Commit the original `Ananas64.exe`, the documentation PDF or any zip of them (they are gitignored on purpose).
-- Put reverse-engineering internals (Ghidra function names, addresses) in the repo. Credit REA and the original author (Tuomio) only as the README does.
+- Put reverse-engineering internals (Ghidra function names, addresses) in the repo. Credit REA and say the original was taken from http://www.tuomio.fi/ananas/ only as the README does; never name its author.
 - Use anything from the Ananas documentation PDF. It was written by Wärtsilä, not by the tool's author, so nothing from it may be used or quoted: no section references, wording, examples or file naming. Behaviour comes from the program itself or from the Modbus specification.
 - Promise support or a private security channel in `SECURITY.md`.
