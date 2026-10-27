@@ -434,7 +434,7 @@ impl App {
 
             let cell = egui::Rect::from_min_max(egui::pos2(col_x(1) + 1.0, top + 1.0), egui::pos2(col_x(2), top + ROW_H));
             if self.editing == Some(addr) {
-                let edit = egui::TextEdit::singleline(&mut self.edit_buf).frame(egui::Frame::NONE).margin(egui::Margin::symmetric(3, 0)).vertical_align(egui::Align::Center);
+                let edit = egui::TextEdit::singleline(&mut self.edit_buf).frame(egui::Frame::NONE).margin(egui::Margin::symmetric(3, 0)).align(egui::Align2::LEFT_CENTER);
                 let resp = ui.put(cell, edit);
                 resp.request_focus();
                 if resp.lost_focus() {
@@ -446,7 +446,7 @@ impl App {
                 continue;
             }
             painter.text(text_at(1), egui::Align2::LEFT_CENTER, self.fmt(value), font.clone(), black);
-            let resp = ui.interact(cell, ui.id().with(("reg_cell", n)), egui::Sense::click());
+            let resp = ui.interact(cell, ui.scope_id().with(("reg_cell", n)), egui::Sense::click());
             if resp.clicked() || resp.double_clicked() {
                 self.selected = Some(addr);
             }
@@ -585,7 +585,7 @@ impl App {
                 let rect = painter.text(at(x, y), egui::Align2::LEFT_CENTER, v, font.clone(), colour);
                 // A failed header check says why when hovered.
                 if i == 4 && self.tooltips && let Some(Err(why)) = c.and_then(|c| c.header_check.as_ref()) {
-                    ui.interact(rect, ui.id().with(("header_check", slot)), egui::Sense::hover()).on_hover_text(why);
+                    ui.interact(rect, ui.scope_id().with(("header_check", slot)), egui::Sense::hover()).on_hover_text(why);
                 }
             }
         }
