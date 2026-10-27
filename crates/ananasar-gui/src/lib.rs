@@ -238,7 +238,9 @@ impl App {
             log_interpretive: true,
             message: startup_error,
             status_note: String::new(),
-            client: ClientView::new(format!("127.0.0.1:{port}"), ctx.clone()),
+            // The client mostly reaches real devices, so it starts on the Modbus port
+            // rather than this server's (15020 outside Windows).
+            client: ClientView::new(format!("127.0.0.1:{}", ananasar_core::protocol::DEFAULT_PORT), ctx.clone()),
             setval: SetValView::default(),
             scanner: ScannerView::new(format!("127.0.0.1:{port}"), ctx.clone()),
             storm: StormView::new(ctx.clone()),
