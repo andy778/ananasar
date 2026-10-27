@@ -89,10 +89,12 @@ jobs:
         with:
           command: check advisories bans sources licenses
 
+  # Release builds only: the notices are embedded into the release binaries and
+  # shipped with them. Pull requests do not run it; cargo-deny checks the
+  # licences and advisories there.
   notices:
     name: third-party notices and sbom
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -110,9 +112,33 @@ jobs:
           path: notices/*
           if-no-files-found: error
 
+  # The pull request and main build: it must still compile on Windows, but it
+  # does not wait for the notices job and it skips link-time optimisation, which
+  # is most of the release build's time. The release build below embeds the
+  # notices and keeps the release profile; both jobs carry the name the
+  # `protect-main` ruleset requires.
+  windows-check:
+    name: build windows x64 exes
+    needs: changes
+    if: needs.changes.outputs.code == 'true' && !startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    env:
+      CARGO_PROFILE_RELEASE_LTO: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          save-if: true # TEMP measurement
+      - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
+        with:
+          tool: cargo-auditable
+      - run: cargo auditable build --release --workspace --locked
+
   windows:
     name: build windows x64 exes
     needs: notices
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
