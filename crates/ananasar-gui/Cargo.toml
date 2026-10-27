@@ -13,7 +13,7 @@ ananasar-net = { path = "../ananasar-net" }
 ananasar-storm = { path = "../ananasar-storm" }
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
 eframe = "0.36"
-egui_extras = "0.36"
+egui_extras = "0.37"
 rfd = "0.17.2"
 
 [target.'cfg(windows)'.dependencies]
