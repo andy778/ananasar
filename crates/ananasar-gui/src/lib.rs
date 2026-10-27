@@ -392,7 +392,7 @@ impl App {
         let caption = painter.text(at(14.0, 8.0, 0.0, 0.0).min, egui::Align2::LEFT_TOP, "Registers", font.clone(), black);
         // The list is this server's register file, which the client window shares (#136).
         if self.tooltips {
-            ui.interact(caption, ui.id().with("registers_caption"), egui::Sense::hover()).on_hover_text(REGISTERS_TIP);
+            ui.interact(caption, ui.scope_id().with("registers_caption"), egui::Sense::hover()).on_hover_text(REGISTERS_TIP);
         }
         let outer = at(14.0, 25.0, COLS.iter().sum::<f32>() + 4.0, HEADER_H + ROW_H * f32::from(VISIBLE_ROWS) + 4.0);
         let inner = outer.shrink(2.0);
