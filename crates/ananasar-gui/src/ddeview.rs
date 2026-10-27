@@ -82,7 +82,7 @@ impl DdeView {
                 }
             }
             let rect = at(273.0, 131.0, 38.0, 38.0);
-            let resp = ui.interact(rect, ui.id().with("dde_info"), egui::Sense::click());
+            let resp = ui.interact(rect, ui.scope_id().with("dde_info"), egui::Sense::click());
             info_icon(ui.painter(), rect, resp.hovered());
             info = resp.clicked();
             if !self.error.is_empty() {
