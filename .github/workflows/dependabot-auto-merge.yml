@@ -1,0 +1,44 @@
+name: dependabot auto-merge
+
+# Turns on auto-merge for Dependabot patch updates, and for minor updates of
+# dependencies at 1.0 or later. GitHub then merges once the required checks of
+# the `protect-main` ruleset pass. Dependabot's own `cooldown` (dependabot.yml)
+# already holds new releases back before it opens the PR, so this adds no wait.
+# Major updates, and minor updates of 0.x dependencies (breaking in Rust, e.g.
+# egui 0.36 to 0.37), stay for a human to review.
+#
+# pull_request_target gives the token write access on a Dependabot PR. The job
+# never checks out the PR's code.
+
+on: pull_request_target
+
+permissions:
+  contents: read
+
+jobs:
+  auto-merge:
+    name: enable auto-merge
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Enable auto-merge for patch and 1.x+ minor updates
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+          PREVIOUS_VERSION: ${{ steps.meta.outputs.previous-version }}
+        run: |
+          major="${PREVIOUS_VERSION%%.*}"
+          if [ "$UPDATE_TYPE" = "version-update:semver-patch" ] \
+            || { [ "$UPDATE_TYPE" = "version-update:semver-minor" ] && [ "$major" != "0" ]; }; then
+            gh pr merge --auto --rebase "$PR_URL"
+          else
+            echo "Not auto-merging: $UPDATE_TYPE from $PREVIOUS_VERSION needs a review."
+          fi
