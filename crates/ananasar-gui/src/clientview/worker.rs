@@ -4,7 +4,7 @@ use super::connection::partner_text;
 use super::polling::{clamp_limit, MAX_READ, MAX_WRITE};
 use ananasar_core::client::{AddressBase, ManualCommand, PollEngine, PollList};
 use ananasar_core::protocol::{self, Function};
-use ananasar_core::registers::RegisterFile;
+use crate::embed::SharedRegs;
 use ananasar_core::sync::lock;
 use ananasar_net::read_frame;
 use eframe::egui;
@@ -40,7 +40,8 @@ pub(super) enum Cmd {
 
 pub(super) struct Shared {
     pub(super) log: Mutex<VecDeque<String>>,
-    pub(super) regs: Mutex<RegisterFile>,
+    /// The GUI server's register file, shared with the main window.
+    pub(super) regs: SharedRegs,
     pub(super) connected: AtomicBool,
     pub(super) status: Mutex<String>,
     /// Peer of the live connection, shown in the partner line.
@@ -205,7 +206,7 @@ fn log_resp(shared: &Shared, resp: &[u8]) {
 
 fn store_read(shared: &Shared, func: u8, start: u16, pdu: &[u8]) {
     if func != Function::ReadHolding as u8 || pdu.is_empty() {
-        return; // only mirror holding reads into the display regs
+        return; // only holding reads are stored
     }
     let mut regs = lock(&shared.regs);
     let words = pdu.get(1..).unwrap_or_default().as_chunks::<2>().0;

@@ -1,7 +1,7 @@
 //! Client view (`TFRMCLIENT`): poll-list editor + trigger modes wired to the
-//! real [`ananasar_core::client::PollEngine`], rendered as a floating window. Keeps its own display
-//! register file (the original's client shares the register model; here it
-//! holds the values read back from the remote server it is pointed at).
+//! real [`ananasar_core::client::PollEngine`], rendered as a floating window. Like the original's
+//! client it shares the register file of the GUI's own server: holding reads
+//! land in the main window's list, and writes send the values held there.
 //!
 //! The window is composed from one module per section; each adds its
 //! `*_ui` method to [`ClientView`].
@@ -14,7 +14,7 @@ mod polling;
 mod widgets;
 mod worker;
 
-use ananasar_core::registers::RegisterFile;
+use crate::embed::SharedRegs;
 use eframe::egui;
 use widgets::Canvas;
 use connection::ConnDialog;
@@ -69,10 +69,10 @@ pub struct ClientView {
 }
 
 impl ClientView {
-    pub fn new(default_host: String, ctx: egui::Context) -> Self {
+    pub fn new(default_host: String, regs: SharedRegs, ctx: egui::Context) -> Self {
         let shared = Arc::new(Shared {
             log: Mutex::new(VecDeque::new()),
-            regs: Mutex::new(RegisterFile::new()),
+            regs,
             connected: AtomicBool::new(false),
             status: Mutex::new(String::new()),
             partner: Mutex::new(None),

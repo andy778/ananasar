@@ -21,7 +21,7 @@ The window title shows the machine's outgoing IP address (or the port, if none c
 
 | Area | What it shows |
 | --- | --- |
-| Registers (left) | A list of 26 registers of this window's own server, with the columns Register, Value and R/W. |
+| Registers (left) | A list of 26 registers of this window's own server, shared with the client window, with the columns Register, Value and R/W. |
 | Type Shown | Input or Holding: which bank the list displays. |
 | Start Address | First address in the list. Pick or type it. |
 | UID | The unit id the server answers to; 0 answers any unit id (the default). |
@@ -32,7 +32,7 @@ The window title shows the machine's outgoing IP address (or the port, if none c
 
 ### Register list
 
-The list shows the registers of the server the GUI runs, the values that clients connected to it read and write. It does not show what the [client window](#client-window) reads from another server; those values appear in the client window's log. Hover the **Registers** caption for a reminder (with tooltips on).
+The list shows the registers of the server the GUI runs, the values that clients connected to it read and write. The [client window](#client-window) shares this register file: the holding registers it reads from another server are stored here, so they show in the list (set the Type Shown to Holding and the Start Address to the registers polled), and the values it writes are the ones in this list. External clients connected to the GUI's server see those values too. Hover the **Registers** caption for a reminder (with tooltips on).
 
 - The mouse wheel over the list scrolls by ten registers.
 - Click a value to select it. The R/W column always reads `-/-`.
@@ -176,7 +176,7 @@ Press **Show** in the Client box of the main window. The client window is a sepa
 The client keeps three sorted address lists:
 
 - **Read Input/Holding register**: choose Input registers or Holding registers, pick an address from the drop-down (or type it) and press **Add** or **Remove**.
-- **Write Holding register**: the same for registers to write with FC16. The values written are those in the client's own copy of the holding registers, which is filled by holding reads; unread registers are 0.
+- **Write Holding register**: the same for registers to write with FC16. The values written are those in the main window's holding registers, which holding reads from the client fill in; unread registers are 0 unless you set them.
 
 Edit > Add Serie > Holding Registers > Write / Read, or Input Registers, opens the **Series** dialog: enter **From** and **To** (From must not exceed To) and press OK to add the range to that list, or tick **Remove** to take it out. Edit > Clear empties a list.
 
