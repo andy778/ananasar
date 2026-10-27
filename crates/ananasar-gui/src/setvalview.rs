@@ -176,7 +176,7 @@ impl SetValView {
         // Current value
         group_box(ui, at(200.0, 7.0, 185.0, 74.0), "Current value");
         let cur = at(208.0, 26.0, 169.0, 48.0);
-        let resp = ui.interact(cur, ui.id().with("current"), Sense::click());
+        let resp = ui.interact(cur, ui.scope_id().with("current"), Sense::click());
         ui.painter().text(cur.center(), Align2::CENTER_CENTER, format!("{current:05}"), FontId::monospace(34.0), Color32::from_rgb(0x00, 0x00, 0xC8));
         if resp.on_hover_text("DoubleClick to copy current value to 'Edit value'").double_clicked() {
             self.set_pending(current);
@@ -203,7 +203,7 @@ impl SetValView {
         // Bitmask
         let mask = at(16.0, 136.0, 361.0, 41.0);
         group_box(ui, mask, "Bitmask");
-        ui.interact(mask, ui.id().with("mask"), Sense::hover()).on_hover_text("Check/Uncheck to set individual bits");
+        ui.interact(mask, ui.scope_id().with("mask"), Sense::hover()).on_hover_text("Check/Uncheck to set individual bits");
         for i in 0..16u8 {
             let bit = 15 - i;
             let x = 24.0 + f32::from(i) * 21.0;
