@@ -184,7 +184,7 @@ pub fn bevel_button(
     icon: Option<fn(&egui::Painter, egui::Rect, bool)>,
 ) -> egui::Response {
     let sense = if enabled { egui::Sense::click() } else { egui::Sense::hover() };
-    let resp = ui.interact(rect, ui.id().with(("bevel_button", id)), sense);
+    let resp = ui.interact(rect, ui.scope_id().with(("bevel_button", id)), sense);
     let down = enabled && resp.is_pointer_button_down_on();
     let face = if enabled && resp.hovered() { HOT_FACE } else { BTN_FACE };
     let painter = ui.painter();
@@ -237,10 +237,10 @@ fn combo_with(ui: &mut egui::Ui, rect: egui::Rect, id: &str, value: &mut u16, ma
     let text_rect = egui::Rect::from_min_max(shift(rect.min, 2.0, 2.0), egui::pos2(arrow.left(), rect.bottom() - 2.0));
 
     // The text field keeps what is being typed until it loses focus.
-    let edit_id = ui.id().with(("combo_edit", id));
+    let edit_id = ui.scope_id().with(("combo_edit", id));
     let focused = ui.memory(|m| m.has_focus(edit_id));
     let mut buf = if focused { ui.data(|d| d.get_temp::<String>(edit_id)).unwrap_or_else(|| fmt(*value)) } else { fmt(*value) };
-    let edit = egui::TextEdit::singleline(&mut buf).id(edit_id).frame(egui::Frame::NONE).margin(egui::Margin::symmetric(3, 0)).vertical_align(egui::Align::Center);
+    let edit = egui::TextEdit::singleline(&mut buf).id(edit_id).frame(egui::Frame::NONE).margin(egui::Margin::symmetric(3, 0)).align(egui::Align2::LEFT_CENTER);
     let resp = ui.put(text_rect, edit);
     if resp.changed()
         && let Ok(v) = u32::from_str_radix(buf.trim(), if hex { 16 } else { 10 })
@@ -254,7 +254,7 @@ fn combo_with(ui: &mut egui::Ui, rect: egui::Rect, id: &str, value: &mut u16, ma
         ui.data_mut(|d| d.remove_temp::<String>(edit_id));
     }
 
-    let btn = ui.interact(arrow, ui.id().with(("combo_arrow", id)), egui::Sense::click());
+    let btn = ui.interact(arrow, ui.scope_id().with(("combo_arrow", id)), egui::Sense::click());
     let down = btn.is_pointer_button_down_on();
     painter.rect_filled(arrow, 0.0, if btn.hovered() { HOT_FACE } else { BTN_FACE });
     let (a, b) = if down { (BTN_SHADOW, Color32::WHITE) } else { (Color32::WHITE, Color32::from_rgb(0x69, 0x69, 0x69)) };
@@ -345,10 +345,10 @@ pub fn spin_u64(ui: &mut egui::Ui, rect: egui::Rect, id: &str, value: &mut u64, 
     let mut changed = false;
 
     // The text field keeps what is being typed until it loses focus.
-    let edit_id = ui.id().with(("spin_edit", id));
+    let edit_id = ui.scope_id().with(("spin_edit", id));
     let focused = ui.memory(|m| m.has_focus(edit_id));
     let mut buf = if focused { ui.data(|d| d.get_temp::<String>(edit_id)).unwrap_or_else(|| value.to_string()) } else { value.to_string() };
-    let edit = egui::TextEdit::singleline(&mut buf).id(edit_id).frame(egui::Frame::NONE).margin(egui::Margin::symmetric(3, 0)).vertical_align(egui::Align::Center);
+    let edit = egui::TextEdit::singleline(&mut buf).id(edit_id).frame(egui::Frame::NONE).margin(egui::Margin::symmetric(3, 0)).align(egui::Align2::LEFT_CENTER);
     let resp = ui.add_enabled_ui(enabled, |ui| ui.put(text_rect, edit)).inner;
     if resp.changed()
         && let Ok(v) = buf.trim().parse::<u64>()
@@ -364,7 +364,7 @@ pub fn spin_u64(ui: &mut egui::Ui, rect: egui::Rect, id: &str, value: &mut u64, 
 
     for (r, is_up) in [(up, true), (down, false)] {
         let sense = if enabled { egui::Sense::click() } else { egui::Sense::hover() };
-        let b = ui.interact(r, ui.id().with(("spin_btn", id, is_up)), sense);
+        let b = ui.interact(r, ui.scope_id().with(("spin_btn", id, is_up)), sense);
         let pressed = enabled && b.is_pointer_button_down_on();
         painter.rect_filled(r, 0.0, if enabled && b.hovered() { HOT_FACE } else { BTN_FACE });
         let (tl, br) = if pressed { (BTN_SHADOW, Color32::WHITE) } else { (Color32::WHITE, Color32::from_rgb(0x69, 0x69, 0x69)) };

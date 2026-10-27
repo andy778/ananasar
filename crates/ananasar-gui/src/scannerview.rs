@@ -347,7 +347,7 @@ impl ScannerView {
         let list_rect = at(292.0, 28.0, 218.0, 358.0);
         ui.painter().rect_filled(list_rect, 0.0, Color32::WHITE);
         ui.painter().rect_stroke(list_rect, 0.0, ui.visuals().widgets.noninteractive.bg_stroke, egui::StrokeKind::Inside);
-        let list_resp = ui.interact(list_rect, ui.id().with("scanner_list"), egui::Sense::click());
+        let list_resp = ui.interact(list_rect, ui.scope_id().with("scanner_list"), egui::Sense::click());
         if list_resp.double_clicked() {
             self.hscroll = !self.hscroll;
         }
@@ -441,7 +441,7 @@ fn spinner(ui: &mut egui::Ui, rect: Rect, enabled: bool) -> Option<bool> {
         (false, Rect::from_min_size(rect.min + Vec2::new(0.0, half), Vec2::new(rect.width(), half))),
     ] {
         let sense = if enabled { egui::Sense::click() } else { egui::Sense::hover() };
-        let resp = ui.interact(r, ui.id().with(("spin", rect.min.x as i32, rect.min.y as i32, up)), sense);
+        let resp = ui.interact(r, ui.scope_id().with(("spin", rect.min.x as i32, rect.min.y as i32, up)), sense);
         let fill = if resp.is_pointer_button_down_on() {
             ui.visuals().widgets.active.bg_fill
         } else if resp.hovered() && enabled {

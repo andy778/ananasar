@@ -354,22 +354,18 @@ impl StormView {
     fn settings(&mut self, ui: &mut egui::Ui) {
         let f = &mut self.form;
         ui.horizontal(|ui| {
-            ui.label("Target (host:port):");
-            ui.add(egui::TextEdit::singleline(&mut f.target).desired_width(220.0).hint_text("192.168.1.50:502"));
-            ui.label("Unit id:");
-            ui.add(egui::TextEdit::singleline(&mut f.unit_id).desired_width(40.0));
+            field(ui, "Target (host:port):", egui::TextEdit::singleline(&mut f.target).desired_width(220.0).hint_text("192.168.1.50:502"));
+            field(ui, "Unit id:", egui::TextEdit::singleline(&mut f.unit_id).desired_width(40.0));
         });
         egui::CollapsingHeader::new("Load").default_open(true).show(ui, |ui| {
             egui::Grid::new("storm_load").num_columns(4).spacing([8.0, 4.0]).show(ui, |ui| {
                 text_row(ui, "Connections:", &mut f.connections, "Duration (s):", &mut f.duration);
                 text_row(ui, "Rate per connection (/s, 0 = unlimited):", &mut f.rate, "Reply timeout (ms):", &mut f.timeout_ms);
-                ui.checkbox(&mut f.ramp, "Ramp to (/s):");
-                ui.add_enabled(f.ramp, egui::TextEdit::singleline(&mut f.ramp_to).desired_width(70.0));
-                ui.label("Ramp time (s, blank = whole run):");
-                ui.add_enabled(f.ramp, egui::TextEdit::singleline(&mut f.ramp_secs).desired_width(70.0));
+                let ramp_to = ui.checkbox(&mut f.ramp, "Ramp to (/s):");
+                ui.add_enabled(f.ramp, egui::TextEdit::singleline(&mut f.ramp_to).desired_width(70.0)).labelled_by(ramp_to.id);
+                field_enabled(ui, f.ramp, "Ramp time (s, blank = whole run):", egui::TextEdit::singleline(&mut f.ramp_secs).desired_width(70.0));
                 ui.end_row();
-                ui.label("Seed (blank = from the clock):");
-                ui.add(egui::TextEdit::singleline(&mut f.seed).desired_width(120.0));
+                field(ui, "Seed (blank = from the clock):", egui::TextEdit::singleline(&mut f.seed).desired_width(120.0));
                 ui.end_row();
             });
         });
@@ -377,8 +373,7 @@ impl StormView {
             ui.label("Weights per function code. Writes (FC6, FC16, FC22, FC23) change data on the target and are off unless given a weight.");
             ui.horizontal(|ui| {
                 for (fc, text) in MIX_FUNCTIONS.iter().zip(&mut f.weights) {
-                    ui.label(format!("FC{fc}:"));
-                    ui.add(egui::TextEdit::singleline(text).desired_width(36.0));
+                    field(ui, format!("FC{fc}:"), egui::TextEdit::singleline(text).desired_width(36.0));
                 }
             });
             egui::Grid::new("storm_mix").num_columns(4).spacing([8.0, 4.0]).show(ui, |ui| {
@@ -390,16 +385,14 @@ impl StormView {
             ui.label("Percent of requests that get each fault; the total must not exceed 100.");
             egui::Grid::new("storm_faults").num_columns(4).spacing([8.0, 4.0]).show(ui, |ui| {
                 for (n, (kind, text)) in FaultKind::ALL.into_iter().zip(&mut f.faults).enumerate() {
-                    ui.label(format!("{}:", fault_caption(kind)));
-                    ui.add(egui::TextEdit::singleline(text).desired_width(50.0));
+                    field(ui, format!("{}:", fault_caption(kind)), egui::TextEdit::singleline(text).desired_width(50.0));
                     if n % 2 == 1 {
                         ui.end_row();
                     }
                 }
                 ui.end_row();
                 text_row(ui, "Coalesce count (2-16):", &mut f.coalesce_count, "Split delay (ms):", &mut f.split_delay_ms);
-                ui.label("Fault wait (ms):");
-                ui.add(egui::TextEdit::singleline(&mut f.fault_wait_ms).desired_width(70.0));
+                field(ui, "Fault wait (ms):", egui::TextEdit::singleline(&mut f.fault_wait_ms).desired_width(70.0));
                 ui.end_row();
             });
         });
@@ -407,14 +400,12 @@ impl StormView {
             ui.checkbox(&mut f.churn, "Churn: each connection thread connects and disconnects repeatedly");
             ui.add_enabled_ui(f.churn, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label("Pause between cycles (ms, 0 = none, needs authorisation):");
-                    ui.add(egui::TextEdit::singleline(&mut f.churn_interval_ms).desired_width(60.0));
+                    field(ui, "Pause between cycles (ms, 0 = none, needs authorisation):", egui::TextEdit::singleline(&mut f.churn_interval_ms).desired_width(60.0));
                 });
                 ui.checkbox(&mut f.churn_request, "Send one request on each connection before closing it");
             });
             ui.horizontal(|ui| {
-                ui.label("Extra idle connections held open:");
-                ui.add(egui::TextEdit::singleline(&mut f.half_open).desired_width(60.0));
+                field(ui, "Extra idle connections held open:", egui::TextEdit::singleline(&mut f.half_open).desired_width(60.0));
             });
         });
     }
@@ -530,8 +521,7 @@ impl StormView {
         let Some(mut text) = text else { return };
         ui.separator();
         ui.horizontal(|ui| {
-            ui.label("Save the report to:");
-            ui.add(egui::TextEdit::singleline(&mut self.out_dir).desired_width(320.0));
+            field(ui, "Save the report to:", egui::TextEdit::singleline(&mut self.out_dir).desired_width(320.0));
             if ui.button("Browse…").clicked()
                 && let Some(dir) = rfd::FileDialog::new().pick_folder()
             {
@@ -545,7 +535,8 @@ impl StormView {
             ui.label(&self.save_note);
         }
         egui::ScrollArea::vertical().id_salt("storm_report").max_height(220.0).show(ui, |ui| {
-            ui.add(egui::TextEdit::multiline(&mut text).font(egui::TextStyle::Monospace).desired_width(f32::INFINITY).interactive(false));
+            let report = ui.add(egui::TextEdit::multiline(&mut text).font(egui::TextStyle::Monospace).desired_width(f32::INFINITY).interactive(false));
+            report.widget_info(|| egui::WidgetInfo::labeled(egui::Role::MultilineTextInput, true, "Storm report"));
         });
     }
 
@@ -586,11 +577,19 @@ fn fault_caption(kind: FaultKind) -> &'static str {
     }
 }
 
+/// A label and the text box it names; the link gives the box its accessible name.
+fn field(ui: &mut egui::Ui, label: impl Into<egui::WidgetText>, edit: egui::TextEdit<'_>) {
+    field_enabled(ui, true, label, edit);
+}
+
+fn field_enabled(ui: &mut egui::Ui, enabled: bool, label: impl Into<egui::WidgetText>, edit: egui::TextEdit<'_>) {
+    let label = ui.label(label);
+    ui.add_enabled(enabled, edit).labelled_by(label.id);
+}
+
 fn text_row(ui: &mut egui::Ui, l1: &str, t1: &mut String, l2: &str, t2: &mut String) {
-    ui.label(l1);
-    ui.add(egui::TextEdit::singleline(t1).desired_width(70.0));
-    ui.label(l2);
-    ui.add(egui::TextEdit::singleline(t2).desired_width(70.0));
+    field(ui, l1, egui::TextEdit::singleline(t1).desired_width(70.0));
+    field(ui, l2, egui::TextEdit::singleline(t2).desired_width(70.0));
     ui.end_row();
 }
 
