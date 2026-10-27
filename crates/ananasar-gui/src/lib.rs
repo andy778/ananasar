@@ -36,7 +36,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 const VISIBLE_ROWS: u16 = 26;
-const REGISTERS_TIP: &str = "This server's registers: what clients connected to it read and write. Values read by the client window are shown in the client window's log.";
+const REGISTERS_TIP: &str = "This server's registers: what clients connected to it read and write, and what the client window reads (holding registers) and writes.";
 /// The original's port on Windows; elsewhere ports below 1024 need privileges.
 #[cfg(windows)]
 const DEFAULT_PORT: u16 = 502;
@@ -208,6 +208,9 @@ impl App {
                 }
             }
         }
+        // The client mostly reaches real devices, so it starts on the Modbus port
+        // rather than this server's (15020 outside Windows).
+        let client = ClientView::new(format!("127.0.0.1:{}", ananasar_core::protocol::DEFAULT_PORT), regs.clone(), ctx.clone());
         Self {
             regs,
             server,
@@ -239,9 +242,7 @@ impl App {
             log_interpretive: true,
             message: startup_error,
             status_note: String::new(),
-            // The client mostly reaches real devices, so it starts on the Modbus port
-            // rather than this server's (15020 outside Windows).
-            client: ClientView::new(format!("127.0.0.1:{}", ananasar_core::protocol::DEFAULT_PORT), ctx.clone()),
+            client,
             setval: SetValView::default(),
             scanner: ScannerView::new(format!("127.0.0.1:{port}"), ctx.clone()),
             storm: StormView::new(ctx.clone()),
@@ -389,7 +390,7 @@ impl App {
         let black = egui::Color32::BLACK;
         let font = egui::FontId::proportional(12.0);
         let caption = painter.text(at(14.0, 8.0, 0.0, 0.0).min, egui::Align2::LEFT_TOP, "Registers", font.clone(), black);
-        // The list is this server's register file, not what the client window reads (#136).
+        // The list is this server's register file, which the client window shares (#136).
         if self.tooltips {
             ui.interact(caption, ui.id().with("registers_caption"), egui::Sense::hover()).on_hover_text(REGISTERS_TIP);
         }
