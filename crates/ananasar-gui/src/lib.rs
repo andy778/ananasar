@@ -36,6 +36,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 const VISIBLE_ROWS: u16 = 26;
+const REGISTERS_TIP: &str = "This server's registers: what clients connected to it read and write. Values read by the client window are shown in the client window's log.";
 /// The original's port on Windows; elsewhere ports below 1024 need privileges.
 #[cfg(windows)]
 const DEFAULT_PORT: u16 = 502;
@@ -387,7 +388,11 @@ impl App {
         let painter = ui.painter().clone();
         let black = egui::Color32::BLACK;
         let font = egui::FontId::proportional(12.0);
-        painter.text(at(14.0, 8.0, 0.0, 0.0).min, egui::Align2::LEFT_TOP, "Registers", font.clone(), black);
+        let caption = painter.text(at(14.0, 8.0, 0.0, 0.0).min, egui::Align2::LEFT_TOP, "Registers", font.clone(), black);
+        // The list is this server's register file, not what the client window reads (#136).
+        if self.tooltips {
+            ui.interact(caption, ui.id().with("registers_caption"), egui::Sense::hover()).on_hover_text(REGISTERS_TIP);
+        }
         let outer = at(14.0, 25.0, COLS.iter().sum::<f32>() + 4.0, HEADER_H + ROW_H * f32::from(VISIBLE_ROWS) + 4.0);
         let inner = outer.shrink(2.0);
         painter.rect_filled(inner, 0.0, egui::Color32::WHITE);
