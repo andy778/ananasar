@@ -49,6 +49,8 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo test --workspace --locked
       - run: cargo clippy --workspace -- -D warnings
+      - name: Test the release script
+        run: python3 -m unittest discover -s scripts
       # The tag build stamps the version with this script and then builds with
       # --locked, so check in a throwaway copy that the two still agree.
       - name: Check version stamping keeps Cargo.lock in sync
@@ -305,6 +307,6 @@ jobs:
             release/ananasar-*-notices.zip
             release/SHA256SUMS
             release/SHA256SUMS.sigstore.json
-          # semantic-release writes the release notes; this job only attaches files.
+          # scripts/next-release.py writes the release notes; this job only attaches files.
           generate_release_notes: false
           fail_on_unmatched_files: true
