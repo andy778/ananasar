@@ -4,4 +4,3 @@
 # source and intentionally kept out of the repository.
 *.exe
 *.pdf
-node_modules/
