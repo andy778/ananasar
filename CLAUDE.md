@@ -10,9 +10,9 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 - Commit messages use Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `ci:`, `chore:`), with a `!` or a `BREAKING CHANGE:` footer for breaking changes.
 
 ## Releases
-- Releases are automated with semantic-release from the Conventional Commits on `main` (see `docs/releasing.md`). Do not create `v*` tags by hand.
+- Releases are automated by `scripts/next-release.py` (run by `.github/workflows/semantic-release.yml`) from the Conventional Commits on `main` (see `docs/releasing.md`). Do not create `v*` tags by hand.
 - Merge PRs with "Rebase and merge" so each commit keeps its type. Choose commit types deliberately: they decide the version bump.
-- The tag build in `build.yml` stamps the version from the tag, builds, signs with cosign and attaches the binaries. semantic-release writes the release notes.
+- The tag build in `build.yml` stamps the version from the tag, builds, signs with cosign and attaches the binaries. the script writes the release notes.
 
 ## Never
 - Commit the original `Ananas64.exe`, the documentation PDF or any zip of them (they are gitignored on purpose).
