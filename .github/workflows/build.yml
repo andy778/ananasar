@@ -117,8 +117,7 @@ jobs:
   # The pull request and main build: it must still compile on Windows, but it
   # does not wait for the notices job and it skips link-time optimisation, which
   # is most of the release build's time. The release build below embeds the
-  # notices and keeps the release profile; both jobs carry the name the
-  # `protect-main` ruleset requires.
+  # notices and keeps the release profile; both jobs carry the same name.
   windows-check:
     name: build windows x64 exes
     needs: changes
@@ -136,6 +135,29 @@ jobs:
         with:
           tool: cargo-auditable
       - run: cargo auditable build --release --workspace --locked
+
+  # The one check the `protect-main` ruleset requires from this workflow, so a
+  # new job only has to be added to `needs` here. Jobs skipped by their `if:`
+  # (docs-only PRs, tag builds) count as passing; failed or cancelled ones do
+  # not. `always()` makes it run, and fail, when a needed job failed: without
+  # it, it would be skipped, and a skipped required check counts as passing.
+  ci-passed:
+    name: ci passed
+    needs: [changes, test, msrv, deny, windows-check]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fail if a needed job failed or was cancelled
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "::error::a required job ended with: $r"; exit 1 ;;
+            esac
+          done
 
   windows:
     name: build windows x64 exes

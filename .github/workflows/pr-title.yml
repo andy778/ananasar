@@ -1,0 +1,31 @@
+name: pr title
+
+# PRs are squash-merged, so the PR title becomes the commit subject on `main`
+# that scripts/next-release.py reads to decide the version bump. Reject titles
+# it would not understand. `edited` re-runs the check when the title changes.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  title:
+    name: pr title
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check the title is a Conventional Commit
+        env:
+          # Passed through the environment, never interpolated into the script.
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          re='^(feat|fix|perf|docs|refactor|ci|chore|test|style|build|revert)(\([a-z0-9._/-]+\))?!?: [^ ].*$'
+          if [[ "$TITLE" =~ $re ]]; then
+            echo "ok: $TITLE"
+          else
+            echo "::error::PR title must be a Conventional Commit, for example 'fix(gui): keep the port when reopening' (types: feat, fix, perf, docs, refactor, ci, chore, test, style, build, revert)."
+            echo "title: $TITLE"
+            exit 1
+          fi
