@@ -96,7 +96,7 @@ impl ClientView {
             let mask = self.man_mask;
             let command = build_command(&self.man_addr, &self.man_value, &self.man_and, &self.man_or, mask, self.man_use_fc16);
             c.group(ui, (8.0, 8.0, 113.0, 49.0), "Address", |ui| {
-                ui.add(egui::TextEdit::singleline(&mut self.man_addr).desired_width(97.0)).on_hover_text("Register address");
+                ui.add(egui::TextEdit::singleline(&mut self.man_addr).desired_width(97.0)).accessible_name("Address").on_hover_text("Register address");
             });
             c.group(ui, (160.0, 8.0, 113.0, 49.0), "Value", |ui| {
                 let (text, hint) = if mask {
@@ -104,10 +104,10 @@ impl ClientView {
                 } else {
                     (&mut self.man_value, "Value to write (decimal, or hex with 0x)")
                 };
-                ui.add(egui::TextEdit::singleline(text).desired_width(97.0)).on_hover_text(hint);
+                ui.add(egui::TextEdit::singleline(text).desired_width(97.0)).accessible_name("Value").on_hover_text(hint);
             });
             c.group(ui, (160.0, 64.0, 113.0, 49.0), "OR (Hex)", |ui| {
-                ui.add_enabled(mask, egui::TextEdit::singleline(&mut self.man_or).desired_width(97.0)).on_hover_text("OR pattern of masking");
+                ui.add_enabled(mask, egui::TextEdit::singleline(&mut self.man_or).desired_width(97.0)).accessible_name("OR (Hex)").on_hover_text("OR pattern of masking");
             });
             c.at(ui, (8.0, 72.0, 140.0, 20.0), |ui| {
                 ui.checkbox(&mut self.man_mask, "Mask AND + OR").on_hover_text("Mask Write Register (function 22) instead of a plain write");

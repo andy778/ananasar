@@ -217,11 +217,11 @@ impl ScannerView {
         let mut connect_now = false;
         egui::Window::new("Connect to server").open(&mut open).resizable(false).collapsible(false).show(ctx, |ui| {
             egui::Grid::new("scanner_connect").num_columns(2).show(ui, |ui| {
-                ui.label("IP:");
-                ui.add(egui::TextEdit::singleline(&mut self.host).desired_width(140.0));
+                let label = ui.label("IP:");
+                ui.add(egui::TextEdit::singleline(&mut self.host).desired_width(140.0)).labelled_by(label.id);
                 ui.end_row();
-                ui.label("Port:");
-                ui.add(egui::TextEdit::singleline(&mut self.port).desired_width(60.0));
+                let label = ui.label("Port:");
+                ui.add(egui::TextEdit::singleline(&mut self.port).desired_width(60.0)).labelled_by(label.id);
                 ui.end_row();
             });
             ui.horizontal(|ui| {
