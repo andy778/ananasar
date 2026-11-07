@@ -67,11 +67,7 @@ pub fn diff_with(a: &Recording, b: &Recording, opts: Options) -> Vec<String> {
         out.push(format!("section count differs: {} vs {}", a.sections.len(), b.sections.len()));
     }
     for (sa, sb) in a.sections.iter().zip(&b.sections) {
-        let label = if sa.name == sb.name {
-            sa.name.clone()
-        } else {
-            format!("{} / {}", sa.name, sb.name)
-        };
+        let label = if sa.name == sb.name { sa.name.clone() } else { format!("{} / {}", sa.name, sb.name) };
         out.extend(section_differences(&label, sa, sb, opts));
     }
     out

@@ -8,10 +8,7 @@
 //! It is for equipment you own or are authorised to test, and it works at
 //! the Modbus/TCP level only: it is not a link-level storm generator.
 //! Threads over blocking `std::net` sockets, no async runtime.
-#![cfg_attr(
-    test,
-    allow(clippy::arithmetic_side_effects, reason = "test code: a panic is a failed test")
-)]
+#![cfg_attr(test, allow(clippy::arithmetic_side_effects, reason = "test code: a panic is a failed test"))]
 // Network input is hostile (AGENTS.md, rule 6): no construct that can panic
 // on it. The workspace already denies most of these; listing them here keeps
 // the rule with the crate and raises `todo`/`unimplemented` from warn to deny.
@@ -37,8 +34,8 @@ mod worker;
 
 pub use config::{Config, Faults, Mix};
 pub use fault::FaultKind;
-pub use report::{Report, Tick};
 pub use hist::Histogram;
+pub use report::{Report, Tick};
 pub use stats::Stats;
 
 use std::net::TcpStream;

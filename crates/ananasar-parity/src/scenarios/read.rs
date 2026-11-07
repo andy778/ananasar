@@ -35,9 +35,7 @@ pub(super) fn scenarios(unit: u8) -> Vec<Scenario> {
         b("read_holding_empty_pdu", "FC3 with no address or quantity.").pdu(3, &[]).done(),
         b("read_holding_short_pdu", "FC3 with address but no quantity.").pdu(3, &[0, 0]).done(),
         b("read_holding_three_byte_pdu", "FC3 with a quantity cut to one byte.").pdu(3, &[0, 0, 0]).done(),
-        b("read_holding_long_pdu", "FC3 with extra bytes after the quantity.")
-            .pdu(3, &[0, 0, 0, 2, 0xDE, 0xAD])
-            .done(),
+        b("read_holding_long_pdu", "FC3 with extra bytes after the quantity.").pdu(3, &[0, 0, 0, 2, 0xDE, 0xAD]).done(),
         b("read_input_empty_pdu", "FC4 with no address or quantity.").pdu(4, &[]).done(),
         b("read_input_short_pdu", "FC4 with address but no quantity.").pdu(4, &[0, 0]).done(),
         b("read_input_long_pdu", "FC4 with extra bytes after the quantity.").pdu(4, &[0, 0, 0, 2, 0xDE, 0xAD]).done(),

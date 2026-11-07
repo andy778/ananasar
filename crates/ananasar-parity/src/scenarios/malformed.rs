@@ -82,12 +82,8 @@ pub(super) fn scenarios(unit: u8) -> Vec<Scenario> {
         b("split_after_header", "A request split after the 7-byte MBAP header.")
             .raw_split(frame_a.clone(), &[7])
             .done(),
-        b("split_in_length_field", "A request split inside the length field.")
-            .raw_split(frame_a.clone(), &[5])
-            .done(),
-        b("split_before_data", "A request split after the function code.")
-            .raw_split(frame_a.clone(), &[8])
-            .done(),
+        b("split_in_length_field", "A request split inside the length field.").raw_split(frame_a.clone(), &[5]).done(),
+        b("split_before_data", "A request split after the function code.").raw_split(frame_a.clone(), &[8]).done(),
         b("split_one_byte_at_a_time", "A request sent one byte per TCP segment.")
             .raw_split(frame_a.clone(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
             .done(),

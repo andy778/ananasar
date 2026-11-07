@@ -14,11 +14,7 @@ use std::path::PathBuf;
 use std::process::{Command, Output};
 
 fn tool(args: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_ananasar-parity"))
-        .args(args)
-        .env_remove("ANANAS_ORIGINAL_ADDR")
-        .output()
-        .unwrap()
+    Command::new(env!("CARGO_BIN_EXE_ananasar-parity")).args(args).env_remove("ANANAS_ORIGINAL_ADDR").output().unwrap()
 }
 
 fn text(out: &[u8]) -> String {
@@ -66,9 +62,17 @@ fn diff_prints_one_verdict_per_scenario_and_sets_the_exit_status() {
     let a = scratch("a.rec");
     let b = scratch("b.rec");
     let c = scratch("c.rec");
-    std::fs::write(&a, "## one\n> 0001 0000 0002 01 07\n< 0001 0000 0003 01 07 00\n\n## two\n> 0001 0000 0002 01 07\n< none\n").unwrap();
+    std::fs::write(
+        &a,
+        "## one\n> 0001 0000 0002 01 07\n< 0001 0000 0003 01 07 00\n\n## two\n> 0001 0000 0002 01 07\n< none\n",
+    )
+    .unwrap();
     // Same frames with other transaction ids: still equal.
-    std::fs::write(&b, "## one\n> 0009 0000 0002 01 07\n< 0009 0000 0003 01 07 00\n\n## two\n> 0009 0000 0002 01 07\n< none\n").unwrap();
+    std::fs::write(
+        &b,
+        "## one\n> 0009 0000 0002 01 07\n< 0009 0000 0003 01 07 00\n\n## two\n> 0009 0000 0002 01 07\n< none\n",
+    )
+    .unwrap();
     // Second scenario answered differently.
     std::fs::write(&c, "## one\n> 0001 0000 0002 01 07\n< 0001 0000 0003 01 07 00\n\n## two\n> 0001 0000 0002 01 07\n< 0001 0000 0003 01 87 01\n").unwrap();
     let (a, b, c) = (a.to_str().unwrap(), b.to_str().unwrap(), c.to_str().unwrap());

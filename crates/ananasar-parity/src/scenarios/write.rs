@@ -16,12 +16,9 @@ pub(super) fn scenarios(unit: u8) -> Vec<Scenario> {
             .pdu(6, &[0, 21, 0x80, 0x00])
             .read(3, 20, 2)
             .done(),
-        b("write_single_short_pdu", "FC6 with address only.")
-            .pollutes().pdu(6, &[0, 5]).done(),
-        b("write_single_empty_pdu", "FC6 with no data.")
-            .pollutes().pdu(6, &[]).done(),
-        b("write_single_three_byte_pdu", "FC6 with a value cut to one byte.")
-            .pollutes().pdu(6, &[0, 5, 0x12]).done(),
+        b("write_single_short_pdu", "FC6 with address only.").pollutes().pdu(6, &[0, 5]).done(),
+        b("write_single_empty_pdu", "FC6 with no data.").pollutes().pdu(6, &[]).done(),
+        b("write_single_three_byte_pdu", "FC6 with a value cut to one byte.").pollutes().pdu(6, &[0, 5, 0x12]).done(),
         b("write_single_long_pdu", "FC6 with extra bytes after the value.")
             .pdu(6, &[0, 22, 0x12, 0x34, 0xBE, 0xEF])
             .read(3, 22, 1)
@@ -62,10 +59,8 @@ pub(super) fn scenarios(unit: u8) -> Vec<Scenario> {
             .pdu(0x10, &[0, 40, 0, 1, 2, 0x11, 0x11, 0x22, 0x22])
             .read(3, 40, 2)
             .done(),
-        b("write_multiple_short_pdu", "FC16 cut after the quantity.")
-            .pollutes().pdu(0x10, &[0x0F, 0xA8, 0, 1]).done(),
-        b("write_multiple_empty_pdu", "FC16 with no data.")
-            .pollutes().pdu(0x10, &[]).done(),
+        b("write_multiple_short_pdu", "FC16 cut after the quantity.").pollutes().pdu(0x10, &[0x0F, 0xA8, 0, 1]).done(),
+        b("write_multiple_empty_pdu", "FC16 with no data.").pollutes().pdu(0x10, &[]).done(),
         b("write_multiple_address_edge", "FC16 ending at, and one past, register 65535.")
             .pollutes()
             .write_multiple(65535, &[1])
@@ -110,10 +105,8 @@ pub(super) fn scenarios(unit: u8) -> Vec<Scenario> {
             .pdu(0x16, &[0xFF, 0xFF, 0, 0xF2, 0, 0x25])
             .read(3, 65535, 1)
             .done(),
-        b("mask_write_short_pdu", "FC22 with only one mask.")
-            .pollutes().pdu(0x16, &[0, 200, 0, 0xF2]).done(),
-        b("mask_write_empty_pdu", "FC22 with no data.")
-            .pollutes().pdu(0x16, &[]).done(),
+        b("mask_write_short_pdu", "FC22 with only one mask.").pollutes().pdu(0x16, &[0, 200, 0, 0xF2]).done(),
+        b("mask_write_empty_pdu", "FC22 with no data.").pollutes().pdu(0x16, &[]).done(),
         b("mask_write_long_pdu", "FC22 with extra bytes after the masks.")
             .pdu(0x16, &[0, 205, 0, 0xF2, 0, 0x25, 0xDE, 0xAD])
             .read(3, 205, 1)

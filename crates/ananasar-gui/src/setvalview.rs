@@ -5,7 +5,10 @@
 //!
 //! The window is a fixed-size tool window with a 392x260 client area; every
 //! control is placed at explicit client coordinates.
-#![allow(clippy::arithmetic_side_effects, reason = "egui geometry on f32 vectors; integer maths below is bounded by u16/u32 widths")]
+#![allow(
+    clippy::arithmetic_side_effects,
+    reason = "egui geometry on f32 vectors; integer maths below is bounded by u16/u32 widths"
+)]
 
 use crate::embed::SharedRegs;
 use ananasar_core::registers::Bank;
@@ -98,7 +101,13 @@ pub struct SetValView {
 
 impl Default for SetValView {
     fn default() -> Self {
-        Self { addr_text: "0".into(), bank: Bank::Holding, pending: 0, value_text: "0".into(), byte_order: ByteOrder::B0123 }
+        Self {
+            addr_text: "0".into(),
+            bank: Bank::Holding,
+            pending: 0,
+            value_text: "0".into(),
+            byte_order: ByteOrder::B0123,
+        }
     }
 }
 
@@ -126,13 +135,25 @@ impl SetValView {
     }
 
     /// Show the window; `open` is cleared by the Close button.
-    pub fn show(&mut self, ctx: &egui::Context, open: &mut bool, regs: &SharedRegs, menu: egui::containers::menu::MenuConfig) {
+    pub fn show(
+        &mut self,
+        ctx: &egui::Context,
+        open: &mut bool,
+        regs: &SharedRegs,
+        menu: egui::containers::menu::MenuConfig,
+    ) {
         if !*open {
             return;
         }
         let is_open = *open;
         let mut close = false;
-        let closed = crate::dialog::show(ctx, "set-register-value", "Set Register Value", [CLIENT.x + 12.0, CLIENT.y + 44.0], 6, &mut |ui| {
+        let closed = crate::dialog::show(
+            ctx,
+            "set-register-value",
+            "Set Register Value",
+            [CLIENT.x + 12.0, CLIENT.y + 44.0],
+            6,
+            &mut |ui| {
                 ui.spacing_mut().item_spacing = Vec2::ZERO;
                 egui::MenuBar::new().config(menu.clone()).ui(ui, |ui| {
                     ui.menu_button("Edit", |ui| {
@@ -147,7 +168,8 @@ impl SetValView {
                 });
                 ui.add_space(4.0);
                 close = self.client(ui, regs);
-            });
+            },
+        );
         *open = is_open && !close && !closed;
     }
 
@@ -165,19 +187,28 @@ impl SetValView {
         // Register
         group_box(ui, at(8.0, 8.0, 185.0, 73.0), "Register");
         for (y, bank, name) in [(28.0, Bank::Input, "Input"), (50.0, Bank::Holding, "Holding")] {
-            let r = ui.put(at(18.0, y, 80.0, 20.0), egui::RadioButton::new(self.bank == bank, name)).on_hover_text("Register type used");
+            let r = ui
+                .put(at(18.0, y, 80.0, 20.0), egui::RadioButton::new(self.bank == bank, name))
+                .on_hover_text("Register type used");
             if r.clicked() {
                 self.bank = bank;
             }
         }
         ui.put(at(101.0, 32.0, 60.0, 24.0), egui::TextEdit::singleline(&mut self.addr_text))
+            .accessible_name("Register")
             .on_hover_text("Register to be used");
 
         // Current value
         group_box(ui, at(200.0, 7.0, 185.0, 74.0), "Current value");
         let cur = at(208.0, 26.0, 169.0, 48.0);
         let resp = ui.interact(cur, ui.scope_id().with("current"), Sense::click());
-        ui.painter().text(cur.center(), Align2::CENTER_CENTER, format!("{current:05}"), FontId::monospace(34.0), Color32::from_rgb(0x00, 0x00, 0xC8));
+        ui.painter().text(
+            cur.center(),
+            Align2::CENTER_CENTER,
+            format!("{current:05}"),
+            FontId::monospace(34.0),
+            Color32::from_rgb(0x00, 0x00, 0xC8),
+        );
         if resp.on_hover_text("DoubleClick to copy current value to 'Edit value'").double_clicked() {
             self.set_pending(current);
         }
@@ -186,6 +217,7 @@ impl SetValView {
         group_box(ui, at(8.0, 88.0, 377.0, 97.0), "Edit value");
         let edit = ui
             .put(at(101.0, 104.0, 60.0, 25.0), egui::TextEdit::singleline(&mut self.value_text))
+            .accessible_name("Edit value")
             .on_hover_text("Value to set");
         if edit.changed()
             && let Some(v) = parse_value(&self.value_text)
@@ -194,7 +226,11 @@ impl SetValView {
         }
         let can_set = self.bank == Bank::Holding;
         let set = ui.put(at(248.0, 102.0, 81.0, 28.0), egui::Button::new("Set").min_size(Vec2::new(81.0, 28.0)));
-        let set = if can_set { set.on_hover_text("Write value to register") } else { set.on_disabled_hover_text("Input registers are read-only") };
+        let set = if can_set {
+            set.on_hover_text("Write value to register")
+        } else {
+            set.on_disabled_hover_text("Input registers are read-only")
+        };
         if can_set && set.clicked() {
             lock(regs).set_holding(addr, self.pending);
         }
@@ -203,12 +239,14 @@ impl SetValView {
         // Bitmask
         let mask = at(16.0, 136.0, 361.0, 41.0);
         group_box(ui, mask, "Bitmask");
-        ui.interact(mask, ui.scope_id().with("mask"), Sense::hover()).on_hover_text("Check/Uncheck to set individual bits");
+        ui.interact(mask, ui.scope_id().with("mask"), Sense::hover())
+            .on_hover_text("Check/Uncheck to set individual bits");
         for i in 0..16u8 {
             let bit = 15 - i;
             let x = 24.0 + f32::from(i) * 21.0;
             let mut on = bit_of(self.pending, bit);
-            let r = ui.put(at(x, 150.0, 18.0, 20.0), egui::Checkbox::without_text(&mut on)).on_hover_text(bit_hint(bit));
+            let r =
+                ui.put(at(x, 150.0, 18.0, 20.0), egui::Checkbox::without_text(&mut on)).on_hover_text(bit_hint(bit));
             if r.changed() {
                 self.set_pending(with_bit(self.pending, bit, on));
             }

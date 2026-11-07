@@ -12,7 +12,7 @@
 
 use ananasar_core::protocol::{Exception, MBAP_PREFIX, build, frame};
 use ananasar_core::registers::{BANK_LEN, Bank, InitMode, RegisterFile};
-use ananasar_core::server::{MAX_READ, MAX_WRITE, Outcome, OutOfSynch, ServerConfig, process};
+use ananasar_core::server::{MAX_READ, MAX_WRITE, OutOfSynch, Outcome, ServerConfig, process};
 use proptest::prelude::*;
 
 /// Start addresses that favour the interesting ends of the 16-bit space.

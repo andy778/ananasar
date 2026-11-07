@@ -23,7 +23,8 @@ pub mod sc {
     pub const VL_COPY: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::C);
     pub const SET_REGISTER: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::R);
     pub const HEX: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::H);
-    pub const ADDR_HEX: KeyboardShortcut = KeyboardShortcut::new(Modifiers { shift: true, ..Modifiers::COMMAND }, Key::H);
+    pub const ADDR_HEX: KeyboardShortcut =
+        KeyboardShortcut::new(Modifiers { shift: true, ..Modifiers::COMMAND }, Key::H);
     pub const ADDRESS_OFFSET: KeyboardShortcut = KeyboardShortcut::new(CMD_ALT, Key::O);
     pub const OUT_OF_SYNCH: KeyboardShortcut = KeyboardShortcut::new(CMD_ALT, Key::S);
     pub const SCANNER: KeyboardShortcut = KeyboardShortcut::new(CMD_ALT, Key::C);
@@ -94,7 +95,14 @@ impl Action {
     fn closes_menu(self) -> bool {
         !matches!(
             self,
-            Self::Exit | Self::AddrHex | Self::Hex | Self::ToggleFunction(_) | Self::ForceException(_) | Self::ToggleFault(_) | Self::ToggleNagle(_) | Self::Tooltips
+            Self::Exit
+                | Self::AddrHex
+                | Self::Hex
+                | Self::ToggleFunction(_)
+                | Self::ForceException(_)
+                | Self::ToggleFault(_)
+                | Self::ToggleNagle(_)
+                | Self::Tooltips
         )
     }
 }
@@ -156,7 +164,15 @@ pub struct MenuItem {
 
 impl MenuItem {
     fn new(caption: &str, kind: Kind) -> Self {
-        Self { caption: caption.to_owned(), shortcut: None, kind, checked: false, enabled: true, action: None, min_width: None }
+        Self {
+            caption: caption.to_owned(),
+            shortcut: None,
+            kind,
+            checked: false,
+            enabled: true,
+            action: None,
+            min_width: None,
+        }
     }
     fn action(caption: &str, action: Action) -> Self {
         Self { action: Some(action), ..Self::new(caption, Kind::Action) }
@@ -221,7 +237,10 @@ pub fn build(s: &MenuState<'_>) -> Vec<MenuItem> {
         .map(|(name, bank)| {
             M::submenu(
                 name,
-                vec![M::action("All to '0'", Action::Initialize(bank, InitMode::Zero)), M::action("Ascending", Action::Initialize(bank, InitMode::Ascending))],
+                vec![
+                    M::action("All to '0'", Action::Initialize(bank, InitMode::Zero)),
+                    M::action("Ascending", Action::Initialize(bank, InitMode::Ascending)),
+                ],
             )
         })
         .collect();
@@ -236,19 +255,39 @@ pub fn build(s: &MenuState<'_>) -> Vec<MenuItem> {
         M::check("Registers as Hex", s.addr_hex, Action::AddrHex).key(sc::ADDR_HEX),
         M::check("Values as Hex", s.hex, Action::Hex).key(sc::HEX),
     ];
-    let functions = FUNCTION_TOGGLES.iter().map(|&(fc, name)| M::check(name, s.supported.contains(&fc), Action::ToggleFunction(fc))).collect();
-    let exceptions = EXCEPTION_CHOICES.iter().map(|&(exc, name)| M::check(name, s.forced_exception == Some(exc), Action::ForceException(exc))).collect();
+    let functions = FUNCTION_TOGGLES
+        .iter()
+        .map(|&(fc, name)| M::check(name, s.supported.contains(&fc), Action::ToggleFunction(fc)))
+        .collect();
+    let exceptions = EXCEPTION_CHOICES
+        .iter()
+        .map(|&(exc, name)| M::check(name, s.forced_exception == Some(exc), Action::ForceException(exc)))
+        .collect();
     let modbus = vec![
         M::submenu("Active MB Functions", functions),
         M::separator(),
-        M::check("Return Incorrect TI", Fault::TransactionId.is_on(s.faults), Action::ToggleFault(Fault::TransactionId)),
-        M::check("Return Incorrect Protocol ID", Fault::ProtocolId.is_on(s.faults), Action::ToggleFault(Fault::ProtocolId)),
-        M::check("Return Incorrect Length High Byte", Fault::LengthHigh.is_on(s.faults), Action::ToggleFault(Fault::LengthHigh)),
+        M::check(
+            "Return Incorrect TI",
+            Fault::TransactionId.is_on(s.faults),
+            Action::ToggleFault(Fault::TransactionId),
+        ),
+        M::check(
+            "Return Incorrect Protocol ID",
+            Fault::ProtocolId.is_on(s.faults),
+            Action::ToggleFault(Fault::ProtocolId),
+        ),
+        M::check(
+            "Return Incorrect Length High Byte",
+            Fault::LengthHigh.is_on(s.faults),
+            Action::ToggleFault(Fault::LengthHigh),
+        ),
         M::submenu("Return Exception", exceptions),
         M::separator(),
-        M::check("Use Address Offset", Fault::AddressOffset.is_on(s.faults), Action::ToggleFault(Fault::AddressOffset)).key(sc::ADDRESS_OFFSET),
+        M::check("Use Address Offset", Fault::AddressOffset.is_on(s.faults), Action::ToggleFault(Fault::AddressOffset))
+            .key(sc::ADDRESS_OFFSET),
         M::separator(),
-        M::check("Reply Out of Synch", Fault::OutOfSynch.is_on(s.faults), Action::ToggleFault(Fault::OutOfSynch)).key(sc::OUT_OF_SYNCH),
+        M::check("Reply Out of Synch", Fault::OutOfSynch.is_on(s.faults), Action::ToggleFault(Fault::OutOfSynch))
+            .key(sc::OUT_OF_SYNCH),
         M::separator(),
         M::action("Register Scanner…", Action::Scanner).key(sc::SCANNER),
     ];

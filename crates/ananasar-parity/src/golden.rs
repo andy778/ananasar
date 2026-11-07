@@ -140,7 +140,10 @@ mod tests {
         Recording {
             sections: vec![Section {
                 name: name.into(),
-                entries: vec![Entry::Sent(vec![0, 1, 0, 0, 0, 2, 1, 7]), Entry::Received(vec![0, 1, 0, 0, 0, 3, 1, 7, reply])],
+                entries: vec![
+                    Entry::Sent(vec![0, 1, 0, 0, 0, 2, 1, 7]),
+                    Entry::Received(vec![0, 1, 0, 0, 0, 3, 1, 7, reply]),
+                ],
             }],
         }
     }

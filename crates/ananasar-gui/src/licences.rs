@@ -5,7 +5,8 @@
 use ananasar_core::notices::{ADVISORIES, DEPENDENCIES, LICENSES};
 use eframe::egui;
 
-const TABS: [(&str, &str); 3] = [("Dependencies", DEPENDENCIES), ("Advisories", ADVISORIES), ("Licence texts", LICENSES)];
+const TABS: [(&str, &str); 3] =
+    [("Dependencies", DEPENDENCIES), ("Advisories", ADVISORIES), ("Licence texts", LICENSES)];
 
 /// State of the window: whether it is open and which tab is shown.
 #[derive(Default)]
@@ -22,7 +23,10 @@ impl Licences {
         if !self.open {
             return;
         }
-        let builder = egui::ViewportBuilder::default().with_title("Third-party licences").with_inner_size([720.0, 520.0]).with_min_inner_size([360.0, 240.0]);
+        let builder = egui::ViewportBuilder::default()
+            .with_title("Third-party licences")
+            .with_inner_size([720.0, 520.0])
+            .with_min_inner_size([360.0, 240.0]);
         let mut close = false;
         ctx.show_viewport_immediate(egui::ViewportId::from_hash_of("licences"), builder, |ctx, _class| {
             egui::CentralPanel::default().show(ctx, |ui| {
