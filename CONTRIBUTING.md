@@ -14,6 +14,8 @@ Every change starts from an issue, before you write code or open a pull request.
 
 The `pr issue` check enforces this: it fails until the pull request description has a line like `Fixes #123`, `Closes #123`, `Resolves #123` or `Refs #123` naming an existing issue.
 
+Each issue says when it is **done**: the forms ask for a "Done when" (required for features, optional for bugs), something anyone can check, such as a command and its output. A pull request is finished when it meets it, and a reviewer checks it against it. Issues clear enough to hand to an AI agent get the `agent-ready` label: the problem and its scope are stated, the "Done when" can be checked, and no design decision is left open. Agents pick up only `agent-ready` issues unless the person assigning the work says otherwise.
+
 ## Setting up
 
 Install Rust with [rustup](https://rustup.rs). The core and the headless CLI need Rust 1.92; the GUI (and so the default `ananasar` binary) needs 1.95. On Debian or Ubuntu, follow [Build from source](README.md#debian--ubuntu).
