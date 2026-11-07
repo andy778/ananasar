@@ -1,0 +1,3 @@
+[alias]
+# `cargo xtask ci` runs the same checks as CI (see xtask/src/main.rs).
+xtask = "run --quiet --package xtask --"

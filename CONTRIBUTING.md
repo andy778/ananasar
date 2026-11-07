@@ -29,19 +29,17 @@ The [project layout](README.md#project-layout) in the README says what each crat
 
 ## Before you open a pull request
 
+Run the checks CI runs with one command:
+
 ```bash
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace --locked
+cargo xtask ci
 ```
 
-To see which lines the tests reach, install [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) and run `cargo llvm-cov --html`; the report is in `target/llvm-cov/html/index.html`. CI posts a per-crate table in the summary of the `coverage` workflow.
-
-If you touched `ananasar-core`, `-net`, `-storm`, `-mcp` or the CLI, check that they still build on Rust 1.92:
+It runs `cargo fmt --check`, clippy, the tests, the Rust 1.92 builds of `ananasar-core`, `-net`, `-storm`, `-mcp` and the headless CLI, `cargo-deny` and the release script tests, and ends with a summary. A step whose tool is missing is skipped with a message saying how to install it; for the full set:
 
 ```bash
 rustup toolchain install 1.92
-cargo +1.92 test --locked -p ananasar-core -p ananasar-net -p ananasar-storm -p ananasar-mcp
-cargo +1.92 test --locked -p ananasar-cli --no-default-features
+cargo install --locked cargo-deny
 ```
 
 - **Bug fixes come with a test** that fails without the fix. Revert the fix once and watch the test fail.
@@ -49,7 +47,9 @@ cargo +1.92 test --locked -p ananasar-cli --no-default-features
 - **Keep the change focused.** One topic per pull request; unrelated clean-ups go in their own.
 - **Update the docs** in `docs/` when you change behaviour a user can see.
 
-CI runs the same checks plus the Windows and macOS builds and `cargo-deny`.
+CI runs the same checks plus the fuzzers, CodeQL and the Windows and macOS builds.
+
+To see which lines the tests reach, install [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) and run `cargo llvm-cov --html`; the report is in `target/llvm-cov/html/index.html`. CI posts a per-crate table in the summary of the `coverage` workflow.
 
 ## Commit messages and releases
 
