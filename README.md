@@ -184,6 +184,8 @@ The README screenshot is rendered headlessly from the real window; see [docs/scr
 - [`crates/ananasar-parity`](crates/ananasar-parity): wire-level scenario runner, recording proxy and diff for comparing servers, see [docs/parity-testing.md](docs/parity-testing.md)
 - [`fuzz`](fuzz): cargo-fuzz targets for the frame parser and the server handler
 
+How the crates depend on each other and the invariants they keep are in [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Design notes
 
 - The server and client share one register file, as the original does.

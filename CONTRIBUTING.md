@@ -23,6 +23,7 @@ cargo run -p ananasar-cli -- gui
 ```
 
 The [project layout](README.md#project-layout) in the README says what each crate does.
+[ARCHITECTURE.md](ARCHITECTURE.md) explains how the crates fit together and the rules that hold between them.
 
 ## Before you open a pull request
 

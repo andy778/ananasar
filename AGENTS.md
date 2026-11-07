@@ -10,6 +10,7 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 - `ananasar-cli`: clap; produces the one `ananasar` binary, which also embeds `ananasar-gui` (egui, `ananasar gui`) and `ananasar-mcp` (`ananasar mcp`) through the default features `gui` and `mcp`.
 - `ananasar-storm` (`ananasar storm`), `ananasar-dde` (Windows DDE server used by the GUI), `ananasar-parity` (wire-level comparison runner).
 - `fuzz`: cargo-fuzz targets, excluded from the workspace.
+- [ARCHITECTURE.md](ARCHITECTURE.md) maps the crates, what each may depend on and the invariants between them.
 
 ## Commands
 - Lint: `cargo clippy --workspace --all-targets -- -D warnings` (workspace lints are in `Cargo.toml`).
