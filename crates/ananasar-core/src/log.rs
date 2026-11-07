@@ -152,7 +152,12 @@ fn exception_name(code: u8) -> &'static str {
 fn write_table(start: u16, data: &[u8]) -> String {
     let mut s = String::new();
     for (i, w) in data.as_chunks::<2>().0.iter().enumerate() {
-        let _ = writeln!(s, "{} <- {}", u32::from(start).saturating_add(u32::try_from(i).unwrap_or(u32::MAX)), u16::from_be_bytes(*w));
+        let _ = writeln!(
+            s,
+            "{} <- {}",
+            u32::from(start).saturating_add(u32::try_from(i).unwrap_or(u32::MAX)),
+            u16::from_be_bytes(*w)
+        );
     }
     s
 }
@@ -235,7 +240,12 @@ fn describe_reply(query: &[u8], reply: &[u8]) -> String {
             let start = be16(qd, 0).unwrap_or(0);
             s.push_str("Register : Value\n");
             for (i, w) in d.get(1..).unwrap_or(&[]).as_chunks::<2>().0.iter().enumerate() {
-                let _ = writeln!(s, "{}:{}", u32::from(start).saturating_add(u32::try_from(i).unwrap_or(u32::MAX)), u16::from_be_bytes(*w));
+                let _ = writeln!(
+                    s,
+                    "{}:{}",
+                    u32::from(start).saturating_add(u32::try_from(i).unwrap_or(u32::MAX)),
+                    u16::from_be_bytes(*w)
+                );
             }
         }
         0x06 => {
@@ -364,8 +374,9 @@ Register : Value\n\
         let q6 = build(1, 1, 0x06, &[0, 5, 0x12, 0x34]);
         assert_eq!(describe_query(&q6), "Write single register\nReference: 5. UID: 1\nRegister <- Value:\n5 <- 4660\n");
         let q16 = build(1, 1, 0x10, &[0, 10, 0, 2, 4, 0, 1, 0, 2]);
-        assert!(describe_query(&q16)
-            .contains("Write holding registers\nReference: 10. Word count: 2. UID: 1\nRegister <- Value:\n10 <- 1\n11 <- 2\n"));
+        assert!(describe_query(&q16).contains(
+            "Write holding registers\nReference: 10. Word count: 2. UID: 1\nRegister <- Value:\n10 <- 1\n11 <- 2\n"
+        ));
         let q22 = build(1, 1, 0x16, &[0, 4, 0xFF, 0x00, 0x00, 0x12]);
         assert!(describe_query(&q22).starts_with("Mask write register from UID 1  AND: 0xFF00 OR: 0x0012\n"));
         let q23 = build(1, 1, 0x17, &[0, 1, 0, 2, 0, 9, 0, 1, 2, 0, 7]);
@@ -380,12 +391,14 @@ Register : Value\n\
     #[test]
     fn errors_and_empty_queries() {
         let q = build(9, 5, 0x03, &[0, 1, 0, 1]);
-        let e = Entry { number: 2, elapsed_ms: 7, connection: 1, query: &q, response: Response::Error("unit id mismatch") };
+        let e =
+            Entry { number: 2, elapsed_ms: 7, connection: 1, query: &q, response: Response::Error("unit id mismatch") };
         assert_eq!(
             format_entry(&e, LogMode::Raw),
             "#2 7 ms Connection: 1\nQuery:\n00 09 00 00 00 06 05 03 00 01 00 01\nError: unit id mismatch\n\n"
         );
-        let e = Entry { number: 3, elapsed_ms: 8, connection: 1, query: &[], response: Response::Error("bad MBAP length") };
+        let e =
+            Entry { number: 3, elapsed_ms: 8, connection: 1, query: &[], response: Response::Error("bad MBAP length") };
         assert_eq!(
             format_entry(&e, LogMode::Interpretive),
             "#3 8 ms Connection: 1\nQuery:\n(no data)\nError: bad MBAP length\n\n"

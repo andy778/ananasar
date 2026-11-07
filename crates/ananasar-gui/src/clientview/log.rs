@@ -1,13 +1,14 @@
 //! Event log: a sunken white list with a hint while empty, a Copy context
 //! menu and double-click to clear.
 
-use super::widgets::Canvas;
 use super::ClientView;
+use super::widgets::Canvas;
 use crate::theme;
 use ananasar_core::sync::lock;
 use eframe::egui;
 
-const HINT: &str = "Connection events and errors detected during data exchange are listed here.\n\nDouble-click to clear";
+const HINT: &str =
+    "Connection events and errors detected during data exchange are listed here.\n\nDouble-click to clear";
 
 /// Joins log lines with newlines, for the clipboard.
 fn join_lines<S: AsRef<str>>(lines: impl IntoIterator<Item = S>) -> String {
@@ -32,13 +33,20 @@ impl ClientView {
             egui::ScrollArea::vertical().stick_to_bottom(true).auto_shrink([false, false]).show(ui, |ui| {
                 let log = lock(&self.shared.log);
                 if log.is_empty() && status.is_empty() {
-                    ui.add(egui::Label::new(egui::RichText::new(HINT).color(egui::Color32::BLACK)).wrap().selectable(false));
+                    ui.add(
+                        egui::Label::new(egui::RichText::new(HINT).color(egui::Color32::BLACK))
+                            .wrap()
+                            .selectable(false),
+                    );
                 }
                 if !status.is_empty() {
                     ui.add(egui::Label::new(egui::RichText::new(status).color(egui::Color32::BLACK)).selectable(false));
                 }
                 for line in log.iter() {
-                    ui.add(egui::Label::new(egui::RichText::new(line).monospace().color(egui::Color32::BLACK)).selectable(false));
+                    ui.add(
+                        egui::Label::new(egui::RichText::new(line).monospace().color(egui::Color32::BLACK))
+                            .selectable(false),
+                    );
                 }
             })
         });

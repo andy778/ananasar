@@ -58,7 +58,11 @@ impl std::error::Error for LoadError {}
 
 /// Addresses `start..start + VIEW_ROWS`, clamped at the top of the address space.
 pub fn view_from(start: u16) -> Vec<u16> {
-    (0..VIEW_ROWS).map(|i| u16::try_from(usize::from(start).saturating_add(i).min(BANK_LEN.saturating_sub(1))).unwrap_or(u16::MAX)).collect()
+    (0..VIEW_ROWS)
+        .map(|i| {
+            u16::try_from(usize::from(start).saturating_add(i).min(BANK_LEN.saturating_sub(1))).unwrap_or(u16::MAX)
+        })
+        .collect()
 }
 
 /// Serialise `regs` and the two Values lists. `saved_at` is free text written
@@ -117,8 +121,12 @@ pub fn load(text: &str, regs: &mut RegisterFile) -> Result<Loaded, LoadError> {
                 let (num, val) = line.split_once('|').ok_or_else(|| err("expected <number>|<value>"))?;
                 let num: u32 = num.trim().parse().map_err(|_| err("bad register number"))?;
                 let val: u16 = val.trim().parse().map_err(|_| err("bad register value"))?;
-                let (bank, base) = if num >= HOLDING_BASE { (Bank::Holding, HOLDING_BASE) } else { (Bank::Input, INPUT_BASE) };
-                let addr = num.checked_sub(base).filter(|a| (*a as usize) < BANK_LEN).ok_or_else(|| err("register address out of range"))?;
+                let (bank, base) =
+                    if num >= HOLDING_BASE { (Bank::Holding, HOLDING_BASE) } else { (Bank::Input, INPUT_BASE) };
+                let addr = num
+                    .checked_sub(base)
+                    .filter(|a| (*a as usize) < BANK_LEN)
+                    .ok_or_else(|| err("register address out of range"))?;
                 regs.set(bank, u16::try_from(addr).map_err(|_| err("register address out of range"))?, val);
             }
             1 | 2 => {

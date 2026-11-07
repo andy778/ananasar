@@ -41,7 +41,13 @@ impl FileWindow {
         Self::run(mode, &picked.to_string_lossy(), regs, bank, start_address).err()
     }
 
-    fn run(mode: Mode, path: &str, regs: &Arc<Mutex<RegisterFile>>, bank: Bank, start_address: &mut u16) -> Result<(), String> {
+    fn run(
+        mode: Mode,
+        path: &str,
+        regs: &Arc<Mutex<RegisterFile>>,
+        bank: Bank,
+        start_address: &mut u16,
+    ) -> Result<(), String> {
         match mode {
             Mode::Save => {
                 let view = view_from(*start_address);

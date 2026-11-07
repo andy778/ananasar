@@ -8,7 +8,7 @@
 //! (the N50/100/123/125 menu). The transaction id increments per poll and wraps
 //! `0xFFFF -> 0`.
 
-use crate::protocol::{build, Function};
+use crate::protocol::{Function, build};
 use crate::registers::{Bank, RegisterFile};
 
 /// Address numbering offset applied on the wire.
@@ -253,9 +253,7 @@ impl PollEngine {
                 data.extend_from_slice(&or_mask.to_be_bytes());
                 build(txn, self.unit_id, Function::MaskWrite as u8, &data)
             }
-            ManualCommand::ReadExceptionStatus => {
-                build(txn, self.unit_id, Function::ReadExceptionStatus as u8, &[])
-            }
+            ManualCommand::ReadExceptionStatus => build(txn, self.unit_id, Function::ReadExceptionStatus as u8, &[]),
         }
     }
 }

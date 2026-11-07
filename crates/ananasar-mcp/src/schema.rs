@@ -45,11 +45,7 @@ fn string(desc: &str) -> Value {
 }
 
 fn timeout() -> Value {
-    int(
-        "How long to wait for the device's reply, in milliseconds (default 3000).",
-        MIN_TIMEOUT_MS,
-        MAX_TIMEOUT_MS,
-    )
+    int("How long to wait for the device's reply, in milliseconds (default 3000).", MIN_TIMEOUT_MS, MAX_TIMEOUT_MS)
 }
 
 fn u16_values(desc: &str, max_items: i64) -> Value {

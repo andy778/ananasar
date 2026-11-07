@@ -35,11 +35,14 @@ pub(super) fn scenarios(unit: u8) -> Vec<Scenario> {
             .read(3, 0, 0)
             .read(4, 0, 126)
             .done(),
-        b("exception_illegal_value_write", "Write quantities 0 and 124 and a wrong byte count give illegal data value.")
-            .pdu(0x10, &[0x0F, 0xC0, 0, 0, 0])
-            .write_multiple(1000, &[0; 124])
-            .pdu(0x10, &[0x0F, 0xC2, 0, 2, 3, 0, 1, 0, 2])
-            .done(),
+        b(
+            "exception_illegal_value_write",
+            "Write quantities 0 and 124 and a wrong byte count give illegal data value.",
+        )
+        .pdu(0x10, &[0x0F, 0xC0, 0, 0, 0])
+        .write_multiple(1000, &[0; 124])
+        .pdu(0x10, &[0x0F, 0xC2, 0, 2, 3, 0, 1, 0, 2])
+        .done(),
         b(
             "exception_precedence_address_vs_value",
             "A request with both a bad quantity and a bad address: which exception wins.",
@@ -47,8 +50,11 @@ pub(super) fn scenarios(unit: u8) -> Vec<Scenario> {
         .read(3, 65535, 126)
         .pdu(0x10, &[0xFF, 0xFF, 0, 124, 248])
         .done(),
-        b("exception_reply_keeps_unit", "An illegal function reply keeps the unit id and sets the top bit of the function code.")
-            .pdu_for_unit(7, 0x42, &[1, 2, 3])
-            .done(),
+        b(
+            "exception_reply_keeps_unit",
+            "An illegal function reply keeps the unit id and sets the top bit of the function code.",
+        )
+        .pdu_for_unit(7, 0x42, &[1, 2, 3])
+        .done(),
     ]
 }

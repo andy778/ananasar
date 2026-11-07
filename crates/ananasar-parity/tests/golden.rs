@@ -102,8 +102,11 @@ fn unimplemented_options_are_declared_in_their_golden() {
     for p in PROFILES {
         if ours::server_config(p.name).is_none() {
             let g = load(p.name);
-            assert!(g.default_deviation.is_some(), "{}: Ananasar lacks this option, so the golden must say why it differs", p.name);
+            assert!(
+                g.default_deviation.is_some(),
+                "{}: Ananasar lacks this option, so the golden must say why it differs",
+                p.name
+            );
         }
     }
 }
-

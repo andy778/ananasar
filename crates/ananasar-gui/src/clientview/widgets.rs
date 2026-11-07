@@ -25,19 +25,31 @@ impl Canvas {
     }
 
     /// Runs `add` inside the rectangle (`l`, `t`, `w`, `h`) relative to the client area.
-    pub(super) fn at<R>(&self, ui: &mut egui::Ui, area: (f32, f32, f32, f32), add: impl FnOnce(&mut egui::Ui) -> R) -> R {
+    pub(super) fn at<R>(
+        &self,
+        ui: &mut egui::Ui,
+        area: (f32, f32, f32, f32),
+        add: impl FnOnce(&mut egui::Ui) -> R,
+    ) -> R {
         ui.scope_builder(egui::UiBuilder::new().max_rect(self.rect(area)), add).inner
     }
 
     /// A captioned frame; `add` fills its 22 px content row.
-    pub(super) fn group<R>(&self, ui: &mut egui::Ui, (l, t, w, h): (f32, f32, f32, f32), caption: &str, add: impl FnOnce(&mut egui::Ui) -> R) -> R {
+    pub(super) fn group<R>(
+        &self,
+        ui: &mut egui::Ui,
+        (l, t, w, h): (f32, f32, f32, f32),
+        caption: &str,
+        add: impl FnOnce(&mut egui::Ui) -> R,
+    ) -> R {
         let stroke = ui.visuals().widgets.noninteractive.bg_stroke;
         let text_color = ui.visuals().text_color();
         let fill = ui.visuals().window_fill;
         let frame = egui::Rect::from_min_size(self.pos(l, t + 7.0), egui::vec2(w, h - 7.0));
         ui.painter().rect_stroke(frame, 0.0, stroke, egui::StrokeKind::Inside);
         let galley = ui.painter().layout_no_wrap(caption.to_owned(), egui::FontId::proportional(12.0), text_color);
-        let caption_rect = egui::Rect::from_min_size(self.pos(l + 6.0, t), egui::vec2(galley.size().x + 4.0, galley.size().y));
+        let caption_rect =
+            egui::Rect::from_min_size(self.pos(l + 6.0, t), egui::vec2(galley.size().x + 4.0, galley.size().y));
         ui.painter().rect_filled(caption_rect, 0.0, fill);
         ui.painter().galley(self.pos(l + 8.0, t), galley, text_color);
         self.at(ui, (l + 8.0, t + 20.0, w - 16.0, 22.0), add)

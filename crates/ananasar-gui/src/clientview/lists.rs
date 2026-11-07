@@ -1,8 +1,8 @@
 //! Register lists: single-address add, chips, clear and the From/To range dialog.
 
+use super::ClientView;
 use super::widgets::Canvas;
 use crate::theme;
-use super::ClientView;
 use eframe::egui;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -57,12 +57,18 @@ fn address_row(ui: &mut egui::Ui, c: &Canvas, y: f32, id: &str, addr: &mut u16, 
     let snapshot = list.clone();
     theme::combo_list(ui, c.rect((21.0, y, 98.0, 22.0)), id, addr, 65535, &snapshot);
     let mut changed = false;
-    if theme::bevel_button(ui, c.rect((127.0, y - 1.0, 74.0, 24.0)), &format!("{id}_add"), "Add", true, None).on_hover_text("Add the address to the list").clicked() {
+    if theme::bevel_button(ui, c.rect((127.0, y - 1.0, 74.0, 24.0)), &format!("{id}_add"), "Add", true, None)
+        .on_hover_text("Add the address to the list")
+        .clicked()
+    {
         add_sorted(list, *addr);
         changed = true;
     }
     let present = list.contains(addr);
-    if theme::bevel_button(ui, c.rect((209.0, y - 1.0, 74.0, 24.0)), &format!("{id}_remove"), "Remove", present, None).on_hover_text("Remove the address from the list").clicked() {
+    if theme::bevel_button(ui, c.rect((209.0, y - 1.0, 74.0, 24.0)), &format!("{id}_remove"), "Remove", present, None)
+        .on_hover_text("Remove the address from the list")
+        .clicked()
+    {
         list.retain(|a| a != addr);
         changed = true;
     }
@@ -127,7 +133,11 @@ impl ClientView {
     pub(super) fn lists_ui(&mut self, ui: &mut egui::Ui, c: &Canvas) {
         c.frame(ui, (7.0, 111.0, 286.0, 82.0), "Read Input/Holding register");
         for (label, input, x) in [("Input registers", true, 21.0), ("Holding registers", false, 138.0)] {
-            if c.at(ui, (x, 130.0, 118.0, 20.0), |ui| ui.add(egui::RadioButton::new(self.read_input_selected == input, label))).clicked() {
+            if c.at(ui, (x, 130.0, 118.0, 20.0), |ui| {
+                ui.add(egui::RadioButton::new(self.read_input_selected == input, label))
+            })
+            .clicked()
+            {
                 self.read_input_selected = input;
             }
         }
@@ -155,13 +165,15 @@ impl ClientView {
                 ui.label("From:");
             });
             c.at(ui, (48.0, 8.0, 80.0, 22.0), |ui| {
-                ui.add(egui::TextEdit::singleline(&mut r.from).desired_width(80.0)).on_hover_text("Starting value of series");
+                ui.add(egui::TextEdit::singleline(&mut r.from).desired_width(80.0))
+                    .on_hover_text("Starting value of series");
             });
             c.at(ui, (8.0, 50.0, 40.0, 20.0), |ui| {
                 ui.label("To:");
             });
             c.at(ui, (48.0, 48.0, 80.0, 22.0), |ui| {
-                ui.add(egui::TextEdit::singleline(&mut r.to).desired_width(80.0)).on_hover_text("Ending value of series");
+                ui.add(egui::TextEdit::singleline(&mut r.to).desired_width(80.0))
+                    .on_hover_text("Ending value of series");
             });
             c.at(ui, (48.0, 80.0, 80.0, 20.0), |ui| {
                 ui.checkbox(&mut r.remove, "Remove").on_hover_text("Remove serie");

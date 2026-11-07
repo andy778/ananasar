@@ -32,7 +32,15 @@ pub struct DdeView {
 impl Default for DdeView {
     fn default() -> Self {
         // The original opens on a range of holding registers every time.
-        Self { open: false, info: false, scope: Scope::HoldingRange, from: String::new(), to: String::new(), error: String::new(), server: None }
+        Self {
+            open: false,
+            info: false,
+            scope: Scope::HoldingRange,
+            from: String::new(),
+            to: String::new(),
+            error: String::new(),
+            server: None,
+        }
     }
 }
 
@@ -40,7 +48,13 @@ impl Default for DdeView {
 fn info_icon(painter: &egui::Painter, rect: egui::Rect, hot: bool) {
     let blue = if hot { egui::Color32::from_rgb(0x2A, 0x8A, 0xE0) } else { egui::Color32::from_rgb(0x00, 0x78, 0xD7) };
     painter.circle_filled(rect.center(), rect.width() / 2.0 - 3.0, blue);
-    painter.text(rect.center(), egui::Align2::CENTER_CENTER, "i", egui::FontId::proportional(20.0), egui::Color32::WHITE);
+    painter.text(
+        rect.center(),
+        egui::Align2::CENTER_CENTER,
+        "i",
+        egui::FontId::proportional(20.0),
+        egui::Color32::WHITE,
+    );
 }
 
 impl DdeView {
@@ -65,9 +79,12 @@ impl DdeView {
             for (i, (scope, label)) in CHOICES.into_iter().enumerate() {
                 let y = 29.0 + 25.0 * f32::from(u8::try_from(i).unwrap_or(0));
                 let clicked = ui
-                    .scope_builder(egui::UiBuilder::new().max_rect(at(14.0, y, 220.0, 20.0)).layout(egui::Layout::left_to_right(egui::Align::Center)), |ui| {
-                        ui.radio(self.scope == scope, label).clicked()
-                    })
+                    .scope_builder(
+                        egui::UiBuilder::new()
+                            .max_rect(at(14.0, y, 220.0, 20.0))
+                            .layout(egui::Layout::left_to_right(egui::Align::Center)),
+                        |ui| ui.radio(self.scope == scope, label).clicked(),
+                    )
                     .inner;
                 if clicked {
                     self.scope = scope;
@@ -90,7 +107,8 @@ impl DdeView {
                 ui.put(at(9.0, 181.0, 311.0, 16.0), egui::Label::new(text));
             }
             ok = theme::bevel_button(ui, at(9.0, 199.0, 80.0, 22.0), "dde_ok", "OK", true, None).clicked();
-            cancel = theme::bevel_button(ui, at(112.0, 199.0, 80.0, 22.0), "dde_cancel", "Cancel", true, None).clicked()
+            cancel = theme::bevel_button(ui, at(112.0, 199.0, 80.0, 22.0), "dde_cancel", "Cancel", true, None)
+                .clicked()
                 || ui.input(|i| i.key_pressed(egui::Key::Escape));
         });
         self.info |= info;
@@ -133,7 +151,8 @@ impl DdeView {
                  For example {example} is holding register 8862."
             );
             ui.put(at(16.0, 14.0, 380.0, 120.0), egui::Label::new(egui::RichText::new(text).size(12.0)).wrap());
-            ok = theme::bevel_button(ui, at(166.0, 150.0, 80.0, 24.0), "dde_info_ok", "OK", true, None).clicked() || ui.input(|i| i.key_pressed(egui::Key::Escape));
+            ok = theme::bevel_button(ui, at(166.0, 150.0, 80.0, 24.0), "dde_info_ok", "OK", true, None).clicked()
+                || ui.input(|i| i.key_pressed(egui::Key::Escape));
         });
         if closed || ok {
             self.info = false;

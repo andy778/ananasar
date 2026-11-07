@@ -126,7 +126,11 @@ impl Form {
         c.duration = secs("duration", num("duration", &self.duration)?)?;
         if self.ramp {
             c.ramp_to = Some(num("ramp rate", &self.ramp_to)?);
-            c.ramp_duration = if self.ramp_secs.trim().is_empty() { c.duration } else { secs("ramp duration", num("ramp duration", &self.ramp_secs)?)? };
+            c.ramp_duration = if self.ramp_secs.trim().is_empty() {
+                c.duration
+            } else {
+                secs("ramp duration", num("ramp duration", &self.ramp_secs)?)?
+            };
         }
         c.reply_timeout = Duration::from_millis(num("reply timeout", &self.timeout_ms)?);
         c.seed = if self.seed.trim().is_empty() { fresh_seed() } else { num("seed", &self.seed)? };
@@ -209,7 +213,14 @@ pub struct Latency {
 
 impl Latency {
     pub fn of(h: &Histogram) -> Self {
-        Self { count: h.count(), mean: h.mean(), p50: h.percentile(50.0), p95: h.percentile(95.0), p99: h.percentile(99.0), max: h.max() }
+        Self {
+            count: h.count(),
+            mean: h.mean(),
+            p50: h.percentile(50.0),
+            p95: h.percentile(95.0),
+            p99: h.percentile(99.0),
+            max: h.max(),
+        }
     }
 }
 
@@ -311,7 +322,12 @@ impl StormView {
         self.form.authorised = false;
         self.save_note.clear();
         self.shared.stop.store(false, Ordering::Relaxed);
-        *lock(&self.shared.state) = RunState { phase: Phase::Running, started: Some(Instant::now()), cfg: Some(cfg.clone()), ..RunState::default() };
+        *lock(&self.shared.state) = RunState {
+            phase: Phase::Running,
+            started: Some(Instant::now()),
+            cfg: Some(cfg.clone()),
+            ..RunState::default()
+        };
         let shared = self.shared.clone();
         std::thread::spawn(move || {
             let _finish = Finish(shared.clone());
@@ -354,18 +370,38 @@ impl StormView {
     fn settings(&mut self, ui: &mut egui::Ui) {
         let f = &mut self.form;
         ui.horizontal(|ui| {
-            field(ui, "Target (host:port):", egui::TextEdit::singleline(&mut f.target).desired_width(220.0).hint_text("192.168.1.50:502"));
+            field(
+                ui,
+                "Target (host:port):",
+                egui::TextEdit::singleline(&mut f.target).desired_width(220.0).hint_text("192.168.1.50:502"),
+            );
             field(ui, "Unit id:", egui::TextEdit::singleline(&mut f.unit_id).desired_width(40.0));
         });
         egui::CollapsingHeader::new("Load").default_open(true).show(ui, |ui| {
             egui::Grid::new("storm_load").num_columns(4).spacing([8.0, 4.0]).show(ui, |ui| {
                 text_row(ui, "Connections:", &mut f.connections, "Duration (s):", &mut f.duration);
-                text_row(ui, "Rate per connection (/s, 0 = unlimited):", &mut f.rate, "Reply timeout (ms):", &mut f.timeout_ms);
+                text_row(
+                    ui,
+                    "Rate per connection (/s, 0 = unlimited):",
+                    &mut f.rate,
+                    "Reply timeout (ms):",
+                    &mut f.timeout_ms,
+                );
                 let ramp_to = ui.checkbox(&mut f.ramp, "Ramp to (/s):");
-                ui.add_enabled(f.ramp, egui::TextEdit::singleline(&mut f.ramp_to).desired_width(70.0)).labelled_by(ramp_to.id);
-                field_enabled(ui, f.ramp, "Ramp time (s, blank = whole run):", egui::TextEdit::singleline(&mut f.ramp_secs).desired_width(70.0));
+                ui.add_enabled(f.ramp, egui::TextEdit::singleline(&mut f.ramp_to).desired_width(70.0))
+                    .labelled_by(ramp_to.id);
+                field_enabled(
+                    ui,
+                    f.ramp,
+                    "Ramp time (s, blank = whole run):",
+                    egui::TextEdit::singleline(&mut f.ramp_secs).desired_width(70.0),
+                );
                 ui.end_row();
-                field(ui, "Seed (blank = from the clock):", egui::TextEdit::singleline(&mut f.seed).desired_width(120.0));
+                field(
+                    ui,
+                    "Seed (blank = from the clock):",
+                    egui::TextEdit::singleline(&mut f.seed).desired_width(120.0),
+                );
                 ui.end_row();
             });
         });
@@ -385,13 +421,23 @@ impl StormView {
             ui.label("Percent of requests that get each fault; the total must not exceed 100.");
             egui::Grid::new("storm_faults").num_columns(4).spacing([8.0, 4.0]).show(ui, |ui| {
                 for (n, (kind, text)) in FaultKind::ALL.into_iter().zip(&mut f.faults).enumerate() {
-                    field(ui, format!("{}:", fault_caption(kind)), egui::TextEdit::singleline(text).desired_width(50.0));
+                    field(
+                        ui,
+                        format!("{}:", fault_caption(kind)),
+                        egui::TextEdit::singleline(text).desired_width(50.0),
+                    );
                     if n % 2 == 1 {
                         ui.end_row();
                     }
                 }
                 ui.end_row();
-                text_row(ui, "Coalesce count (2-16):", &mut f.coalesce_count, "Split delay (ms):", &mut f.split_delay_ms);
+                text_row(
+                    ui,
+                    "Coalesce count (2-16):",
+                    &mut f.coalesce_count,
+                    "Split delay (ms):",
+                    &mut f.split_delay_ms,
+                );
                 field(ui, "Fault wait (ms):", egui::TextEdit::singleline(&mut f.fault_wait_ms).desired_width(70.0));
                 ui.end_row();
             });
@@ -400,12 +446,20 @@ impl StormView {
             ui.checkbox(&mut f.churn, "Churn: each connection thread connects and disconnects repeatedly");
             ui.add_enabled_ui(f.churn, |ui| {
                 ui.horizontal(|ui| {
-                    field(ui, "Pause between cycles (ms, 0 = none, needs authorisation):", egui::TextEdit::singleline(&mut f.churn_interval_ms).desired_width(60.0));
+                    field(
+                        ui,
+                        "Pause between cycles (ms, 0 = none, needs authorisation):",
+                        egui::TextEdit::singleline(&mut f.churn_interval_ms).desired_width(60.0),
+                    );
                 });
                 ui.checkbox(&mut f.churn_request, "Send one request on each connection before closing it");
             });
             ui.horizontal(|ui| {
-                field(ui, "Extra idle connections held open:", egui::TextEdit::singleline(&mut f.half_open).desired_width(60.0));
+                field(
+                    ui,
+                    "Extra idle connections held open:",
+                    egui::TextEdit::singleline(&mut f.half_open).desired_width(60.0),
+                );
             });
         });
     }
@@ -420,7 +474,10 @@ impl StormView {
             Ok(c) => {
                 let why = c.authorisation_reasons();
                 if !why.is_empty() {
-                    ui.colored_label(Color32::from_rgb(0x9A, 0x1F, 0x1F), format!("Needs the box above: {}.", why.join(", ")));
+                    ui.colored_label(
+                        Color32::from_rgb(0x9A, 0x1F, 0x1F),
+                        format!("Needs the box above: {}.", why.join(", ")),
+                    );
                 }
             }
             Err(e) => {
@@ -527,7 +584,10 @@ impl StormView {
             {
                 self.out_dir = dir.display().to_string();
             }
-            if ui.add_enabled(have_report && !self.out_dir.trim().is_empty(), egui::Button::new("Save report")).clicked() {
+            if ui
+                .add_enabled(have_report && !self.out_dir.trim().is_empty(), egui::Button::new("Save report"))
+                .clicked()
+            {
                 self.save();
             }
         });
@@ -535,7 +595,12 @@ impl StormView {
             ui.label(&self.save_note);
         }
         egui::ScrollArea::vertical().id_salt("storm_report").max_height(220.0).show(ui, |ui| {
-            let report = ui.add(egui::TextEdit::multiline(&mut text).font(egui::TextStyle::Monospace).desired_width(f32::INFINITY).interactive(false));
+            let report = ui.add(
+                egui::TextEdit::multiline(&mut text)
+                    .font(egui::TextStyle::Monospace)
+                    .desired_width(f32::INFINITY)
+                    .interactive(false),
+            );
             report.widget_info(|| egui::WidgetInfo::labeled(egui::Role::MultilineTextInput, true, "Storm report"));
         });
     }
@@ -546,7 +611,9 @@ impl StormView {
         let Some(report) = report else { return };
         let dir = PathBuf::from(self.out_dir.trim());
         self.save_note = match report.write_to(&dir) {
-            Ok(files) => format!("Wrote {}", files.iter().map(|f| f.display().to_string()).collect::<Vec<_>>().join(", ")),
+            Ok(files) => {
+                format!("Wrote {}", files.iter().map(|f| f.display().to_string()).collect::<Vec<_>>().join(", "))
+            }
             Err(e) => format!("Cannot write the report to {}: {e}", dir.display()),
         };
     }
@@ -611,8 +678,16 @@ fn plot(ui: &mut egui::Ui, ticks: &[Tick]) {
         let top = inner.bottom() - h(t.sent);
         let split = inner.bottom() - h(bad);
         let width = (slot - 1.0).max(1.0);
-        painter.rect_filled(egui::Rect::from_min_max(egui::pos2(x, top), egui::pos2(x + width, split)), 0.0, Color32::from_rgb(0x3A, 0x6E, 0xA5));
-        painter.rect_filled(egui::Rect::from_min_max(egui::pos2(x, split), egui::pos2(x + width, inner.bottom())), 0.0, Color32::from_rgb(0xC0, 0x30, 0x30));
+        painter.rect_filled(
+            egui::Rect::from_min_max(egui::pos2(x, top), egui::pos2(x + width, split)),
+            0.0,
+            Color32::from_rgb(0x3A, 0x6E, 0xA5),
+        );
+        painter.rect_filled(
+            egui::Rect::from_min_max(egui::pos2(x, split), egui::pos2(x + width, inner.bottom())),
+            0.0,
+            Color32::from_rgb(0xC0, 0x30, 0x30),
+        );
     }
     painter.text(
         inner.left_top(),
@@ -624,7 +699,12 @@ fn plot(ui: &mut egui::Ui, ticks: &[Tick]) {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, reason = "test code: a panic is a failed test")]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    reason = "test code: a panic is a failed test"
+)]
 mod tests {
     use super::*;
 
@@ -640,7 +720,10 @@ mod tests {
     fn defaults_are_the_cli_defaults_and_pass_without_authorisation() {
         let c = config(&form());
         let cli = Config::new("127.0.0.1", 502);
-        assert_eq!((c.connections, c.rate, c.duration, c.reply_timeout), (4, 10.0, Duration::from_secs(10), Duration::from_secs(1)));
+        assert_eq!(
+            (c.connections, c.rate, c.duration, c.reply_timeout),
+            (4, 10.0, Duration::from_secs(10), Duration::from_secs(1))
+        );
         assert_eq!(c.mix, cli.mix);
         assert!(!c.mix.writes());
         assert!(c.authorisation_reasons().is_empty());
@@ -667,20 +750,29 @@ mod tests {
             ("rate over 1000/s in total", Box::new(|f| f.rate = "300".to_owned())),
             ("unlimited rate", Box::new(|f| f.rate = "0".to_owned())),
             ("more than 64 connections", Box::new(|f| f.connections = "65".to_owned())),
-            ("connections plus half-open", Box::new(|f| {
-                f.connections = "60".to_owned();
-                f.half_open = "5".to_owned();
-            })),
+            (
+                "connections plus half-open",
+                Box::new(|f| {
+                    f.connections = "60".to_owned();
+                    f.half_open = "5".to_owned();
+                }),
+            ),
             ("fault injection", Box::new(|f| f.faults[2] = "1".to_owned())),
-            ("churn without a pause", Box::new(|f| {
-                f.churn = true;
-                f.churn_interval_ms = "0".to_owned();
-            })),
-            ("a ramp above 1000/s", Box::new(|f| {
-                f.rate = "1".to_owned();
-                f.ramp = true;
-                f.ramp_to = "2000".to_owned();
-            })),
+            (
+                "churn without a pause",
+                Box::new(|f| {
+                    f.churn = true;
+                    f.churn_interval_ms = "0".to_owned();
+                }),
+            ),
+            (
+                "a ramp above 1000/s",
+                Box::new(|f| {
+                    f.rate = "1".to_owned();
+                    f.ramp = true;
+                    f.ramp_to = "2000".to_owned();
+                }),
+            ),
         ];
         for (what, change) in &risky {
             let mut f = form();
@@ -747,12 +839,14 @@ mod tests {
         assert!(bad(|f| f.weights = Default::default()).contains("mix"));
         assert!(bad(|f| f.faults[6] = "120".to_owned()).contains("percentage"));
         assert!(bad(|f| f.faults[6] = "x".to_owned()).contains("split fault"));
-        assert!(bad(|f| {
-            f.faults[1] = "60".to_owned();
-            f.faults[2] = "60".to_owned();
-            f.authorised = true;
-        })
-        .contains("100"));
+        assert!(
+            bad(|f| {
+                f.faults[1] = "60".to_owned();
+                f.faults[2] = "60".to_owned();
+                f.authorised = true;
+            })
+            .contains("100")
+        );
     }
 
     #[test]
@@ -904,7 +998,10 @@ mod tests {
         assert!(stats.sent >= 100, "{stats:?}");
         assert_eq!(stats.sent, stats.ok, "our server answers every read: {stats:?}");
         assert_eq!(stats.sent, stats.accounted(), "{stats:?}");
-        assert_eq!((stats.timeouts, stats.resets, stats.io_errors, stats.mismatch_total(), stats.fault_total()), (0, 0, 0, 0, 0));
+        assert_eq!(
+            (stats.timeouts, stats.resets, stats.io_errors, stats.mismatch_total(), stats.fault_total()),
+            (0, 0, 0, 0, 0)
+        );
         assert!(latency.count > 0 && latency.p95.is_some());
         assert!(!h.state().form.authorised, "the box is for one run");
         h.get_by_label("Save report");
@@ -913,12 +1010,16 @@ mod tests {
         h.state_mut().out_dir = dir.display().to_string();
         h.state_mut().save();
         let note = h.state().save_note.clone();
-        let mut names: Vec<String> = std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+        let mut names: Vec<String> =
+            std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
         names.sort();
         std::fs::remove_dir_all(&dir).ok();
         assert!(note.starts_with("Wrote "), "{note}");
         assert_eq!(names.len(), 3, "{names:?}");
-        assert!(names.iter().any(|n| n.ends_with(".json")) && names.iter().any(|n| n.ends_with(".timeline.csv")), "{names:?}");
+        assert!(
+            names.iter().any(|n| n.ends_with(".json")) && names.iter().any(|n| n.ends_with(".timeline.csv")),
+            "{names:?}"
+        );
     }
 
     #[test]
@@ -946,7 +1047,8 @@ mod tests {
     fn a_risky_run_is_refused_until_the_box_is_ticked() {
         use egui_kittest::kittest::Queryable;
         let server = TestServer::start();
-        let mut form = Form { target: format!("127.0.0.1:{}", server.port), duration: "1".to_owned(), ..Form::default() };
+        let mut form =
+            Form { target: format!("127.0.0.1:{}", server.port), duration: "1".to_owned(), ..Form::default() };
         form.faults[6] = "100".to_owned();
         let mut h = harness(form);
         h.run();

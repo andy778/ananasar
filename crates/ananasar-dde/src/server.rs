@@ -14,16 +14,14 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::JoinHandle;
 use windows_sys::Win32::System::DataExchange::{
-    APPCLASS_STANDARD, CBF_FAIL_EXECUTES, CBF_SKIP_ALLNOTIFICATIONS, CP_WINUNICODE, DDE_FACK,
-    DMLERR_NO_ERROR, DNS_REGISTER, DNS_UNREGISTER, DdeAccessData, DdeCreateDataHandle,
-    DdeCreateStringHandleW, DdeFreeStringHandle, DdeInitializeW, DdeNameService, DdePostAdvise,
-    DdeQueryStringW, DdeUnaccessData, DdeUninitialize, HCONV, HDDEDATA, HSZ, XTYP_ADVREQ,
-    XTYP_ADVSTART, XTYP_CONNECT, XTYP_POKE, XTYP_REQUEST,
+    APPCLASS_STANDARD, CBF_FAIL_EXECUTES, CBF_SKIP_ALLNOTIFICATIONS, CP_WINUNICODE, DDE_FACK, DMLERR_NO_ERROR,
+    DNS_REGISTER, DNS_UNREGISTER, DdeAccessData, DdeCreateDataHandle, DdeCreateStringHandleW, DdeFreeStringHandle,
+    DdeInitializeW, DdeNameService, DdePostAdvise, DdeQueryStringW, DdeUnaccessData, DdeUninitialize, HCONV, HDDEDATA,
+    HSZ, XTYP_ADVREQ, XTYP_ADVSTART, XTYP_CONNECT, XTYP_POKE, XTYP_REQUEST,
 };
 use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    DispatchMessageW, GetMessageW, KillTimer, MSG, PostThreadMessageW, SetTimer, TranslateMessage,
-    WM_QUIT, WM_TIMER,
+    DispatchMessageW, GetMessageW, KillTimer, MSG, PostThreadMessageW, SetTimer, TranslateMessage, WM_QUIT, WM_TIMER,
 };
 
 /// Clipboard format of plain text, the only format served.
@@ -67,20 +65,14 @@ pub struct Server {
 
 impl Server {
     /// Registers the DDE service and serves the registers `activation` covers.
-    pub fn start(
-        regs: Arc<Mutex<RegisterFile>>,
-        activation: Activation,
-    ) -> Result<Self, StartError> {
+    pub fn start(regs: Arc<Mutex<RegisterFile>>, activation: Activation) -> Result<Self, StartError> {
         let (tx, rx) = mpsc::channel();
         let join = std::thread::Builder::new()
             .name("dde".into())
             .spawn(move || run(regs, activation, &tx))
             .map_err(|_| StartError::Thread)?;
         match rx.recv() {
-            Ok(Ok(thread_id)) => Ok(Self {
-                thread_id,
-                join: Some(join),
-            }),
+            Ok(Ok(thread_id)) => Ok(Self { thread_id, join: Some(join) }),
             Ok(Err(e)) => {
                 let _ = join.join();
                 Err(e)
@@ -123,15 +115,7 @@ fn query_string(hsz: HSZ) -> Option<String> {
     let mut buf = [0u16; 64];
     let cap = u32::try_from(buf.len()).ok()?;
     // SAFETY: `buf` is valid for `cap` UTF-16 units for the whole call.
-    let n = unsafe {
-        DdeQueryStringW(
-            INSTANCE.load(Ordering::SeqCst),
-            hsz,
-            buf.as_mut_ptr(),
-            cap,
-            CP_WINUNICODE,
-        )
-    };
+    let n = unsafe { DdeQueryStringW(INSTANCE.load(Ordering::SeqCst), hsz, buf.as_mut_ptr(), cap, CP_WINUNICODE) };
     String::from_utf16(buf.get(..usize::try_from(n).ok()?)?).ok()
 }
 
@@ -151,17 +135,7 @@ fn value_data(active: &Active, bank: Bank, addr: u16, item: HSZ) -> HDDEDATA {
         return null_handle();
     };
     // SAFETY: `text` is valid for `len` bytes; DDEML copies it.
-    unsafe {
-        DdeCreateDataHandle(
-            INSTANCE.load(Ordering::SeqCst),
-            text.as_ptr(),
-            len,
-            0,
-            item,
-            CF_TEXT,
-            0,
-        )
-    }
+    unsafe { DdeCreateDataHandle(INSTANCE.load(Ordering::SeqCst), text.as_ptr(), len, 0, item, CF_TEXT, 0) }
 }
 
 /// Applies a poke; false if the item is not served or the data cannot be read.
@@ -207,11 +181,7 @@ unsafe extern "system" fn callback(
         XTYP_CONNECT => {
             let service_ok = query_string(hsz2).is_some_and(|s| s.eq_ignore_ascii_case(SERVICE));
             let topic_ok = query_string(hsz1).is_some_and(|t| item::parse_topic(&t).is_some());
-            if service_ok && topic_ok {
-                handle(1)
-            } else {
-                null_handle()
-            }
+            if service_ok && topic_ok { handle(1) } else { null_handle() }
         }
         // hsz1 is the topic, hsz2 the item.
         XTYP_REQUEST | XTYP_ADVREQ if wfmt == CF_TEXT => match target(&active, hsz1, hsz2) {
@@ -247,21 +217,14 @@ impl Watch {
     fn new(regs: &RegisterFile, bank: Bank, range: (u16, u16)) -> Self {
         let from = usize::from(range.0);
         let to = usize::from(range.1);
-        let last = regs
-            .bank(bank)
-            .get(from..=to)
-            .map(<[u16]>::to_vec)
-            .unwrap_or_default();
+        let last = regs.bank(bank).get(from..=to).map(<[u16]>::to_vec).unwrap_or_default();
         Self { bank, from, last }
     }
 
     /// Addresses whose value changed since the last call, at most `limit`.
     fn changed(&mut self, regs: &RegisterFile, limit: usize) -> Vec<u16> {
         let mut out = Vec::new();
-        let Some(now) = regs
-            .bank(self.bank)
-            .get(self.from..self.from.saturating_add(self.last.len()))
-        else {
+        let Some(now) = regs.bank(self.bank).get(self.from..self.from.saturating_add(self.last.len())) else {
             return out;
         };
         for (i, (old, new)) in self.last.iter_mut().zip(now).enumerate() {
@@ -305,21 +268,14 @@ fn post_advise(inst: u32, bank: Bank, addrs: &[u16]) {
 }
 
 /// The body of the DDE thread: register, pump messages until WM_QUIT, unregister.
-fn run(
-    regs: Arc<Mutex<RegisterFile>>,
-    activation: Activation,
-    started: &mpsc::Sender<Result<u32, StartError>>,
-) {
+fn run(regs: Arc<Mutex<RegisterFile>>, activation: Activation, started: &mpsc::Sender<Result<u32, StartError>>) {
     {
         let mut slot = lock(&ACTIVE);
         if slot.is_some() {
             let _ = started.send(Err(StartError::AlreadyRunning));
             return;
         }
-        *slot = Some(Active {
-            regs: regs.clone(),
-            activation,
-        });
+        *slot = Some(Active { regs: regs.clone(), activation });
     }
     let result = serve(&regs, activation, started);
     *lock(&ACTIVE) = None;
@@ -336,12 +292,7 @@ fn serve(
     let mut inst = 0u32;
     // SAFETY: `inst` outlives the call; `callback` has the PFNCALLBACK signature.
     let status = unsafe {
-        DdeInitializeW(
-            &mut inst,
-            Some(callback),
-            APPCLASS_STANDARD | CBF_SKIP_ALLNOTIFICATIONS | CBF_FAIL_EXECUTES,
-            0,
-        )
+        DdeInitializeW(&mut inst, Some(callback), APPCLASS_STANDARD | CBF_SKIP_ALLNOTIFICATIONS | CBF_FAIL_EXECUTES, 0)
     };
     if status != DMLERR_NO_ERROR {
         return Err(StartError::Init(status));
@@ -349,8 +300,8 @@ fn serve(
     INSTANCE.store(inst, Ordering::SeqCst);
     let service = string_handle(inst, SERVICE);
     // SAFETY: `service` was created for `inst` just above.
-    let registered = !service.is_null()
-        && !unsafe { DdeNameService(inst, service, ptr::null_mut(), DNS_REGISTER) }.is_null();
+    let registered =
+        !service.is_null() && !unsafe { DdeNameService(inst, service, ptr::null_mut(), DNS_REGISTER) }.is_null();
     if !registered {
         // SAFETY: tears down what was set up above.
         unsafe {
@@ -362,11 +313,7 @@ fn serve(
 
     let mut watches: Vec<Watch> = [Bank::Input, Bank::Holding]
         .into_iter()
-        .filter_map(|bank| {
-            activation
-                .range(bank)
-                .map(|range| Watch::new(&lock(regs), bank, range))
-        })
+        .filter_map(|bank| activation.range(bank).map(|range| Watch::new(&lock(regs), bank, range)))
         .collect();
     // SAFETY: a thread timer (no window) posts WM_TIMER to this thread's queue.
     let timer = unsafe { SetTimer(ptr::null_mut(), 0, POLL_MS, None) };

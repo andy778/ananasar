@@ -1,8 +1,8 @@
 //! Manual commands: exception status and the Write/Mask single register tool window.
 
+use super::ClientView;
 use super::widgets::Canvas;
 use super::worker::Cmd;
-use super::ClientView;
 use ananasar_core::client::ManualCommand;
 use eframe::egui;
 
@@ -28,13 +28,24 @@ fn parse_hex(text: &str) -> Option<u16> {
 }
 
 /// Builds the command the Apply button sends, or `None` while a field is not valid.
-pub(super) fn build_command(addr: &str, value: &str, and: &str, or: &str, mask: bool, fc16: bool) -> Option<ManualCommand> {
+pub(super) fn build_command(
+    addr: &str,
+    value: &str,
+    and: &str,
+    or: &str,
+    mask: bool,
+    fc16: bool,
+) -> Option<ManualCommand> {
     let addr = addr.trim().parse::<u16>().ok()?;
     if mask {
         return Some(ManualCommand::MaskWrite { addr, and_mask: parse_hex(and)?, or_mask: parse_hex(or)? });
     }
     let value = parse_value(value)?;
-    Some(if fc16 { ManualCommand::WriteSingleMultiple { addr, value } } else { ManualCommand::WriteSingle { addr, value } })
+    Some(if fc16 {
+        ManualCommand::WriteSingleMultiple { addr, value }
+    } else {
+        ManualCommand::WriteSingle { addr, value }
+    })
 }
 
 impl ClientView {
@@ -53,7 +64,13 @@ impl ClientView {
             self.man_open = true;
             ui.close();
         }
-        if ui.add_enabled(connected, egui::Button::new("Read Exception Status\u{2026}").shortcut_text(sc(ui, &SHORTCUT_EXCEPTION))).clicked() {
+        if ui
+            .add_enabled(
+                connected,
+                egui::Button::new("Read Exception Status\u{2026}").shortcut_text(sc(ui, &SHORTCUT_EXCEPTION)),
+            )
+            .clicked()
+        {
             let _ = self.tx.send(Cmd::Manual(ManualCommand::ReadExceptionStatus));
             ui.close();
         }
@@ -94,9 +111,11 @@ impl ClientView {
         let closed = crate::dialog::show(ctx, "write-register", title, [382.0, 128.0], 0, &mut |ui| {
             let c = Canvas::new(ui, 382.0, 128.0);
             let mask = self.man_mask;
-            let command = build_command(&self.man_addr, &self.man_value, &self.man_and, &self.man_or, mask, self.man_use_fc16);
+            let command =
+                build_command(&self.man_addr, &self.man_value, &self.man_and, &self.man_or, mask, self.man_use_fc16);
             c.group(ui, (8.0, 8.0, 113.0, 49.0), "Address", |ui| {
-                ui.add(egui::TextEdit::singleline(&mut self.man_addr).desired_width(97.0)).on_hover_text("Register address");
+                ui.add(egui::TextEdit::singleline(&mut self.man_addr).desired_width(97.0))
+                    .on_hover_text("Register address");
             });
             c.group(ui, (160.0, 8.0, 113.0, 49.0), "Value", |ui| {
                 let (text, hint) = if mask {
@@ -107,16 +126,22 @@ impl ClientView {
                 ui.add(egui::TextEdit::singleline(text).desired_width(97.0)).on_hover_text(hint);
             });
             c.group(ui, (160.0, 64.0, 113.0, 49.0), "OR (Hex)", |ui| {
-                ui.add_enabled(mask, egui::TextEdit::singleline(&mut self.man_or).desired_width(97.0)).on_hover_text("OR pattern of masking");
+                ui.add_enabled(mask, egui::TextEdit::singleline(&mut self.man_or).desired_width(97.0))
+                    .on_hover_text("OR pattern of masking");
             });
             c.at(ui, (8.0, 72.0, 140.0, 20.0), |ui| {
-                ui.checkbox(&mut self.man_mask, "Mask AND + OR").on_hover_text("Mask Write Register (function 22) instead of a plain write");
+                ui.checkbox(&mut self.man_mask, "Mask AND + OR")
+                    .on_hover_text("Mask Write Register (function 22) instead of a plain write");
             });
             c.at(ui, (8.0, 96.0, 140.0, 20.0), |ui| {
-                ui.add_enabled(!mask, egui::Checkbox::new(&mut self.man_use_fc16, "Use Function 16")).on_hover_text("Use FC16 instead of FC6");
+                ui.add_enabled(!mask, egui::Checkbox::new(&mut self.man_use_fc16, "Use Function 16"))
+                    .on_hover_text("Use FC16 instead of FC6");
             });
             c.at(ui, (293.0, 15.0, 81.0, 49.0), |ui| {
-                let apply = ui.add_enabled(connected && command.is_some(), egui::Button::new("Apply").min_size(egui::vec2(81.0, 49.0)));
+                let apply = ui.add_enabled(
+                    connected && command.is_some(),
+                    egui::Button::new("Apply").min_size(egui::vec2(81.0, 49.0)),
+                );
                 if apply.on_hover_text("Write value to connection partner").clicked()
                     && let Some(cmd) = command
                 {
@@ -139,8 +164,14 @@ mod tests {
 
     #[test]
     fn single_write_picks_fc6_or_fc16() {
-        assert!(matches!(build_command("5", "100", "", "", false, false), Some(ManualCommand::WriteSingle { addr: 5, value: 100 })));
-        assert!(matches!(build_command("5", "0x10", "", "", false, true), Some(ManualCommand::WriteSingleMultiple { addr: 5, value: 16 })));
+        assert!(matches!(
+            build_command("5", "100", "", "", false, false),
+            Some(ManualCommand::WriteSingle { addr: 5, value: 100 })
+        ));
+        assert!(matches!(
+            build_command("5", "0x10", "", "", false, true),
+            Some(ManualCommand::WriteSingleMultiple { addr: 5, value: 16 })
+        ));
         assert!(build_command("5", "70000", "", "", false, false).is_none());
         assert!(build_command("x", "1", "", "", false, false).is_none());
     }

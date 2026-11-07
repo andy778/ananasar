@@ -27,7 +27,10 @@ pub fn run_profile(
     timeout: Duration,
 ) -> io::Result<Recording> {
     let mut rec = Recording::default();
-    for scenario in scenarios::for_profile(profile, unit).into_iter().filter(|s| only.is_empty() || only.iter().any(|n| n == s.name)) {
+    for scenario in scenarios::for_profile(profile, unit)
+        .into_iter()
+        .filter(|s| only.is_empty() || only.iter().any(|n| n == s.name))
+    {
         rec.sections.push(run_scenario(addr, &scenario, timeout)?);
     }
     Ok(rec)

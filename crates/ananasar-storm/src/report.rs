@@ -46,7 +46,15 @@ impl Tick {
         let mean = self.mean_latency_us.map_or_else(|| "-".to_owned(), |u| format!("{:.2} ms", us_to_ms(u)));
         format!(
             "[{:>4.0}s] sent {:>6}  replies {:>6}  exc {:>4}  timeout {:>4}  err {:>4}  mismatch {:>3}  fault {:>4}  cycles {:>5}  mean {mean}",
-            self.elapsed_s, self.sent, self.replies, self.exceptions, self.timeouts, self.errors, self.mismatches, self.faults, self.cycles
+            self.elapsed_s,
+            self.sent,
+            self.replies,
+            self.exceptions,
+            self.timeouts,
+            self.errors,
+            self.mismatches,
+            self.faults,
+            self.cycles
         )
     }
 }
@@ -322,10 +330,8 @@ impl Report {
         let mism = if mism.is_empty() { String::new() } else { format!(" ({})", mism.join(", ")) };
         let _ = writeln!(o, "  mismatches    {}{mism}", s.mismatch_total());
         if s.fault_total() > 0 {
-            let kinds: Vec<String> = FaultKind::ALL
-                .iter()
-                .filter_map(|k| s.faults.get(k).map(|n| format!("{}: {n}", k.name())))
-                .collect();
+            let kinds: Vec<String> =
+                FaultKind::ALL.iter().filter_map(|k| s.faults.get(k).map(|n| format!("{}: {n}", k.name()))).collect();
             let _ = writeln!(o, "  faults        {} injected ({})", s.fault_total(), kinds.join(", "));
             let _ = writeln!(
                 o,
@@ -337,7 +343,11 @@ impl Report {
             let _ = writeln!(o, "  churn         {} connect/disconnect cycles", s.churn_cycles);
         }
         if c.half_open > 0 {
-            let _ = writeln!(o, "  half-open     {} idle connections held, {} failed", s.half_open_held, s.half_open_failed);
+            let _ = writeln!(
+                o,
+                "  half-open     {} idle connections held, {} failed",
+                s.half_open_held, s.half_open_failed
+            );
         }
         if s.worker_panics > 0 {
             let _ = writeln!(o, "  WARNING       {} worker thread(s) panicked", s.worker_panics);
@@ -417,7 +427,9 @@ impl Report {
     /// One row per progress interval, with wall-clock timestamps, for lining
     /// the run up against an external event such as a link-level flood.
     pub fn timeline_csv(&self) -> String {
-        let mut o = String::from("second,unix_ms,elapsed_s,sent,replies,exceptions,timeouts,errors,mismatches,faults,churn_cycles,mean_latency_us\n");
+        let mut o = String::from(
+            "second,unix_ms,elapsed_s,sent,replies,exceptions,timeouts,errors,mismatches,faults,churn_cycles,mean_latency_us\n",
+        );
         for t in &self.timeline {
             let _ = writeln!(
                 o,
@@ -497,7 +509,16 @@ mod tests {
     #[test]
     fn text_summary_has_the_key_numbers() {
         let t = report().text();
-        for want in ["10 sent", "5.0/s", "ok replies    8", "code 2: 1", "timeouts      1", "seed 99", "p99", "ananasar storm 10.0.0.5:502"] {
+        for want in [
+            "10 sent",
+            "5.0/s",
+            "ok replies    8",
+            "code 2: 1",
+            "timeouts      1",
+            "seed 99",
+            "p99",
+            "ananasar storm 10.0.0.5:502",
+        ] {
             assert!(t.contains(want), "{t}\nlacks {want}");
         }
     }
@@ -533,7 +554,13 @@ mod tests {
     fn csv_has_parameters_and_results() {
         let c = report().csv();
         assert!(c.starts_with("section,key,value\n"));
-        for want in ["parameter,seed,99", "parameter,host,10.0.0.5", "result,requests_sent,10", "result,exceptions.code_2,1", "result,latency_us.max,2500"] {
+        for want in [
+            "parameter,seed,99",
+            "parameter,host,10.0.0.5",
+            "result,requests_sent,10",
+            "result,exceptions.code_2,1",
+            "result,latency_us.max,2500",
+        ] {
             assert!(c.contains(want), "{c}\nlacks {want}");
         }
         // The reproduce line contains no comma, so it is not quoted; a text with one is.

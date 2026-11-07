@@ -89,9 +89,8 @@ fn dispatch(mcp: &mut Mcp, method: &str, params: Option<&Value>) -> Result<Value
 fn initialize(params: Option<&Value>) -> Value {
     let requested = params.and_then(|p| p.get("protocolVersion")).and_then(Value::as_str);
     // Echo the client's version if we speak it, otherwise offer our newest.
-    let version = requested
-        .and_then(|r| SUPPORTED_VERSIONS.iter().find(|v| **v == r))
-        .unwrap_or(&SUPPORTED_VERSIONS[0]);
+    let version =
+        requested.and_then(|r| SUPPORTED_VERSIONS.iter().find(|v| **v == r)).unwrap_or(&SUPPORTED_VERSIONS[0]);
     json!({
         "protocolVersion": version,
         "capabilities": { "tools": { "listChanged": false } },
@@ -118,9 +117,8 @@ fn tools_call(mcp: &mut Mcp, params: Option<&Value>) -> Result<Value, RpcError> 
         Some(Value::Object(m)) => m,
         Some(_) => return Err(RpcError::new(INVALID_PARAMS, "'arguments' must be an object")),
     };
-    let outcome = mcp
-        .call_tool(name, args)
-        .ok_or_else(|| RpcError::new(INVALID_PARAMS, format!("unknown tool: {name}")))?;
+    let outcome =
+        mcp.call_tool(name, args).ok_or_else(|| RpcError::new(INVALID_PARAMS, format!("unknown tool: {name}")))?;
     Ok(match outcome {
         Ok(data) => {
             let text = serde_json::to_string_pretty(&data).unwrap_or_else(|_| data.to_string());
@@ -146,7 +144,10 @@ mod tests {
 
     #[test]
     fn initialize_echoes_a_supported_version() {
-        let r = run(&mut mcp(), r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}"#);
+        let r = run(
+            &mut mcp(),
+            r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}"#,
+        );
         assert_eq!(r["id"], 1);
         assert_eq!(r["result"]["protocolVersion"], "2025-06-18");
         assert_eq!(r["result"]["serverInfo"]["name"], "ananasar-mcp");
@@ -155,7 +156,10 @@ mod tests {
 
     #[test]
     fn initialize_offers_newest_for_unknown_version() {
-        let r = run(&mut mcp(), r#"{"jsonrpc":"2.0","id":"a","method":"initialize","params":{"protocolVersion":"1999-01-01"}}"#);
+        let r = run(
+            &mut mcp(),
+            r#"{"jsonrpc":"2.0","id":"a","method":"initialize","params":{"protocolVersion":"1999-01-01"}}"#,
+        );
         assert_eq!(r["id"], "a");
         assert_eq!(r["result"]["protocolVersion"], SUPPORTED_VERSIONS[0]);
     }
@@ -219,34 +223,55 @@ mod tests {
         let mut m = mcp();
         let r = run(&mut m, r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"nope"}}"#);
         assert_eq!(r["error"]["code"], INVALID_PARAMS);
-        let r = run(&mut m, r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"modbus_read_holding","arguments":{"address":0,"count":126}}}"#);
+        let r = run(
+            &mut m,
+            r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"modbus_read_holding","arguments":{"address":0,"count":126}}}"#,
+        );
         assert_eq!(r["result"]["isError"], true);
         assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("'count'"));
-        let r = run(&mut m, r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"modbus_read_holding","arguments":{"address":0}}}"#);
+        let r = run(
+            &mut m,
+            r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"modbus_read_holding","arguments":{"address":0}}}"#,
+        );
         assert_eq!(r["result"]["isError"], true);
-        let r = run(&mut m, r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"modbus_read_holding","arguments":{"address":0,"count":1,"extra":1}}}"#);
+        let r = run(
+            &mut m,
+            r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"modbus_read_holding","arguments":{"address":0,"count":1,"extra":1}}}"#,
+        );
         assert_eq!(r["result"]["isError"], true);
-        let r = run(&mut m, r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"modbus_read_holding","arguments":[1]}}"#);
+        let r = run(
+            &mut m,
+            r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"modbus_read_holding","arguments":[1]}}"#,
+        );
         assert_eq!(r["error"]["code"], INVALID_PARAMS);
     }
 
     #[test]
     fn tool_needing_a_connection_reports_it() {
-        let r = run(&mut mcp(), r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"modbus_read_holding","arguments":{"address":0,"count":1}}}"#);
+        let r = run(
+            &mut mcp(),
+            r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"modbus_read_holding","arguments":{"address":0,"count":1}}}"#,
+        );
         assert_eq!(r["result"]["isError"], true);
         assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("modbus_connect"));
     }
 
     #[test]
     fn writes_are_refused_in_read_only_mode_before_anything_else() {
-        let r = run(&mut mcp(), r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"modbus_write_single","arguments":{"address":0,"value":1}}}"#);
+        let r = run(
+            &mut mcp(),
+            r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"modbus_write_single","arguments":{"address":0,"value":1}}}"#,
+        );
         assert_eq!(r["result"]["isError"], true);
         assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("read-only"));
     }
 
     #[test]
     fn server_start_requires_a_port() {
-        let r = run(&mut mcp(), r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"server_start","arguments":{}}}"#);
+        let r = run(
+            &mut mcp(),
+            r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"server_start","arguments":{}}}"#,
+        );
         assert_eq!(r["result"]["isError"], true);
         assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("'port'"));
     }

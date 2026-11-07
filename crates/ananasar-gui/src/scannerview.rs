@@ -119,7 +119,9 @@ impl ScannerView {
                 .to_socket_addrs()
                 .map_err(|e| e.to_string())
                 .and_then(|mut a| a.next().ok_or_else(|| "no address".to_owned()))
-                .and_then(|a| TcpStream::connect_timeout(&a, CONNECT_TIMEOUT).map(|s| (a, s)).map_err(|e| e.to_string()));
+                .and_then(|a| {
+                    TcpStream::connect_timeout(&a, CONNECT_TIMEOUT).map(|s| (a, s)).map_err(|e| e.to_string())
+                });
             let note = {
                 let mut conn = lock(&shared.conn);
                 conn.connecting = false;
@@ -190,7 +192,13 @@ impl ScannerView {
             self.connect_window(ctx);
             return;
         }
-        let closed = crate::dialog::show(ctx, "register-scanner", "Register Scanner", [CLIENT.x, CLIENT.y + 26.0], 0, &mut |ui| {
+        let closed = crate::dialog::show(
+            ctx,
+            "register-scanner",
+            "Register Scanner",
+            [CLIENT.x, CLIENT.y + 26.0],
+            0,
+            &mut |ui| {
                 let mut close = false;
                 egui::MenuBar::new().ui(ui, |ui| {
                     if ui.button("Close!").clicked() {
@@ -201,7 +209,8 @@ impl ScannerView {
                 if close {
                     *open = false;
                 }
-            });
+            },
+        );
         if closed {
             *open = false;
         }
@@ -263,11 +272,15 @@ impl ScannerView {
 
         // ---- Connection ----
         group(ui, at(8.0, 8.0, 272.0, 97.0), "Connection");
-        let r = place(ui, at(20.0, 28.0, 100.0, 25.0), |ui| ui.add_enabled(!connecting && !connected && !running, egui::Button::new("Connect...")));
+        let r = place(ui, at(20.0, 28.0, 100.0, 25.0), |ui| {
+            ui.add_enabled(!connecting && !connected && !running, egui::Button::new("Connect..."))
+        });
         if tip(r, "Open server connection parameter window").clicked() {
             self.show_connect = true;
         }
-        let r = place(ui, at(20.0, 58.0, 100.0, 25.0), |ui| ui.add_enabled(connected && !running, egui::Button::new("Disconnect")));
+        let r = place(ui, at(20.0, 58.0, 100.0, 25.0), |ui| {
+            ui.add_enabled(connected && !running, egui::Button::new("Disconnect"))
+        });
         if tip(r, "Disconnect client from server").clicked() {
             self.disconnect();
         }
@@ -333,7 +346,9 @@ impl ScannerView {
         tip(r, "If poll succeed, copy value to corresponding register");
 
         // ---- Start / Stop ----
-        let r = place(ui, at(186.0, 288.0, 79.0, 25.0), |ui| ui.add_enabled(connected && !running, egui::Button::new("Start")));
+        let r = place(ui, at(186.0, 288.0, 79.0, 25.0), |ui| {
+            ui.add_enabled(connected && !running, egui::Button::new("Start"))
+        });
         if tip(r, "Start scan").clicked() {
             self.start_scan(regs);
         }
@@ -346,7 +361,12 @@ impl ScannerView {
         group(ui, at(286.0, 9.0, 230.0, 383.0), "Results");
         let list_rect = at(292.0, 28.0, 218.0, 358.0);
         ui.painter().rect_filled(list_rect, 0.0, Color32::WHITE);
-        ui.painter().rect_stroke(list_rect, 0.0, ui.visuals().widgets.noninteractive.bg_stroke, egui::StrokeKind::Inside);
+        ui.painter().rect_stroke(
+            list_rect,
+            0.0,
+            ui.visuals().widgets.noninteractive.bg_stroke,
+            egui::StrokeKind::Inside,
+        );
         let list_resp = ui.interact(list_rect, ui.scope_id().with("scanner_list"), egui::Sense::click());
         if list_resp.double_clicked() {
             self.hscroll = !self.hscroll;
@@ -373,12 +393,21 @@ impl ScannerView {
         }
         let hscroll = self.hscroll;
         place_raw(ui, list_rect.shrink(2.0), |ui| {
-            egui::ScrollArea::new([hscroll, true]).auto_shrink([false, false]).show_rows(ui, 16.0, lines.len(), |ui, range| {
-                for line in lines.get(range).unwrap_or_default() {
-                    let text = egui::RichText::new(line).monospace();
-                    ui.add(egui::Label::new(text).wrap_mode(if hscroll { egui::TextWrapMode::Extend } else { egui::TextWrapMode::Truncate }));
-                }
-            });
+            egui::ScrollArea::new([hscroll, true]).auto_shrink([false, false]).show_rows(
+                ui,
+                16.0,
+                lines.len(),
+                |ui, range| {
+                    for line in lines.get(range).unwrap_or_default() {
+                        let text = egui::RichText::new(line).monospace();
+                        ui.add(egui::Label::new(text).wrap_mode(if hscroll {
+                            egui::TextWrapMode::Extend
+                        } else {
+                            egui::TextWrapMode::Truncate
+                        }));
+                    }
+                },
+            );
         });
 
         // ---- Status bar ----
@@ -423,11 +452,20 @@ fn place_raw<R>(ui: &mut egui::Ui, rect: Rect, add: impl FnOnce(&mut egui::Ui) -
 fn group(ui: &mut egui::Ui, rect: Rect, title: &str) {
     let painter = ui.painter();
     let frame = Rect::from_min_max(rect.min + Vec2::new(0.0, 7.0), rect.max);
-    painter.rect_stroke(frame, 0.0, egui::Stroke::new(1.0, Color32::from_rgb(0xA0, 0xA0, 0xA0)), egui::StrokeKind::Inside);
+    painter.rect_stroke(
+        frame,
+        0.0,
+        egui::Stroke::new(1.0, Color32::from_rgb(0xA0, 0xA0, 0xA0)),
+        egui::StrokeKind::Inside,
+    );
     painter.rect_stroke(frame.shrink(1.0), 0.0, egui::Stroke::new(1.0, Color32::WHITE), egui::StrokeKind::Inside);
     let galley = painter.layout_no_wrap(title.to_owned(), egui::FontId::proportional(13.0), ui.visuals().text_color());
     let pos = rect.min + Vec2::new(8.0, 0.0);
-    painter.rect_filled(Rect::from_min_size(pos, galley.size()).expand2(Vec2::new(2.0, 0.0)), 0.0, ui.visuals().window_fill);
+    painter.rect_filled(
+        Rect::from_min_size(pos, galley.size()).expand2(Vec2::new(2.0, 0.0)),
+        0.0,
+        ui.visuals().window_fill,
+    );
     painter.galley(pos, galley, Color32::BLACK);
 }
 
@@ -514,7 +552,8 @@ fn run(shared: &Shared, job: Job) -> String {
             // A timeout leaves the stream out of step with the server; the
             // connection cannot be reused.
             drop_connection(shared);
-            note = format!("Stopped, no usable reply for address {}; connection closed", display_addr(addr, job.offset));
+            note =
+                format!("Stopped, no usable reply for address {}; connection closed", display_addr(addr, job.offset));
             break;
         }
     }
@@ -568,11 +607,20 @@ fn peer_text(peer: Option<SocketAddr>) -> String {
     }
 }
 
-fn status_text(s: ScanSummary, started: Option<Instant>, elapsed: Option<Duration>, note: &str, running: bool) -> String {
+fn status_text(
+    s: ScanSummary,
+    started: Option<Instant>,
+    elapsed: Option<Duration>,
+    note: &str,
+    running: bool,
+) -> String {
     let mut line = if started.is_some() || s.scanned > 0 {
         let dur = elapsed.or_else(|| started.map(|t| t.elapsed())).unwrap_or_default();
         let what = if running { "scanning" } else { "done" };
-        format!("{} registers scanned, {} succeeded, {} failed, total duration {dur:.2?} ({what})", s.scanned, s.succeeded, s.failed)
+        format!(
+            "{} registers scanned, {} succeeded, {} failed, total duration {dur:.2?} ({what})",
+            s.scanned, s.succeeded, s.failed
+        )
     } else {
         String::new()
     };
