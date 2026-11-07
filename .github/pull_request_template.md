@@ -16,9 +16,7 @@ Fixes #
 
 <!-- The commands you ran and what they said. Say what you could not run. -->
 
-- [ ] `cargo clippy --workspace --all-targets -- -D warnings`
-- [ ] `cargo test --workspace --locked`
-- [ ] Still builds on Rust 1.92 (core, net, storm, mcp, CLI with `--no-default-features`), if I touched them
+- [ ] `cargo xtask ci` passes; the steps it skipped are listed above
 - [ ] A bug fix has a test that fails without the fix
 - [ ] Docs in `docs/` updated if user-visible behaviour changed
 

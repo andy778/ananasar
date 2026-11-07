@@ -10,9 +10,11 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 - `ananasar-cli`: clap; produces the one `ananasar` binary, which also embeds `ananasar-gui` (egui, `ananasar gui`) and `ananasar-mcp` (`ananasar mcp`) through the default features `gui` and `mcp`.
 - `ananasar-storm` (`ananasar storm`), `ananasar-dde` (Windows DDE server used by the GUI), `ananasar-parity` (wire-level comparison runner).
 - `fuzz`: cargo-fuzz targets, excluded from the workspace.
+- `xtask`: repository tasks behind the `cargo xtask` alias (`cargo xtask ci`).
 - [ARCHITECTURE.md](ARCHITECTURE.md) maps the crates, what each may depend on and the invariants between them.
 
 ## Commands
+- All of CI's local checks: `cargo xtask ci` (fmt, clippy, tests, the Rust 1.92 builds, cargo-deny, the script tests). It skips, with a message, any step whose toolchain or tool is not installed, and prints a summary. The single commands:
 - Lint: `cargo clippy --workspace --all-targets -- -D warnings` (workspace lints are in `Cargo.toml`).
 - Test: `cargo test --workspace --locked`.
 - Rust 1.92 check: `cargo +1.92 test --locked -p ananasar-core -p ananasar-net -p ananasar-storm -p ananasar-mcp` and `cargo +1.92 test --locked -p ananasar-cli --no-default-features`. Only the GUI (and so the default `ananasar` binary) needs 1.95.
@@ -21,7 +23,7 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 
 ## Workflow
 - `main` is protected by a ruleset: change it through a branch and PR, with the required checks (`ci passed`, `pr title`, fuzz and CodeQL) passing.
-- Run lint and test before pushing.
+- Run `cargo xtask ci` before pushing, and say in the PR which steps it skipped.
 - All GitHub Actions stay pinned to commit SHAs, with `permissions: contents: read` unless a job needs more.
 - Commit messages use Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `ci:`, `chore:`), with a `!` or a `BREAKING CHANGE:` footer for breaking changes.
 - Commits and PRs carry no agent attribution (no `Co-Authored-By` trailers for tools). The person who opens a PR answers for it.
