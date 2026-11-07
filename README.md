@@ -164,7 +164,7 @@ sudo apt install libxkbcommon-x11-0 libwayland-client0 libx11-6 libxcursor1 libx
 
 To skip building, download the `ananasar-linux-x86_64.tar.gz` release; it is built on Ubuntu 24.04, so it needs a comparably recent glibc.
 
-The parsers that read network input are also fuzzed (`cargo +nightly fuzz run frame` from the repository root, using [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz)). CI builds and releases the Windows, macOS and Linux binaries.
+The parsers that read network input are also fuzzed (`cargo +nightly fuzz run frame` from the repository root, using [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz)). CI fuzzes each target for a minute on every pull request, and for 30 minutes on a weekly schedule that keeps its corpus between runs and uploads any crashing input as an artifact. CI builds and releases the Windows, macOS and Linux binaries.
 
 The README screenshot is rendered headlessly from the real window; see [docs/screenshots.md](docs/screenshots.md) to regenerate it.
 
@@ -183,6 +183,8 @@ The README screenshot is rendered headlessly from the real window; see [docs/scr
 - [`crates/ananasar-gui`](crates/ananasar-gui): the egui application library behind `ananasar gui`
 - [`crates/ananasar-parity`](crates/ananasar-parity): wire-level scenario runner, recording proxy and diff for comparing servers, see [docs/parity-testing.md](docs/parity-testing.md)
 - [`fuzz`](fuzz): cargo-fuzz targets for the frame parser and the server handler
+
+How the crates depend on each other and the invariants they keep are in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Design notes
 
