@@ -383,3 +383,150 @@ fn run_scan(args: &ScanArgs) -> i32 {
     );
     i32::from(s.succeeded == 0)
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::panic, reason = "test code: a panic is a failed test")]
+mod tests {
+    use super::*;
+
+    fn parse(line: &str) -> Result<Cli, clap::Error> {
+        Cli::try_parse_from(std::iter::once("ananasar").chain(line.split_whitespace()))
+    }
+
+    fn rejected(line: &str) -> clap::error::ErrorKind {
+        parse(line).err().unwrap_or_else(|| panic!("`{line}` should not parse")).kind()
+    }
+
+    #[test]
+    fn clap_definitions_are_consistent() {
+        Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn server_defaults() {
+        let Command::Server(a) = parse("server").unwrap().command else { panic!("not server") };
+        assert_eq!((a.port, a.unit_id, a.interpretive), (DEFAULT_PORT, 0, false));
+        assert!(a.load.is_none() && a.log_dir.is_none());
+        assert!(!(a.wrong_ti || a.wrong_protocol_id || a.wrong_length_high || a.out_of_synch || a.address_offset));
+    }
+
+    #[test]
+    fn server_options() {
+        let line = "server -p 1502 -u 7 --load regs.ananas --log-dir logs --interpretive --wrong-ti \
+                    --wrong-protocol-id --wrong-length-high --out-of-synch --address-offset";
+        let Command::Server(a) = parse(line).unwrap().command else { panic!("not server") };
+        assert_eq!((a.port, a.unit_id, a.interpretive), (1502, 7, true));
+        assert_eq!(a.load.as_deref(), Some(std::path::Path::new("regs.ananas")));
+        assert_eq!(a.log_dir.as_deref(), Some(std::path::Path::new("logs")));
+        assert!(a.wrong_ti && a.wrong_protocol_id && a.wrong_length_high && a.out_of_synch && a.address_offset);
+    }
+
+    #[test]
+    fn server_rejects_bad_values() {
+        use clap::error::ErrorKind::MissingRequiredArgument;
+        assert_eq!(rejected("server -p 70000"), clap::error::ErrorKind::ValueValidation);
+        assert_eq!(rejected("server --port=-1"), clap::error::ErrorKind::ValueValidation);
+        assert_eq!(rejected("server -u 256"), clap::error::ErrorKind::ValueValidation);
+        assert_eq!(rejected("server --interpretive"), MissingRequiredArgument);
+        assert_eq!(rejected("server --no-such-flag"), clap::error::ErrorKind::UnknownArgument);
+    }
+
+    #[test]
+    fn client_lists_and_defaults() {
+        let line = "client 127.0.0.1:502 --read-holding 0,1,2 --read-input 10 --write 5,6 -u 3 -n 2 --interval-ms 50 --zero-ti";
+        let Command::Client(a) = parse(line).unwrap().command else { panic!("not client") };
+        assert_eq!(a.target, "127.0.0.1:502");
+        assert_eq!((a.read_holding, a.read_input, a.write), (vec![0, 1, 2], vec![10], vec![5, 6]));
+        assert_eq!((a.unit_id, a.count, a.interval_ms, a.zero_ti), (3, 2, 50, true));
+
+        let Command::Client(d) = parse("client host:502").unwrap().command else { panic!("not client") };
+        assert_eq!((d.unit_id, d.count, d.interval_ms, d.zero_ti), (1, 5, 1000, false));
+        assert!(d.read_holding.is_empty() && d.read_input.is_empty() && d.write.is_empty());
+    }
+
+    #[test]
+    fn client_rejects_bad_values() {
+        use clap::error::ErrorKind::MissingRequiredArgument;
+        assert_eq!(rejected("client"), MissingRequiredArgument);
+        assert_eq!(rejected("client h:1 --read-holding 65536"), clap::error::ErrorKind::ValueValidation);
+        assert_eq!(rejected("client h:1 --read-holding 1,x"), clap::error::ErrorKind::ValueValidation);
+        assert_eq!(rejected("client h:1 --count=-1"), clap::error::ErrorKind::ValueValidation);
+        assert_eq!(rejected("client h:1 -u 256"), clap::error::ErrorKind::ValueValidation);
+    }
+
+    #[test]
+    fn scan_options_and_defaults() {
+        let Command::Scan(d) = parse("scan host:502").unwrap().command else { panic!("not scan") };
+        assert_eq!((d.unit_id, d.start, d.end, d.timeout_ms, d.only_ok), (1, 0, 99, 1000, false));
+        assert!(matches!(d.bank, BankArg::Holding));
+
+        let line = "scan host:502 -b input --start 10 --end 20 --timeout-ms 200 --only-ok -u 9";
+        let Command::Scan(a) = parse(line).unwrap().command else { panic!("not scan") };
+        assert!(matches!(a.bank, BankArg::Input));
+        assert_eq!((a.unit_id, a.start, a.end, a.timeout_ms, a.only_ok), (9, 10, 20, 200, true));
+    }
+
+    #[test]
+    fn scan_rejects_bad_values() {
+        use clap::error::ErrorKind::MissingRequiredArgument;
+        assert_eq!(rejected("scan"), MissingRequiredArgument);
+        assert_eq!(rejected("scan h:1 --bank coil"), clap::error::ErrorKind::InvalidValue);
+        assert_eq!(rejected("scan h:1 --end 65536"), clap::error::ErrorKind::ValueValidation);
+        assert_eq!(rejected("scan h:1 --start=-1"), clap::error::ErrorKind::ValueValidation);
+    }
+
+    #[test]
+    fn storm_and_its_stress_alias_dispatch_to_storm() {
+        for name in ["storm", "stress"] {
+            assert!(matches!(parse(&format!("{name} 127.0.0.1:502")).unwrap().command, Command::Storm(_)), "{name}");
+        }
+        assert_eq!(rejected("storm"), clap::error::ErrorKind::MissingRequiredArgument);
+    }
+
+    #[test]
+    fn about_flags() {
+        assert!(matches!(parse("about").unwrap().command, Command::About(_)));
+        assert!(matches!(parse("about --deps --advisories --licenses").unwrap().command, Command::About(_)));
+        assert_eq!(rejected("about --bogus"), clap::error::ErrorKind::UnknownArgument);
+    }
+
+    #[test]
+    fn completions_take_a_known_shell() {
+        let Command::Completions { shell } = parse("completions bash").unwrap().command else {
+            panic!("not completions")
+        };
+        assert_eq!(shell, Shell::Bash);
+        assert_eq!(rejected("completions"), clap::error::ErrorKind::MissingRequiredArgument);
+        assert_eq!(rejected("completions tcsh"), clap::error::ErrorKind::InvalidValue);
+    }
+
+    #[cfg(feature = "gui")]
+    #[test]
+    fn gui_port_must_be_a_nonzero_u16() {
+        let Command::Gui(a) = parse("gui -p 1502").unwrap().command else { panic!("not gui") };
+        assert_eq!(a.port, Some(1502));
+        let Command::Gui(a) = parse("gui").unwrap().command else { panic!("not gui") };
+        assert_eq!(a.port, None);
+        assert_eq!(rejected("gui -p 0"), clap::error::ErrorKind::ValueValidation);
+        assert_eq!(rejected("gui -p 65536"), clap::error::ErrorKind::ValueValidation);
+    }
+
+    #[cfg(feature = "mcp")]
+    #[test]
+    fn mcp_write_modes_conflict() {
+        let Command::Mcp(a) = parse("mcp").unwrap().command else { panic!("not mcp") };
+        assert!(!a.allow_write && !a.read_only);
+        assert_eq!(a.bind, std::net::IpAddr::from([127, 0, 0, 1]));
+        let Command::Mcp(a) = parse("mcp --allow-write --bind ::1").unwrap().command else { panic!("not mcp") };
+        assert!(a.allow_write);
+        assert_eq!(a.bind, "::1".parse::<std::net::IpAddr>().unwrap());
+        assert_eq!(rejected("mcp --allow-write --read-only"), clap::error::ErrorKind::ArgumentConflict);
+        assert_eq!(rejected("mcp --bind nowhere"), clap::error::ErrorKind::ValueValidation);
+    }
+
+    #[test]
+    fn unknown_subcommand_and_bare_invocation_are_rejected() {
+        assert_eq!(rejected("frobnicate"), clap::error::ErrorKind::InvalidSubcommand);
+        assert_eq!(rejected(""), clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand);
+    }
+}
