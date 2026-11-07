@@ -36,6 +36,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 const VISIBLE_ROWS: u16 = 26;
+const REGISTERS_TIP: &str = "This server's registers: what clients connected to it read and write, and what the client window reads (holding registers) and writes.";
 /// The original's port on Windows; elsewhere ports below 1024 need privileges.
 #[cfg(windows)]
 const DEFAULT_PORT: u16 = 502;
@@ -207,6 +208,9 @@ impl App {
                 }
             }
         }
+        // The client mostly reaches real devices, so it starts on the Modbus port
+        // rather than this server's (15020 outside Windows).
+        let client = ClientView::new(format!("127.0.0.1:{}", ananasar_core::protocol::DEFAULT_PORT), regs.clone(), ctx.clone());
         Self {
             regs,
             server,
@@ -238,9 +242,7 @@ impl App {
             log_interpretive: true,
             message: startup_error,
             status_note: String::new(),
-            // The client mostly reaches real devices, so it starts on the Modbus port
-            // rather than this server's (15020 outside Windows).
-            client: ClientView::new(format!("127.0.0.1:{}", ananasar_core::protocol::DEFAULT_PORT), ctx.clone()),
+            client,
             setval: SetValView::default(),
             scanner: ScannerView::new(format!("127.0.0.1:{port}"), ctx.clone()),
             storm: StormView::new(ctx.clone()),
@@ -387,7 +389,11 @@ impl App {
         let painter = ui.painter().clone();
         let black = egui::Color32::BLACK;
         let font = egui::FontId::proportional(12.0);
-        painter.text(at(14.0, 8.0, 0.0, 0.0).min, egui::Align2::LEFT_TOP, "Registers", font.clone(), black);
+        let caption = painter.text(at(14.0, 8.0, 0.0, 0.0).min, egui::Align2::LEFT_TOP, "Registers", font.clone(), black);
+        // The list is this server's register file, which the client window shares (#136).
+        if self.tooltips {
+            ui.interact(caption, ui.scope_id().with("registers_caption"), egui::Sense::hover()).on_hover_text(REGISTERS_TIP);
+        }
         let outer = at(14.0, 25.0, COLS.iter().sum::<f32>() + 4.0, HEADER_H + ROW_H * f32::from(VISIBLE_ROWS) + 4.0);
         let inner = outer.shrink(2.0);
         painter.rect_filled(inner, 0.0, egui::Color32::WHITE);
@@ -434,7 +440,7 @@ impl App {
 
             let cell = egui::Rect::from_min_max(egui::pos2(col_x(1) + 1.0, top + 1.0), egui::pos2(col_x(2), top + ROW_H));
             if self.editing == Some(addr) {
-                let edit = egui::TextEdit::singleline(&mut self.edit_buf).frame(egui::Frame::NONE).margin(egui::Margin::symmetric(3, 0)).vertical_align(egui::Align::Center);
+                let edit = egui::TextEdit::singleline(&mut self.edit_buf).frame(egui::Frame::NONE).margin(egui::Margin::symmetric(3, 0)).align(egui::Align2::LEFT_CENTER);
                 let resp = ui.put(cell, edit);
                 resp.request_focus();
                 if resp.lost_focus() {
@@ -446,7 +452,7 @@ impl App {
                 continue;
             }
             painter.text(text_at(1), egui::Align2::LEFT_CENTER, self.fmt(value), font.clone(), black);
-            let resp = ui.interact(cell, ui.id().with(("reg_cell", n)), egui::Sense::click());
+            let resp = ui.interact(cell, ui.scope_id().with(("reg_cell", n)), egui::Sense::click());
             if resp.clicked() || resp.double_clicked() {
                 self.selected = Some(addr);
             }
@@ -585,7 +591,7 @@ impl App {
                 let rect = painter.text(at(x, y), egui::Align2::LEFT_CENTER, v, font.clone(), colour);
                 // A failed header check says why when hovered.
                 if i == 4 && self.tooltips && let Some(Err(why)) = c.and_then(|c| c.header_check.as_ref()) {
-                    ui.interact(rect, ui.id().with(("header_check", slot)), egui::Sense::hover()).on_hover_text(why);
+                    ui.interact(rect, ui.scope_id().with(("header_check", slot)), egui::Sense::hover()).on_hover_text(why);
                 }
             }
         }

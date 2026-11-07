@@ -26,9 +26,9 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 - Commits and PRs carry no agent attribution (no `Co-Authored-By` trailers for tools). The person who opens a PR answers for it.
 
 ## Releases
-- Releases are automated with semantic-release from the Conventional Commits on `main` (see `docs/releasing.md`). Do not create `v*` tags by hand.
+- Releases are automated by `scripts/next-release.py` (run by `.github/workflows/semantic-release.yml`) from the Conventional Commits on `main` (see `docs/releasing.md`). Do not create `v*` tags by hand. `python3 scripts/next-release.py --dry-run` shows the next release; its tests are `python3 -m unittest discover -s scripts`.
 - Merge PRs with "Rebase and merge" so each commit keeps its type. Choose commit types deliberately: they decide the version bump.
-- The tag build in `build.yml` stamps the version from the tag, builds, signs with cosign and attaches the binaries. semantic-release writes the release notes.
+- The tag build in `build.yml` stamps the version from the tag, builds, signs with cosign and attaches the binaries. The script writes the release notes.
 
 ## Working rules
 1. **Check first.** Before starting, read the issue and its comments and search open PRs, so work is not duplicated.

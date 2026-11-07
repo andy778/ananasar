@@ -48,10 +48,10 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org). The 
 
 | Type | Release |
 | --- | --- |
-| `fix:` | patch |
+| `fix:`, `perf:` | patch |
 | `feat:` | minor |
 | `feat!:` or a `BREAKING CHANGE:` footer | major |
-| `docs:`, `refactor:`, `ci:`, `chore:` | none |
+| `docs:`, `refactor:`, `ci:`, `chore:`, `test:`, `style:`, `build:` | none |
 
 Pull requests are merged with **Rebase and merge**, so every commit lands on `main` as you wrote it. Keep each commit meaningful on its own, and do not squash a `feat` and a `fix` together. Releases, tags and release notes are automated ([Releasing](docs/releasing.md)).
 

@@ -19,7 +19,7 @@ Delete any section that does not apply.
 
 ## Commits
 
-- [ ] Conventional Commit types chosen deliberately (`fix` = patch, `feat` = minor, `!` = major; `docs`/`refactor`/`ci`/`chore` release nothing)
+- [ ] Conventional Commit types chosen deliberately (`fix`/`perf` = patch, `feat` = minor, `!` = major; `docs`/`refactor`/`ci`/`chore`/`test` release nothing)
 - [ ] Each commit stands on its own (PRs are merged with Rebase and merge)
 
 ## Robustness
