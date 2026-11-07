@@ -64,7 +64,7 @@ Run `ananasar storm --help` for every option.
 | `--timeout-ms N` | Reply timeout (default 1000). |
 | `-u, --uid N` | Unit id in requests (default 1). |
 
-Each connection has one request in flight. If the target answers slower than the pacing interval, the achieved rate falls below the target; the report shows the achieved rate. The pacer does not "catch up" with a burst.
+Each connection has one request in flight. If the target answers slower than the pacing interval, the achieved rate falls below the target; the report shows the achieved rate. A connection that falls up to 100 ms behind its schedule (a late wake-up, a brief pause) makes up the missed requests; one that falls further behind starts a new schedule instead of catching up with a burst.
 
 ### Request mix
 
