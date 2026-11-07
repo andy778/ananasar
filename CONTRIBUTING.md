@@ -34,6 +34,8 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --locked
 ```
 
+To see which lines the tests reach, install [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) and run `cargo llvm-cov --html`; the report is in `target/llvm-cov/html/index.html`. CI posts a per-crate table in the summary of the `coverage` workflow.
+
 If you touched `ananasar-core`, `-net`, `-storm`, `-mcp` or the CLI, check that they still build on Rust 1.92:
 
 ```bash
