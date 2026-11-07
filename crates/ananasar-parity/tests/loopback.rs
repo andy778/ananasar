@@ -54,12 +54,17 @@ fn section<'a>(rec: &'a Recording, name: &str) -> &'a [Entry] {
 
 #[test]
 fn scenarios_record_expected_replies_and_repeat_identically() {
-    let timeout = Duration::from_millis(200);
+    // Generous, because a close or reply that arrives after the timeout is
+    // recorded as no reply: at 200 ms a slow macOS runner sometimes recorded
+    // `bad_length_high_byte` as closed in one run and silent in the other.
+    // Only the few scenarios that really get no reply pay this wait.
+    let timeout = Duration::from_secs(1);
     let first = start_server();
     let a = runner::run(first.addr, 1, timeout).unwrap();
     let second = start_server();
     let b = runner::run(second.addr, 1, timeout).unwrap();
-    assert!(diff::diff(&a, &b).is_empty());
+    let differences = diff::diff(&a, &b);
+    assert!(differences.is_empty(), "two runs differ:\n{}", differences.join("\n"));
 
     // 125 registers: byte count 250, MBAP length 253.
     let Entry::Received(limit) = &section(&a, "read_holding_limit")[1] else { panic!("no reply") };
