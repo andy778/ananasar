@@ -1,0 +1,76 @@
+name: Bug report
+description: Something does not work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Issues are public: remove addresses, register contents or names you do not want to publish.
+        Ananasar is a hobby project provided as is, so there is no guarantee of a reply or a fix.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`ananasar --version`, or File > About… in the GUI."
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: Where you got it
+      options:
+        - Release download
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Windows 11, macOS 15, Ubuntu 24.04…
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: Which part
+      multiple: true
+      options:
+        - GUI
+        - CLI
+        - MCP server
+        - DDE server
+        - Storm test
+    validations:
+      required: true
+  - type: input
+    id: peer
+    attributes:
+      label: The other end
+      description: The Modbus/TCP device or program Ananasar was talking to, if any.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The exact steps, command line or settings you used.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+      description: Include any message box text or terminal output.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Data log
+      description: For protocol problems, a data log with Interpretive on, trimmed to the relevant entries.
+      render: text

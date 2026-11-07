@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest something Ananasar should do.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to do
+      description: The task or situation, not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like
+    validations:
+      required: true
+  - type: dropdown
+    id: original
+    attributes:
+      label: Does the original Ananas do this?
+      options:
+        - "Yes"
+        - "No"
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Alternatives you considered, related Modbus function codes, links to the Modbus specification.
