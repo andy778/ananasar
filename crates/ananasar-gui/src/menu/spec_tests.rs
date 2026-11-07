@@ -306,7 +306,7 @@ fn every_enabled_entry_does_something() {
                 }
                 Kind::Separator => {}
                 _ if item.enabled && item.action.is_none() => {
-                    bad.push(format!("{path} > {}: enabled but has no action", item.caption))
+                    bad.push(format!("{path} > {}: enabled but has no action", item.caption));
                 }
                 _ => {}
             }
