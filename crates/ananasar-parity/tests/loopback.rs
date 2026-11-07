@@ -59,7 +59,8 @@ fn scenarios_record_expected_replies_and_repeat_identically() {
     let a = runner::run(first.addr, 1, timeout).unwrap();
     let second = start_server();
     let b = runner::run(second.addr, 1, timeout).unwrap();
-    assert!(diff::diff(&a, &b).is_empty());
+    let differences = diff::diff(&a, &b);
+    assert!(differences.is_empty(), "two runs differ:\n{}", differences.join("\n"));
 
     // 125 registers: byte count 250, MBAP length 253.
     let Entry::Received(limit) = &section(&a, "read_holding_limit")[1] else { panic!("no reply") };
