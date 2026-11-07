@@ -134,6 +134,34 @@ fn inject(stream: &mut TcpStream, bytes: &[u8], wait: Duration, rec: &mut Record
 }
 
 /// One connection sending a paced request stream, with faults.
+/// How far a worker may fall behind its schedule and still catch up.
+///
+/// `thread::sleep` wakes late (tens of milliseconds on a busy macOS runner,
+/// which halved the rate at 200/s), so a wake-up that misses
+/// its slot must be made up by the next requests, or the run sends fewer
+/// requests than the configured rate. A longer stall (a slow server) resets
+/// the schedule instead, so it never causes a burst of more than this much.
+const MAX_LAG: Duration = Duration::from_millis(100);
+
+/// The request schedule of one worker.
+struct Pacer {
+    due: Instant,
+}
+
+impl Pacer {
+    /// When the next request is due, given the time `now`; the schedule then
+    /// moves on by `interval`. A time in the past means "send now".
+    fn next(&mut self, now: Instant, interval: Duration) -> Instant {
+        if now.saturating_duration_since(self.due) > MAX_LAG.max(interval) {
+            // Far behind: do not burst to catch up.
+            self.due = now;
+        }
+        let at = self.due;
+        self.due = self.due.checked_add(interval).unwrap_or(self.due);
+        at
+    }
+}
+
 pub(crate) fn run_requests(ctx: &Ctx<'_>, id: u64) -> Stats {
     let cfg = ctx.cfg;
     let mut rec = Recorder::new(ctx.live);
@@ -142,21 +170,15 @@ pub(crate) fn run_requests(ctx: &Ctx<'_>, id: u64) -> Stats {
     let mut opened_before = false;
     let mut txn: u16 = 0;
     let started = Instant::now();
-    let mut due = started;
+    let mut pacer = Pacer { due: started };
     while ctx.running() {
         let rate = cfg.rate_at(started.elapsed());
         if rate > 0.0 {
             let interval = Duration::from_secs_f64(1.0 / rate.max(0.001));
-            let now = Instant::now();
-            if due > now {
-                if !ctx.wait(due) {
-                    break;
-                }
-            } else if now.saturating_duration_since(due) > interval {
-                // Far behind: do not burst to catch up.
-                due = now;
+            let at = pacer.next(Instant::now(), interval);
+            if at > Instant::now() && !ctx.wait(at) {
+                break;
             }
-            due = due.checked_add(interval).unwrap_or(due);
         }
 
         let mut stream = if let Some(s) = conn.take() {
@@ -250,4 +272,55 @@ pub(crate) fn run_churn(ctx: &Ctx<'_>, id: u64) -> Stats {
         }
     }
     rec.stats
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Requests a pacer lets through in one second when every sleep wakes
+    /// `oversleep` late and each request takes 100 µs.
+    fn sent_in_one_second(rate: u32, oversleep: Duration) -> u32 {
+        let interval = Duration::from_secs(1) / rate;
+        let start = Instant::now();
+        let end = start + Duration::from_secs(1);
+        let mut pacer = Pacer { due: start };
+        let (mut now, mut sent) = (start, 0);
+        loop {
+            let at = pacer.next(now, interval);
+            if at > now {
+                now = at + oversleep;
+            }
+            if now >= end {
+                return sent;
+            }
+            sent += 1;
+            now += Duration::from_micros(100);
+        }
+    }
+
+    #[test]
+    fn late_wake_ups_are_made_up() {
+        // Without catching up, sleeps 12 ms late gave 117 of 200, and 30 ms
+        // late (about what the macOS runner measured) 57.
+        for late in [12, 30] {
+            let sent = sent_in_one_second(200, Duration::from_millis(late));
+            assert!((190..=201).contains(&sent), "{late} ms late: sent {sent}");
+        }
+        assert!((95..=101).contains(&sent_in_one_second(100, Duration::from_millis(12))));
+        assert!((199..=201).contains(&sent_in_one_second(200, Duration::ZERO)));
+    }
+
+    #[test]
+    fn a_long_stall_does_not_burst() {
+        let interval = Duration::from_millis(5);
+        let start = Instant::now();
+        let mut pacer = Pacer { due: start };
+        pacer.next(start, interval);
+        // The server stalled for a second: the next request goes now, and the
+        // one after waits a full interval instead of firing at once.
+        let now = start + Duration::from_secs(1);
+        assert_eq!(pacer.next(now, interval), now);
+        assert_eq!(pacer.next(now, interval), now + interval);
+    }
 }
