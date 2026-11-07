@@ -30,12 +30,15 @@ pub(super) fn scenarios(unit: u8) -> Vec<Scenario> {
                 .done(),
         );
         list.push(
-            b("probe_error_paths", "Requests the default server answers with exceptions: bad quantity and bad address.")
-                .read(3, 3000, 0)
-                .read(3, 3000, 126)
-                .read(3, 65535, 2)
-                .pdu(0x10, &[0x0B, 0xB8, 0, 2, 3, 0, 1, 0, 2])
-                .done(),
+            b(
+                "probe_error_paths",
+                "Requests the default server answers with exceptions: bad quantity and bad address.",
+            )
+            .read(3, 3000, 0)
+            .read(3, 3000, 126)
+            .read(3, 65535, 2)
+            .pdu(0x10, &[0x0B, 0xB8, 0, 2, 3, 0, 1, 0, 2])
+            .done(),
         );
         list.push(
             b("probe_bad_header_then_valid", "A frame with protocol id 1, then a valid request.")

@@ -166,9 +166,7 @@ impl Session {
                 )));
             }
             if reply_func != func {
-                return Err(Fail::soft(format!(
-                    "unexpected reply function code {reply_func} to request {func}"
-                )));
+                return Err(Fail::soft(format!("unexpected reply function code {reply_func} to request {func}")));
             }
             return Ok(pdu.to_vec());
         }

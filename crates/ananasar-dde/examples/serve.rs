@@ -13,10 +13,7 @@ fn main() {
     };
     match ananasar_dde::Server::start(regs, activation) {
         Ok(_server) => {
-            println!(
-                "serving {}|holding!r0..r9 and input; press Enter to stop",
-                ananasar_dde::SERVICE
-            );
+            println!("serving {}|holding!r0..r9 and input; press Enter to stop", ananasar_dde::SERVICE);
             let _ = std::io::stdin().read_line(&mut String::new());
         }
         Err(e) => eprintln!("{e}"),

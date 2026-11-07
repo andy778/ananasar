@@ -45,22 +45,9 @@ const STEPS: &[Step] = &[
     Step {
         name: "clippy",
         needs: None,
-        commands: &[&[
-            "cargo",
-            "clippy",
-            "--workspace",
-            "--all-targets",
-            "--locked",
-            "--",
-            "-D",
-            "warnings",
-        ]],
+        commands: &[&["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"]],
     },
-    Step {
-        name: "test",
-        needs: None,
-        commands: &[&["cargo", "test", "--workspace", "--locked"]],
-    },
+    Step { name: "test", needs: None, commands: &[&["cargo", "test", "--workspace", "--locked"]] },
     Step {
         // The GUI needs a newer Rust, so these are the crates and features
         // that must still build on the minimum supported version.
@@ -84,26 +71,8 @@ const STEPS: &[Step] = &[
                 "-p",
                 "ananasar-mcp",
             ],
-            &[
-                "cargo",
-                "+1.92",
-                "test",
-                "--locked",
-                "-p",
-                "ananasar-cli",
-                "--no-default-features",
-            ],
-            &[
-                "cargo",
-                "+1.92",
-                "test",
-                "--locked",
-                "-p",
-                "ananasar-cli",
-                "--no-default-features",
-                "--features",
-                "mcp",
-            ],
+            &["cargo", "+1.92", "test", "--locked", "-p", "ananasar-cli", "--no-default-features"],
+            &["cargo", "+1.92", "test", "--locked", "-p", "ananasar-cli", "--no-default-features", "--features", "mcp"],
         ],
     },
     Step {
@@ -112,22 +81,11 @@ const STEPS: &[Step] = &[
             command: &["cargo", "deny", "--version"],
             missing: "cargo-deny is not installed (cargo install --locked cargo-deny)",
         }),
-        commands: &[&[
-            "cargo",
-            "deny",
-            "check",
-            "advisories",
-            "bans",
-            "sources",
-            "licenses",
-        ]],
+        commands: &[&["cargo", "deny", "check", "advisories", "bans", "sources", "licenses"]],
     },
     Step {
         name: "release script tests",
-        needs: Some(Probe {
-            command: &["python3", "--version"],
-            missing: "python3 is not on PATH",
-        }),
+        needs: Some(Probe { command: &["python3", "--version"], missing: "python3 is not on PATH" }),
         commands: &[&["python3", "-m", "unittest", "discover", "-s", "scripts"]],
     },
 ];
@@ -149,14 +107,9 @@ fn main() -> ExitCode {
 fn ci() -> ExitCode {
     // The alias works from any directory in the repository; the commands
     // (`-s scripts` in particular) expect the workspace root.
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap_or_else(|| Path::new("."));
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap_or_else(|| Path::new("."));
 
-    let outcomes: Vec<(&str, Outcome)> = STEPS
-        .iter()
-        .map(|step| (step.name, run_step(step, root)))
-        .collect();
+    let outcomes: Vec<(&str, Outcome)> = STEPS.iter().map(|step| (step.name, run_step(step, root))).collect();
 
     println!();
     println!("summary:");
@@ -171,15 +124,9 @@ fn ci() -> ExitCode {
             Outcome::Skipped(why) => println!("  skipped  {name}: {why}"),
         }
     }
-    println!(
-        "  not run  fuzzing (cargo +nightly fuzz run frame), Windows and macOS builds, CodeQL"
-    );
+    println!("  not run  fuzzing (cargo +nightly fuzz run frame), Windows and macOS builds, CodeQL");
 
-    if failed {
-        ExitCode::FAILURE
-    } else {
-        ExitCode::SUCCESS
-    }
+    if failed { ExitCode::FAILURE } else { ExitCode::SUCCESS }
 }
 
 fn run_step(step: &Step, root: &Path) -> Outcome {

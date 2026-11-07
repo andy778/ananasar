@@ -5,10 +5,7 @@
 //! `std::net` sockets is simpler than an async runtime. If the client cap is
 //! ever lifted, moving this crate to tokio would be the natural step; the core
 //! crate is I/O-free and would not change.
-#![cfg_attr(
-    test,
-    allow(clippy::arithmetic_side_effects, reason = "test code: a panic is a failed test")
-)]
+#![cfg_attr(test, allow(clippy::arithmetic_side_effects, reason = "test code: a panic is a failed test"))]
 // Network input is hostile (AGENTS.md, rule 6): no construct that can panic
 // on it. The workspace already denies most of these; listing them here keeps
 // the rule with the crate and raises `todo`/`unimplemented` from warn to deny.
@@ -30,7 +27,7 @@ pub use stats::{ConnStats, Stats};
 use ananasar_core::log::Response;
 use ananasar_core::protocol::{self, MBAP_PREFIX};
 use ananasar_core::registers::RegisterFile;
-use ananasar_core::server::{Outcome, OutOfSynch, ServerConfig, process};
+use ananasar_core::server::{OutOfSynch, Outcome, ServerConfig, process};
 use ananasar_core::sync::lock;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -105,9 +102,8 @@ fn finish_frame(r: &mut impl Read, head: [u8; MBAP_PREFIX + 1], max: usize) -> i
     }
     let mut out = head.to_vec();
     out.resize(total, 0);
-    let rest = out
-        .get_mut(head.len()..)
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "bad MBAP length"))?;
+    let rest =
+        out.get_mut(head.len()..).ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "bad MBAP length"))?;
     r.read_exact(rest)?;
     Ok(out)
 }
@@ -223,7 +219,8 @@ impl Server {
                 }
             };
             let now = Instant::now();
-            let interval_ms = last_request.map(|prev| u64::try_from(now.duration_since(prev).as_millis()).unwrap_or(u64::MAX));
+            let interval_ms =
+                last_request.map(|prev| u64::try_from(now.duration_since(prev).as_millis()).unwrap_or(u64::MAX));
             last_request = Some(now);
             if let Some(slot) = stats_slot {
                 lock(&self.stats).record_request(slot, &request, interval_ms);
@@ -240,10 +237,18 @@ impl Server {
                     Outcome::Reply(reply) => log.record(conn, &request, Response::Reply(reply)),
                     Outcome::ReplyAndClose(reply) => {
                         log.record(conn, &request, Response::Reply(reply));
-                        log.record(conn, &[], Response::Error("bad protocol id or length high byte, connection closed"));
+                        log.record(
+                            conn,
+                            &[],
+                            Response::Error("bad protocol id or length high byte, connection closed"),
+                        );
                     }
                     Outcome::Close => {
-                        log.record(conn, &request, Response::Error("bad protocol id or length high byte, connection closed"));
+                        log.record(
+                            conn,
+                            &request,
+                            Response::Error("bad protocol id or length high byte, connection closed"),
+                        );
                     }
                     Outcome::Drop => {
                         let why = match protocol::frame(&request) {

@@ -4,10 +4,7 @@
 //! is `std`-only and platform-agnostic so the same core drives the Linux and
 //! Windows builds; OS-specific features (DDE, adapter IP config) live in the
 //! binary crates, not here.
-#![cfg_attr(
-    test,
-    allow(clippy::arithmetic_side_effects, reason = "test code: a panic is a failed test")
-)]
+#![cfg_attr(test, allow(clippy::arithmetic_side_effects, reason = "test code: a panic is a failed test"))]
 // Network input is hostile (AGENTS.md, rule 6): no construct that can panic
 // on it. The workspace already denies most of these; listing them here keeps
 // the rule with the crate and raises `todo`/`unimplemented` from warn to deny.
@@ -21,7 +18,6 @@
     clippy::todo,
     clippy::unimplemented
 )]
-
 #![warn(missing_docs)]
 
 pub mod ananas_file;
@@ -37,9 +33,9 @@ pub mod sync;
 #[cfg(test)]
 mod tests {
     use crate::client::{AddressBase, ManualCommand, PollEngine, PollList};
-    use crate::protocol::{frame, Function};
+    use crate::protocol::{Function, frame};
     use crate::registers::{Bank, InitMode, RegisterFile};
-    use crate::server::{process, Outcome, ServerConfig};
+    use crate::server::{Outcome, ServerConfig, process};
 
     #[test]
     fn frame_roundtrip_and_header_checks() {
@@ -169,26 +165,17 @@ mod tests {
         cfg.supported.insert(0x03);
         let mut regs = RegisterFile::new();
         let past_end = crate::protocol::build(1, 1, 0x03, &[0xFF, 0xFF, 0, 2]);
-        assert_eq!(
-            process(&cfg, &mut regs, &past_end),
-            Outcome::Reply(crate::protocol::build(1, 1, 0x83, &[0x02]))
-        );
+        assert_eq!(process(&cfg, &mut regs, &past_end), Outcome::Reply(crate::protocol::build(1, 1, 0x83, &[0x02])));
         let write_past_end = crate::protocol::build(1, 1, 0x10, &[0xFF, 0xFF, 0, 2, 4, 0, 1, 0, 2]);
         assert_eq!(
             process(&cfg, &mut regs, &write_past_end),
             Outcome::Reply(crate::protocol::build(1, 1, 0x90, &[0x02]))
         );
         let read_write = crate::protocol::build(1, 1, 0x17, &[0, 0, 0, 1, 0xFF, 0xFF, 0, 2, 4, 0, 1, 0, 2]);
-        assert_eq!(
-            process(&cfg, &mut regs, &read_write),
-            Outcome::Reply(crate::protocol::build(1, 1, 0x97, &[0x02]))
-        );
+        assert_eq!(process(&cfg, &mut regs, &read_write), Outcome::Reply(crate::protocol::build(1, 1, 0x97, &[0x02])));
         // A bad quantity that still fits is answered with the forced code.
         let zero = crate::protocol::build(1, 1, 0x03, &[0, 0, 0, 0]);
-        assert_eq!(
-            process(&cfg, &mut regs, &zero),
-            Outcome::Reply(crate::protocol::build(1, 1, 0x83, &[0x06]))
-        );
+        assert_eq!(process(&cfg, &mut regs, &zero), Outcome::Reply(crate::protocol::build(1, 1, 0x83, &[0x06])));
     }
 
     #[test]
@@ -408,7 +395,9 @@ mod tests {
         assert_eq!(regs.get(Bank::Holding, 0), 0);
         let read = crate::protocol::build(2, 1, 0x03, &[0, 0, 0, 1]);
         assert_eq!(reply_of(&cfg, &mut regs, &read), crate::protocol::build(2, 1, 0x03, &[2, 0x11, 0x11]));
-        for (func, data) in [(0x03u8, vec![0xFF, 0xFF, 0, 1]), (0x06, vec![0xFF, 0xFF, 0x33, 0x33]), (0x03, vec![0xFF, 0xFE, 0, 2])] {
+        for (func, data) in
+            [(0x03u8, vec![0xFF, 0xFF, 0, 1]), (0x06, vec![0xFF, 0xFF, 0x33, 0x33]), (0x03, vec![0xFF, 0xFE, 0, 2])]
+        {
             let r = reply_of(&cfg, &mut regs, &crate::protocol::build(3, 1, func, &data));
             assert_eq!((r[7], r[8]), (func | 0x80, 2), "func {func:#x}");
         }
@@ -449,7 +438,10 @@ mod tests {
         };
         let mut regs = RegisterFile::new();
         assert_eq!(process(&cfg, &mut regs, &req), Outcome::ReplyAndClose(expected.clone()));
-        let forced = ServerConfig { forced_exception: Some(crate::protocol::Exception::SlaveDeviceFailure), ..Default::default() };
+        let forced = ServerConfig {
+            forced_exception: Some(crate::protocol::Exception::SlaveDeviceFailure),
+            ..Default::default()
+        };
         let mut want = expected;
         want[8] = 4;
         assert_eq!(process(&forced, &mut regs, &req), Outcome::ReplyAndClose(want));

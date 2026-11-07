@@ -329,7 +329,12 @@ fn print_response(resp: &[u8]) {
     match protocol::frame(resp) {
         Ok((hdr, func, pdu)) => {
             if func & 0x80 != 0 {
-                println!("TI {}: exception on FC 0x{:02X}, code {}", hdr.transaction_id, func & 0x7F, pdu.first().copied().unwrap_or(0));
+                println!(
+                    "TI {}: exception on FC 0x{:02X}, code {}",
+                    hdr.transaction_id,
+                    func & 0x7F,
+                    pdu.first().copied().unwrap_or(0)
+                );
             } else {
                 println!("TI {}: FC 0x{func:02X} ok, {} data bytes", hdr.transaction_id, pdu.len());
             }

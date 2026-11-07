@@ -9,9 +9,12 @@ pub(super) fn scenarios(unit: u8) -> Vec<Scenario> {
             .pdu(0x17, &[0, 0, 0, 4, 1, 0x2C, 0, 2, 4, 0xAA, 0xAA, 0xBB, 0xBB])
             .read(3, 300, 2)
             .done(),
-        b("read_write_multiple_ordering", "FC23 whose read range overlaps its write range: the write is applied first.")
-            .pdu(0x17, &[0x01, 0xF3, 0, 4, 0x01, 0xF4, 0, 2, 4, 0x11, 0x11, 0x22, 0x22])
-            .done(),
+        b(
+            "read_write_multiple_ordering",
+            "FC23 whose read range overlaps its write range: the write is applied first.",
+        )
+        .pdu(0x17, &[0x01, 0xF3, 0, 4, 0x01, 0xF4, 0, 2, 4, 0x11, 0x11, 0x22, 0x22])
+        .done(),
         b("read_write_multiple_limits", "FC23 at 125 read and 121 written, 126 read, and 122 written.")
             .pdu(0x17, &[&[0, 0, 0, 125, 0, 0, 0, 121, 242][..], &[0x55; 242]].concat())
             .pdu(0x17, &[0, 0, 0, 126, 0x0F, 0xF5, 0, 1, 2, 0, 1])
@@ -38,9 +41,7 @@ pub(super) fn scenarios(unit: u8) -> Vec<Scenario> {
         b("read_write_truncated_data", "FC23 declaring four data bytes and carrying two.")
             .pdu(0x17, &[0, 0, 0, 1, 0x0F, 0xB6, 0, 2, 4, 0, 1])
             .done(),
-        b("read_write_short_pdu", "FC23 cut after the write address.")
-            .pollutes().pdu(0x17, &[0, 0, 0, 1, 0, 0]).done(),
-        b("read_write_empty_pdu", "FC23 with no data.")
-            .pollutes().pdu(0x17, &[]).done(),
+        b("read_write_short_pdu", "FC23 cut after the write address.").pollutes().pdu(0x17, &[0, 0, 0, 1, 0, 0]).done(),
+        b("read_write_empty_pdu", "FC23 with no data.").pollutes().pdu(0x17, &[]).done(),
     ]
 }

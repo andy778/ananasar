@@ -242,7 +242,8 @@ fn cmd_list(args: &[String]) -> Result<ExitCode, String> {
 
 /// The `--only a,b` scenario names, empty for all.
 fn only(given: &[(String, String)]) -> Vec<String> {
-    flag(given, "only").map_or_else(Vec::new, |v| v.split(',').map(|s| s.trim().to_owned()).filter(|s| !s.is_empty()).collect())
+    flag(given, "only")
+        .map_or_else(Vec::new, |v| v.split(',').map(|s| s.trim().to_owned()).filter(|s| !s.is_empty()).collect())
 }
 
 fn cmd_ours(args: &[String]) -> Result<ExitCode, String> {

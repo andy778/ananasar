@@ -49,6 +49,8 @@ cargo install --locked cargo-deny
 
 CI runs the same checks plus the fuzzers, CodeQL and the Windows and macOS builds.
 
+To see which lines the tests reach, install [cargo-llvm-cov](https://github.com/taiki-e/cargo-llvm-cov) and run `cargo llvm-cov --html`; the report is in `target/llvm-cov/html/index.html`. CI posts a per-crate table in the summary of the `coverage` workflow.
+
 ## Commit messages and releases
 
 Pull requests are **squash-merged**: each one lands on `main` as a single commit, signed by GitHub, whose subject is the pull request title. The title must be a [Conventional Commit](https://www.conventionalcommits.org) (the `pr title` check enforces it), and its type decides the next release, so choose it deliberately:

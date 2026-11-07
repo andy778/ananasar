@@ -54,8 +54,15 @@ pub enum MismatchKind {
 
 impl MismatchKind {
     /// Every kind, in report order.
-    pub const ALL: [Self; 7] =
-        [Self::Malformed, Self::ProtocolId, Self::TransactionId, Self::UnitId, Self::Function, Self::ByteCount, Self::EchoData];
+    pub const ALL: [Self; 7] = [
+        Self::Malformed,
+        Self::ProtocolId,
+        Self::TransactionId,
+        Self::UnitId,
+        Self::Function,
+        Self::ByteCount,
+        Self::EchoData,
+    ];
 
     /// The name used in reports.
     pub fn name(self) -> &'static str {
@@ -247,7 +254,9 @@ mod tests {
         let mut rng = Rng::derive(11, 0);
         for i in 0..2000u16 {
             let req = generate(&all_fc_mix(), &mut rng, i, 1);
-            let Outcome::Reply(reply) = process(&cfg, &mut regs, &req.frame) else { panic!("no reply to FC {}", req.fc) };
+            let Outcome::Reply(reply) = process(&cfg, &mut regs, &req.frame) else {
+                panic!("no reply to FC {}", req.fc)
+            };
             assert_eq!(validate(&req, &reply), Verdict::Ok, "FC {}", req.fc);
         }
     }

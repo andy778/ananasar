@@ -31,11 +31,7 @@ fn root() -> PathBuf {
 
 fn parse_strings(value: &str) -> Vec<String> {
     let inner = value.trim().trim_start_matches('[').trim_end_matches(']');
-    inner
-        .split(',')
-        .map(|s| s.trim().trim_matches('"').to_string())
-        .filter(|s| !s.is_empty())
-        .collect()
+    inner.split(',').map(|s| s.trim().trim_matches('"').to_string()).filter(|s| !s.is_empty()).collect()
 }
 
 fn parse(text: &str) -> Vec<Feature> {
@@ -49,12 +45,9 @@ fn parse(text: &str) -> Vec<Feature> {
             out.push(Feature::default());
             continue;
         }
-        let (key, value) = line
-            .split_once('=')
-            .unwrap_or_else(|| panic!("parity.toml line {}: expected key = value", n + 1));
-        let f = out
-            .last_mut()
-            .unwrap_or_else(|| panic!("parity.toml line {}: key before [[feature]]", n + 1));
+        let (key, value) =
+            line.split_once('=').unwrap_or_else(|| panic!("parity.toml line {}: expected key = value", n + 1));
+        let f = out.last_mut().unwrap_or_else(|| panic!("parity.toml line {}: key before [[feature]]", n + 1));
         let (key, value) = (key.trim(), value.trim());
         match key {
             "id" => f.id = value.trim_matches('"').to_string(),
@@ -117,9 +110,5 @@ fn parity_table_matches_the_tests() {
             }
         }
     }
-    assert!(
-        problems.is_empty(),
-        "parity table problems:\n{}",
-        problems.join("\n")
-    );
+    assert!(problems.is_empty(), "parity table problems:\n{}", problems.join("\n"));
 }
