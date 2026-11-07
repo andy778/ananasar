@@ -44,5 +44,5 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 ## Never
 - Commit the original `Ananas64.exe`, the documentation PDF or any zip of them (they are gitignored on purpose).
 - Put reverse-engineering internals (Ghidra function names, addresses) in the repo. Credit REA and say the original was taken from http://www.tuomio.fi/ananas/ only as the README does; never name its author.
-- Use anything from the Ananas documentation PDF. It was written by Wärtsilä, not by the tool's author, so nothing from it may be used or quoted: no section references, wording, examples or file naming. Behaviour comes from the program itself or from the Modbus specification.
+- Use anything from the Ananas documentation PDF. It was not written by the tool's author, so nothing from it may be used or quoted: no section references, wording, examples or file naming. Behaviour comes from the program itself or from the Modbus specification.
 - Promise support or a private security channel in `SECURITY.md`.
