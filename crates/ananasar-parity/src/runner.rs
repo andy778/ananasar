@@ -81,7 +81,16 @@ fn collect_reply(stream: &mut TcpStream, timeout: Duration) -> io::Result<Vec<En
     let mut closed = false;
     let mut wait = timeout;
     loop {
-        stream.set_read_timeout(Some(wait))?;
+        if let Err(e) = stream.set_read_timeout(Some(wait)) {
+            // macOS refuses setsockopt (EINVAL) on a socket the peer has reset, where
+            // Linux reports the reset on the read below. std's own InvalidInput (a zero
+            // timeout) has no OS error code and stays an error.
+            if e.kind() == io::ErrorKind::InvalidInput && e.raw_os_error().is_some() {
+                closed = true;
+                break;
+            }
+            return Err(e);
+        }
         let mut buf = [0u8; 1024];
         match stream.read(&mut buf) {
             Ok(0) => {
