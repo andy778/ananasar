@@ -7,14 +7,27 @@ on:
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
+    inputs:
+      seconds:
+        description: Seconds to fuzz each target (60 to 7200)
+        required: false
+        default: "1800"
 
 permissions:
   contents: read
 
 jobs:
   fuzz:
+    # The name is a required check on main; keep it.
     name: fuzz parsers
     runs-on: ubuntu-24.04
+    # Two targets at the 7200 s maximum plus the build and corpus minimisation.
+    timeout-minutes: 300
+    env:
+      # Pull requests and pushes smoke-fuzz for 60 s per target; the weekly
+      # schedule and manual runs fuzz longer and keep the corpus.
+      LONG_RUN: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+      FUZZ_SECONDS: ${{ github.event_name == 'schedule' && '1800' || github.event_name == 'workflow_dispatch' && inputs.seconds || '60' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # pinned
@@ -27,9 +40,58 @@ jobs:
       - uses: taiki-e/install-action@5488ac5a951645ce95062214902ac4b6bc1a1037 # v2
         with:
           tool: cargo-fuzz
-      - name: Smoke-fuzz the untrusted parsers
+      - name: Check the fuzz duration
+        # The dispatch input is free text; only accept a number in range so it
+        # cannot inject into the shell or run past the job timeout.
+        run: |
+          if ! [[ "$FUZZ_SECONDS" =~ ^[0-9]+$ ]] || (( FUZZ_SECONDS < 60 || FUZZ_SECONDS > 7200 )); then
+            echo "::error::seconds must be a whole number from 60 to 7200, got '$FUZZ_SECONDS'"
+            exit 1
+          fi
+      - name: Restore the corpus
+        # Every run restores the newest corpus, which also keeps the cache entry
+        # from expiring between weekly runs. Only long runs save one.
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: fuzz/corpus
+          key: fuzz-corpus-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: fuzz-corpus-
+      - name: Fuzz the untrusted parsers
         # Pin the fuzz target to gnu: the prebuilt cargo-fuzz is musl-static and
         # would otherwise default to a musl target, which the sanitizer rejects.
+        # Every target runs even if an earlier one crashes, so one run reports
+        # all of them; the step fails at the end if any did.
         run: |
-          cargo +nightly fuzz run frame --target x86_64-unknown-linux-gnu -- -max_total_time=60 -rss_limit_mb=4096
-          cargo +nightly fuzz run server_process --target x86_64-unknown-linux-gnu -- -max_total_time=60 -rss_limit_mb=4096
+          failed=0
+          for target in frame server_process; do
+            echo "::group::fuzz $target for ${FUZZ_SECONDS}s"
+            if ! cargo +nightly fuzz run "$target" --target x86_64-unknown-linux-gnu -- \
+                -max_total_time="$FUZZ_SECONDS" -rss_limit_mb=4096; then
+              echo "::error::fuzz target $target failed; its inputs are in the fuzz-crashes artifact"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          exit "$failed"
+      - name: Minimise the corpus
+        if: env.LONG_RUN == 'true'
+        run: |
+          for target in frame server_process; do
+            cargo +nightly fuzz cmin "$target" --target x86_64-unknown-linux-gnu -- -rss_limit_mb=4096
+          done
+      - name: Save the corpus
+        # Saved under a new key each run, so the next run restores the newest.
+        # Also after a crash: the corpus up to the crash is still coverage.
+        if: always() && env.LONG_RUN == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: fuzz/corpus
+          key: fuzz-corpus-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Upload the crash inputs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-crashes
+          path: fuzz/artifacts
+          if-no-files-found: ignore
+          retention-days: 30
