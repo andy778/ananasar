@@ -11,7 +11,7 @@ To see what the next release would be, run `python3 scripts/next-release.py --dr
 
 To verify a download, check the signature of `SHA256SUMS` with `cosign verify-blob`, then the files with `sha256sum -c`; the commands are in the README.
 
-`main` is protected, so merge PRs with **Rebase and merge** (or a merge commit), not squash: a squash merge turns the whole PR into a single commit and loses the individual `feat`/`fix` types.
+`main` is protected and PRs are **squash-merged**: each PR becomes one commit, signed by GitHub, whose subject is the PR title. The PR title therefore decides the version bump, and the `pr title` check rejects titles that are not Conventional Commits. A PR that mixes a feature and a fix is titled `feat:`; a breaking change needs a `!` in the title or a `BREAKING CHANGE:` footer in one of its commits (the squash commit's body lists them).
 
 ## One-time GitHub App setup
 
