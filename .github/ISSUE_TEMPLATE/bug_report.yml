@@ -69,6 +69,11 @@ body:
     validations:
       required: true
   - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: Optional. How to check that it is fixed, if that is more than "the steps above give what you expected".
+  - type: textarea
     id: log
     attributes:
       label: Data log
