@@ -48,7 +48,7 @@ CI runs the same checks plus the Windows and macOS builds and `cargo-deny`.
 
 ## Commit messages and releases
 
-Commits follow [Conventional Commits](https://www.conventionalcommits.org). The type decides the next release, so choose it deliberately:
+Pull requests are **squash-merged**: each one lands on `main` as a single commit, signed by GitHub, whose subject is the pull request title. The title must be a [Conventional Commit](https://www.conventionalcommits.org) (the `pr title` check enforces it), and its type decides the next release, so choose it deliberately:
 
 | Type | Release |
 | --- | --- |
@@ -57,7 +57,7 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org). The 
 | `feat!:` or a `BREAKING CHANGE:` footer | major |
 | `docs:`, `refactor:`, `ci:`, `chore:`, `test:`, `style:`, `build:` | none |
 
-Pull requests are merged with **Rebase and merge**, so every commit lands on `main` as you wrote it. Keep each commit meaningful on its own, and do not squash a `feat` and a `fix` together. Releases, tags and release notes are automated ([Releasing](docs/releasing.md)).
+One pull request is one change with one type: a feature and an unrelated fix go in separate pull requests. Commits on your branch should use Conventional Commits too, since a `BREAKING CHANGE:` footer in any of them is kept in the squash commit's body. Sign your commits ([SSH or GPG](https://docs.github.com/en/authentication/managing-commit-signature-verification)); `main` accepts only signed commits. Releases, tags and release notes are automated ([Releasing](docs/releasing.md)).
 
 ## Where behaviour comes from
 

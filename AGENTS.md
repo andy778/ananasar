@@ -19,7 +19,7 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 - Supply chain: `cargo deny check advisories bans sources licenses`.
 
 ## Workflow
-- `main` is protected by a ruleset: change it through a branch and PR, with `test (linux)` and `build windows x64 exes` passing.
+- `main` is protected by a ruleset: change it through a branch and PR, with the required checks (`ci passed`, `pr title`, fuzz and CodeQL) passing.
 - Run lint and test before pushing.
 - All GitHub Actions stay pinned to commit SHAs, with `permissions: contents: read` unless a job needs more.
 - Commit messages use Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `ci:`, `chore:`), with a `!` or a `BREAKING CHANGE:` footer for breaking changes.
@@ -27,7 +27,8 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 
 ## Releases
 - Releases are automated by `scripts/next-release.py` (run by `.github/workflows/semantic-release.yml`) from the Conventional Commits on `main` (see `docs/releasing.md`). Do not create `v*` tags by hand. `python3 scripts/next-release.py --dry-run` shows the next release; its tests are `python3 -m unittest discover -s scripts`.
-- Merge PRs with "Rebase and merge" so each commit keeps its type. Choose commit types deliberately: they decide the version bump.
+- PRs are squash-merged: the PR title becomes the commit on `main` and decides the version bump, so it must be a Conventional Commit with a deliberately chosen type (the `pr title` check enforces this). One PR is one change with one type.
+- Commits are signed (SSH or GPG); `main` requires signed commits.
 - The tag build in `build.yml` stamps the version from the tag, builds, signs with cosign and attaches the binaries. The script writes the release notes.
 
 ## Working rules
