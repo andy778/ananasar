@@ -195,6 +195,7 @@ impl SetValView {
             }
         }
         ui.put(at(101.0, 32.0, 60.0, 24.0), egui::TextEdit::singleline(&mut self.addr_text))
+            .accessible_name("Register")
             .on_hover_text("Register to be used");
 
         // Current value
@@ -216,6 +217,7 @@ impl SetValView {
         group_box(ui, at(8.0, 88.0, 377.0, 97.0), "Edit value");
         let edit = ui
             .put(at(101.0, 104.0, 60.0, 25.0), egui::TextEdit::singleline(&mut self.value_text))
+            .accessible_name("Edit value")
             .on_hover_text("Value to set");
         if edit.changed()
             && let Some(v) = parse_value(&self.value_text)

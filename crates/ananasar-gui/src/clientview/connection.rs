@@ -99,7 +99,7 @@ impl ClientView {
             let _ = self.tx.send(Cmd::Disconnect);
         }
         c.frame(ui, (221.0, 12.0, 72.0, 46.0), "UID");
-        theme::combo_u16(ui, c.rect((229.0, 28.0, 56.0, 22.0)), "client_uid", &mut self.uid, 255, 1, 256, false);
+        theme::combo_u16(ui, c.rect((229.0, 28.0, 56.0, 22.0)), "client_uid", "UID", &mut self.uid, 255, 1, 256, false);
         c.frame(ui, (7.0, 68.0, 286.0, 38.0), "Connection partner");
         let text = partner_text(*lock(&self.shared.partner));
         ui.painter().text(
@@ -136,8 +136,13 @@ impl ClientView {
                         ui.add_enabled_ui(!connected, |ui| {
                             ui.horizontal(|ui| {
                                 ui.spacing_mut().item_spacing.x = 8.0;
-                                for octet in &mut d.octets {
-                                    let r = ui.add_sized([41.0, 20.0], egui::TextEdit::singleline(octet));
+                                for (octet, name) in
+                                    d.octets.iter_mut().zip(["IP part 1", "IP part 2", "IP part 3", "IP part 4"])
+                                {
+                                    // The boxes sit under a painted caption, so they are named here.
+                                    let r = ui
+                                        .add_sized([41.0, 20.0], egui::TextEdit::singleline(octet))
+                                        .accessible_name(name);
                                     if r.changed() {
                                         digits3(octet);
                                     }
@@ -147,7 +152,9 @@ impl ClientView {
                         });
                     });
                     c.group(ui, (7.0, 64.0, 66.0, 49.0), "Port", |ui| {
-                        let r = ui.add_enabled(!connected, egui::TextEdit::singleline(&mut d.port).desired_width(50.0));
+                        let r = ui
+                            .add_enabled(!connected, egui::TextEdit::singleline(&mut d.port).desired_width(50.0))
+                            .accessible_name("Remote port");
                         r.on_hover_text("Set remote port for connection");
                     });
                     c.at(ui, (8.0, 120.0, 200.0, 20.0), |ui| {
