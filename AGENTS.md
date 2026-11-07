@@ -15,6 +15,7 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 ## Commands
 - Lint: `cargo clippy --workspace --all-targets -- -D warnings` (workspace lints are in `Cargo.toml`).
 - Test: `cargo test --workspace --locked`.
+- Coverage: `cargo llvm-cov --html` (needs `cargo-llvm-cov`; `coverage.yml` covers core, net, storm, mcp and the CLI without `gui`).
 - Rust 1.92 check: `cargo +1.92 test --locked -p ananasar-core -p ananasar-net -p ananasar-storm -p ananasar-mcp` and `cargo +1.92 test --locked -p ananasar-cli --no-default-features`. Only the GUI (and so the default `ananasar` binary) needs 1.95.
 - Fuzz: `cargo +nightly fuzz run frame`.
 - Supply chain: `cargo deny check advisories bans sources licenses`.
@@ -22,7 +23,7 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 ## Workflow
 - `main` is protected by a ruleset: change it through a branch and PR, with the required checks (`ci passed`, `pr title`, fuzz and CodeQL) passing.
 - Run lint and test before pushing.
-- All GitHub Actions stay pinned to commit SHAs, with `permissions: contents: read` unless a job needs more.
+- All GitHub Actions stay pinned to commit SHAs, with `permissions: contents: read` unless a job needs more. The one CI exception is the `badge` job in `coverage.yml`: on pushes to `main` it has `contents: write` to commit `coverage.json` to the orphan `badges` branch.
 - Commit messages use Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `ci:`, `chore:`), with a `!` or a `BREAKING CHANGE:` footer for breaking changes.
 - Commits and PRs carry no agent attribution (no `Co-Authored-By` trailers for tools). The person who opens a PR answers for it.
 
