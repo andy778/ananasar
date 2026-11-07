@@ -72,6 +72,10 @@ A developer tool, not shipped: a scenario runner, a recording proxy and a diff f
 
 cargo-fuzz targets for the frame parser (`frame`) and the server handler (`server_process`). Depends on `ananasar-core` only. It needs nightly, so it is excluded from the workspace.
 
+### `xtask`
+
+Repository tasks behind the `cargo xtask` alias in `.cargo/config.toml`. `cargo xtask ci` runs the checks CI runs. No dependencies; never shipped.
+
 ## Invariants
 
 **Core stays I/O-free.** `ananasar-core` has no dependencies and does no I/O. Sockets live in `net`, threads in `net`, `storm`, `gui` and `mcp`, files and windows in the front ends. If a change to core needs a socket or a file, the boundary is in the wrong place.
