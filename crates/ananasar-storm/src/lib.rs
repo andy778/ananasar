@@ -9,6 +9,19 @@
 //! the Modbus/TCP level only: it is not a link-level storm generator.
 //! Threads over blocking `std::net` sockets, no async runtime.
 #![cfg_attr(test, allow(clippy::arithmetic_side_effects, reason = "test code: a panic is a failed test"))]
+// Network input is hostile (AGENTS.md, rule 6): no construct that can panic
+// on it. The workspace already denies most of these; listing them here keeps
+// the rule with the crate and raises `todo`/`unimplemented` from warn to deny.
+// Tests may still unwrap, index and panic (see clippy.toml).
+#![deny(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::unreachable,
+    clippy::todo,
+    clippy::unimplemented
+)]
 
 pub mod config;
 pub mod fault;

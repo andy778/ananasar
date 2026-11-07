@@ -5,6 +5,19 @@
 //! Windows builds; OS-specific features (DDE, adapter IP config) live in the
 //! binary crates, not here.
 #![cfg_attr(test, allow(clippy::arithmetic_side_effects, reason = "test code: a panic is a failed test"))]
+// Network input is hostile (AGENTS.md, rule 6): no construct that can panic
+// on it. The workspace already denies most of these; listing them here keeps
+// the rule with the crate and raises `todo`/`unimplemented` from warn to deny.
+// Tests may still unwrap, index and panic (see clippy.toml).
+#![deny(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::unreachable,
+    clippy::todo,
+    clippy::unimplemented
+)]
 #![warn(missing_docs)]
 
 pub mod ananas_file;
