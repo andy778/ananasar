@@ -11,6 +11,7 @@ A port of Ananas, the free Modbus/TCP test tool from http://www.tuomio.fi/ananas
 [![Release](https://img.shields.io/github/v/release/andy778/ananasar?logo=github&cacheSeconds=300)](https://github.com/andy778/ananasar/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/andy778/ananasar/total?logo=github&cacheSeconds=300)](https://github.com/andy778/ananasar/releases)
 [![License](https://img.shields.io/github/license/andy778/ananasar?cacheSeconds=300)](LICENSE)
+[![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/andy778/ananasar/badges/coverage.json)](https://github.com/andy778/ananasar/actions/workflows/coverage.yml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/andy778/ananasar/badge)](https://securityscorecards.dev/viewer/?uri=github.com/andy778/ananasar)
 
 [Download](#download) · [Quick start](#quick-start) · [Documentation](#documentation) · [Build](#build-from-source)
