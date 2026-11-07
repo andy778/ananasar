@@ -163,11 +163,18 @@ fn read_only_mode_never_writes() {
 fn limits_and_bad_input_are_tool_errors() {
     let mut h = Harness::new(true);
     h.ok("server_start", json!({ "port": 0 }));
-    assert!(h.err("server_get_registers", json!({ "bank": "holding", "address": 0, "count": 126 })).contains("'count'"));
+    assert!(
+        h.err("server_get_registers", json!({ "bank": "holding", "address": 0, "count": 126 })).contains("'count'")
+    );
     assert!(h.err("server_get_registers", json!({ "bank": "coil", "address": 0, "count": 1 })).contains("'bank'"));
     assert!(h.err("server_get_registers", json!({ "bank": "holding", "address": 65535, "count": 2 })).contains("past"));
-    assert!(h.err("server_set_registers", json!({ "bank": "input", "address": 65535, "values": [1, 2] })).contains("past"));
-    assert!(h.err("server_set_registers", json!({ "bank": "input", "address": 0, "values": [70000] })).contains("values[0]"));
+    assert!(
+        h.err("server_set_registers", json!({ "bank": "input", "address": 65535, "values": [1, 2] })).contains("past")
+    );
+    assert!(
+        h.err("server_set_registers", json!({ "bank": "input", "address": 0, "values": [70000] }))
+            .contains("values[0]")
+    );
     let too_many: Vec<u32> = vec![0; 124];
     assert!(h.err("modbus_write_multiple", json!({ "address": 0, "values": too_many })).contains("'values'"));
     assert!(h.err("modbus_connect", json!({ "host": "127.0.0.1", "port": 0 })).contains("'port'"));

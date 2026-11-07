@@ -166,7 +166,13 @@ impl Builder {
     }
 
     pub(crate) fn done(self) -> Scenario {
-        Scenario { name: self.name, profile: self.profile, about: self.about, pollutes: self.pollutes, steps: self.steps }
+        Scenario {
+            name: self.name,
+            profile: self.profile,
+            about: self.about,
+            pollutes: self.pollutes,
+            steps: self.steps,
+        }
     }
 }
 

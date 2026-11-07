@@ -6,7 +6,7 @@
 
 #![allow(clippy::arithmetic_side_effects)]
 
-use super::{build, Kind, MenuItem, MenuState};
+use super::{Kind, MenuItem, MenuState, build};
 use ananasar_core::server::ServerConfig;
 use eframe::egui::KeyboardShortcut;
 
@@ -110,7 +110,9 @@ fn parse(text: &str) -> Spec {
 }
 
 fn node_mut<'a>(menus: &'a mut [SpecItem], path: &[usize]) -> &'a mut SpecItem {
-    let Some((first, rest)) = path.split_first() else { std::panic::panic_any("a `~` line needs an entry above it".to_owned()) };
+    let Some((first, rest)) = path.split_first() else {
+        std::panic::panic_any("a `~` line needs an entry above it".to_owned())
+    };
     let mut node = menus.get_mut(*first).unwrap_or_else(|| std::panic::panic_any("bad spec path".to_owned()));
     for i in rest {
         node = node.children.get_mut(*i).unwrap_or_else(|| std::panic::panic_any("bad spec path".to_owned()));
@@ -195,18 +197,25 @@ fn compare(spec: &[SpecItem], ours: &[MenuItem], path: &str, diffs: &mut Vec<Str
         let (s, o) = match (spec.get(i), ours.get(i)) {
             (Some(s), Some(o)) => (s, o),
             (Some(s), None) => {
-                diffs.push(format!("{at}: missing {}", if s.separator { "separator".to_owned() } else { format!("'{}'", s.caption) }));
+                diffs.push(format!(
+                    "{at}: missing {}",
+                    if s.separator { "separator".to_owned() } else { format!("'{}'", s.caption) }
+                ));
                 continue;
             }
             (None, Some(o)) => {
-                diffs.push(format!("{at}: unexpected extra entry '{}' (add it to the spec as a `+` addition if intended)", describe(o)));
+                diffs.push(format!(
+                    "{at}: unexpected extra entry '{}' (add it to the spec as a `+` addition if intended)",
+                    describe(o)
+                ));
                 continue;
             }
             (None, None) => continue,
         };
         if s.separator || o.kind == Kind::Separator {
             if !(s.separator && o.kind == Kind::Separator) {
-                let found = if o.kind == Kind::Separator { "a separator".to_owned() } else { format!("'{}'", o.caption) };
+                let found =
+                    if o.kind == Kind::Separator { "a separator".to_owned() } else { format!("'{}'", o.caption) };
                 let wanted = if s.separator { "a separator".to_owned() } else { format!("'{}'", s.caption) };
                 diffs.push(format!("{at}: expected {wanted}, found {found}"));
             }
@@ -224,14 +233,19 @@ fn compare(spec: &[SpecItem], ours: &[MenuItem], path: &str, diffs: &mut Vec<Str
         }
         let is_sub = matches!(o.kind, Kind::Submenu(_));
         if is_sub != !s.children.is_empty() {
-            diffs.push(format!("{here}: expected {} submenu, found {}", if s.children.is_empty() { "no" } else { "a" }, if is_sub { "one" } else { "none" }));
+            diffs.push(format!(
+                "{here}: expected {} submenu, found {}",
+                if s.children.is_empty() { "no" } else { "a" },
+                if is_sub { "one" } else { "none" }
+            ));
         }
         if !is_sub {
             let kind = if o.kind == Kind::Check { "check" } else { "action" };
             if !allowed(s, "kind", if s.check { "check" } else { "action" }).iter().any(|k| k == kind) {
                 diffs.push(format!("{here}: expected kind {}, found {kind}", if s.check { "check" } else { "action" }));
             }
-            if o.kind == Kind::Check && !allowed(s, "checked", &s.checked.to_string()).contains(&o.checked.to_string()) {
+            if o.kind == Kind::Check && !allowed(s, "checked", &s.checked.to_string()).contains(&o.checked.to_string())
+            {
                 diffs.push(format!("{here}: expected checked={}, found checked={}", s.checked, o.checked));
             }
         }
@@ -272,7 +286,11 @@ fn our_menus_match_the_original() {
     let diffs = differences(&spec, &ours);
     let mut tree = String::new();
     render(&ours, 0, &mut tree);
-    assert!(diffs.is_empty(), "\nour menus differ from original_menus.txt:\n  {}\n\nour menus are:\n{tree}", diffs.join("\n  "));
+    assert!(
+        diffs.is_empty(),
+        "\nour menus differ from original_menus.txt:\n  {}\n\nour menus are:\n{tree}",
+        diffs.join("\n  ")
+    );
 }
 
 #[test]
@@ -287,7 +305,9 @@ fn every_enabled_entry_does_something() {
                     walk(children, &format!("{path} > {}", item.caption), bad);
                 }
                 Kind::Separator => {}
-                _ if item.enabled && item.action.is_none() => bad.push(format!("{path} > {}: enabled but has no action", item.caption)),
+                _ if item.enabled && item.action.is_none() => {
+                    bad.push(format!("{path} > {}: enabled but has no action", item.caption));
+                }
                 _ => {}
             }
         }
@@ -337,8 +357,24 @@ fn additions_are_allowed_after_the_original_entries_only() {
         caption: "View".to_owned(),
         shortcut: None,
         kind: Kind::Submenu(vec![
-            MenuItem { caption: "Values as Hex".to_owned(), shortcut: None, kind: Kind::Check, checked: false, enabled: true, action: None, min_width: None },
-            MenuItem { caption: "Theme".to_owned(), shortcut: None, kind: Kind::Action, checked: false, enabled: true, action: None, min_width: None },
+            MenuItem {
+                caption: "Values as Hex".to_owned(),
+                shortcut: None,
+                kind: Kind::Check,
+                checked: false,
+                enabled: true,
+                action: None,
+                min_width: None,
+            },
+            MenuItem {
+                caption: "Theme".to_owned(),
+                shortcut: None,
+                kind: Kind::Action,
+                checked: false,
+                enabled: true,
+                action: None,
+                min_width: None,
+            },
         ]),
         checked: false,
         enabled: true,

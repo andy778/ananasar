@@ -8,8 +8,8 @@
     reason = "test code: a panic is a failed test"
 )]
 
-use ananasar_core::registers::RegisterFile;
 use ananasar_core::protocol::Exception;
+use ananasar_core::registers::RegisterFile;
 use ananasar_core::server::ServerConfig;
 use ananasar_net::Server;
 use ananasar_storm::{Config, FaultKind, Report, run};
@@ -98,7 +98,10 @@ fn clean_run_has_consistent_counts_and_no_mismatches() {
 
 #[test]
 fn exceptions_are_counted_by_code_and_are_not_mismatches() {
-    let srv = TestServer::start_with(ServerConfig { forced_exception: Some(Exception::SlaveDeviceBusy), ..ServerConfig::default() });
+    let srv = TestServer::start_with(ServerConfig {
+        forced_exception: Some(Exception::SlaveDeviceBusy),
+        ..ServerConfig::default()
+    });
     let mut cfg = base(srv.port);
     cfg.connections = 1;
     cfg.rate = 100.0;
@@ -128,9 +131,14 @@ fn fault_injection_keeps_the_books_straight() {
     assert_eq!(s.sent, s.accounted());
     assert_eq!(s.mismatch_total(), 0, "our server must not send wrong replies: {:?}", s.mismatches);
     // Each malformed frame ends in one observed reaction.
-    let malformed: u64 = FaultKind::ALL.iter().filter(|k| k.is_malformed()).map(|k| s.faults.get(k).copied().unwrap_or(0)).sum();
+    let malformed: u64 =
+        FaultKind::ALL.iter().filter(|k| k.is_malformed()).map(|k| s.faults.get(k).copied().unwrap_or(0)).sum();
     assert_eq!(malformed, s.fault_replied + s.fault_closed + s.fault_silent);
-    assert!(s.reconnects >= malformed.saturating_sub(1), "reconnects {} for {malformed} malformed frames", s.reconnects);
+    assert!(
+        s.reconnects >= malformed.saturating_sub(1),
+        "reconnects {} for {malformed} malformed frames",
+        s.reconnects
+    );
 }
 
 #[test]

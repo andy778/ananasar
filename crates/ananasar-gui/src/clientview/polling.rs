@@ -1,8 +1,8 @@
 //! Polling controls: trigger mode, per-transaction limits, interval and addressing options.
 
+use super::ClientView;
 use super::widgets::Canvas;
 use super::worker::{Cmd, Mode};
-use super::ClientView;
 use ananasar_core::client::AddressBase;
 use eframe::egui;
 
@@ -61,7 +61,8 @@ impl ClientView {
             (Mode::Pause, "Pause", 356.0),
         ];
         for (mode, label, y) in rows {
-            if c.at(ui, (21.0, y, 160.0, 20.0), |ui| ui.add(egui::RadioButton::new(self.mode == mode, label))).clicked() {
+            if c.at(ui, (21.0, y, 160.0, 20.0), |ui| ui.add(egui::RadioButton::new(self.mode == mode, label))).clicked()
+            {
                 self.mode = mode;
             }
         }
@@ -69,17 +70,33 @@ impl ClientView {
             let _ = self.tx.send(Cmd::SetMode(self.mode));
         }
         // One interval serves both modes: Cycle repeats at it, Wait delays by it.
-        for (label, y, active) in [("Cycle", 286.0, self.mode != Mode::WaitAfter), ("Delay", 334.0, self.mode == Mode::WaitAfter)] {
-            ui.painter().text(c.rect((190.0, y + 4.0, 0.0, 0.0)).min, egui::Align2::LEFT_CENTER, label, egui::FontId::proportional(12.0), if active { egui::Color32::BLACK } else { egui::Color32::GRAY });
+        for (label, y, active) in
+            [("Cycle", 286.0, self.mode != Mode::WaitAfter), ("Delay", 334.0, self.mode == Mode::WaitAfter)]
+        {
+            ui.painter().text(
+                c.rect((190.0, y + 4.0, 0.0, 0.0)).min,
+                egui::Align2::LEFT_CENTER,
+                label,
+                egui::FontId::proportional(12.0),
+                if active { egui::Color32::BLACK } else { egui::Color32::GRAY },
+            );
             let rect = c.rect((226.0, y - 3.0, 60.0, 22.0));
             if crate::theme::spin_u64(ui, rect, label, &mut self.interval_ms, 60000, 10, active) {
                 let _ = self.tx.send(Cmd::SetInterval(self.interval_ms));
             }
         }
-        if c.at(ui, (14.0, 388.0, 150.0, 20.0), |ui| ui.add(egui::Checkbox::new(&mut self.base_one, "Use address offset"))).changed() {
+        if c.at(ui, (14.0, 388.0, 150.0, 20.0), |ui| {
+            ui.add(egui::Checkbox::new(&mut self.base_one, "Use address offset"))
+        })
+        .changed()
+        {
             let _ = self.tx.send(Cmd::SetBase(if self.base_one { AddressBase::One } else { AddressBase::Zero }));
         }
-        if c.at(ui, (178.0, 388.0, 118.0, 20.0), |ui| ui.add(egui::Checkbox::new(&mut self.zero_ti, "TI always '00 00'"))).changed() {
+        if c.at(ui, (178.0, 388.0, 118.0, 20.0), |ui| {
+            ui.add(egui::Checkbox::new(&mut self.zero_ti, "TI always '00 00'"))
+        })
+        .changed()
+        {
             let _ = self.tx.send(Cmd::SetZeroTi(self.zero_ti));
         }
     }

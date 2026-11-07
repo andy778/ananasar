@@ -2,8 +2,8 @@
 //! known advisories at build time and the full licence texts, all embedded when
 //! the binary was built (see `build.rs` and `scripts/make-notices.sh`).
 
-use clap::Args;
 use ananasar_core::notices::{ADVISORIES, DEPENDENCIES, LICENSES};
+use clap::Args;
 
 /// Which part to print; with none given, the version, dependencies and advisories.
 #[derive(Args)]
@@ -32,7 +32,9 @@ pub fn run_about(args: &AboutArgs) -> i32 {
         println!("\n== Licence texts ==\n{LICENSES}");
     }
     if all {
-        println!("\nRun `ananasar about --licenses` for the licence texts. Check this binary against the current advisory database with `cargo audit bin <path to ananasar>`.");
+        println!(
+            "\nRun `ananasar about --licenses` for the licence texts. Check this binary against the current advisory database with `cargo audit bin <path to ananasar>`."
+        );
     }
     0
 }

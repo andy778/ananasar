@@ -138,8 +138,7 @@ impl std::error::Error for FrameError {}
 /// field's upper byte must be 0, and `length` must equal the trailing byte
 /// count (`received - 6`).
 pub fn frame(buf: &[u8]) -> Result<(Mbap, u8, &[u8]), FrameError> {
-    let (Some(&[t0, t1, p0, p1, l0, l1, unit_id, function]), Some(payload)) =
-        (buf.first_chunk::<8>(), buf.get(8..))
+    let (Some(&[t0, t1, p0, p1, l0, l1, unit_id, function]), Some(payload)) = (buf.first_chunk::<8>(), buf.get(8..))
     else {
         return Err(FrameError::TooShort);
     };
@@ -154,11 +153,7 @@ pub fn frame(buf: &[u8]) -> Result<(Mbap, u8, &[u8]), FrameError> {
     if usize::from(length) != buf.len().saturating_sub(6) {
         return Err(FrameError::BadLength);
     }
-    Ok((
-        Mbap { transaction_id, protocol_id, length, unit_id },
-        function,
-        payload,
-    ))
+    Ok((Mbap { transaction_id, protocol_id, length, unit_id }, function, payload))
 }
 
 /// Read a big-endian `u16` at `offset`, or `None` if `buf` is too short.

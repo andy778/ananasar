@@ -314,7 +314,8 @@ mod tests {
         let cfg = build_config(&parse(line).unwrap()).unwrap();
         let again = build_config(&parse(&cfg.reproduce_args()).unwrap()).unwrap();
         assert_eq!(cfg, again);
-        let churn = build_config(&parse("storm h:1 --churn --churn-interval-ms 40 --churn-request --seed 5").unwrap()).unwrap();
+        let churn =
+            build_config(&parse("storm h:1 --churn --churn-interval-ms 40 --churn-request --seed 5").unwrap()).unwrap();
         assert_eq!(build_config(&parse(&churn.reproduce_args()).unwrap()).unwrap(), churn);
     }
 }

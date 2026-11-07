@@ -1,10 +1,10 @@
 //! Poll worker thread: owns the socket and the [`PollEngine`], driven by [`Cmd`]s from the UI.
 
 use super::connection::partner_text;
-use super::polling::{clamp_limit, MAX_READ, MAX_WRITE};
+use super::polling::{MAX_READ, MAX_WRITE, clamp_limit};
+use crate::embed::SharedRegs;
 use ananasar_core::client::{AddressBase, ManualCommand, PollEngine, PollList};
 use ananasar_core::protocol::{self, Function};
-use crate::embed::SharedRegs;
 use ananasar_core::sync::lock;
 use ananasar_net::read_frame;
 use eframe::egui;
@@ -182,10 +182,22 @@ fn poll_once(stream: &mut TcpStream, query: &[u8], shared: &Shared) -> std::io::
     let resp = read_frame(stream)?;
     if let Ok((hdr, f, pdu)) = protocol::frame(&resp) {
         if f & 0x80 != 0 {
-            shared.log_line(format!("TI {}: exception FC 0x{:02X} code {}", hdr.transaction_id, f & 0x7F, pdu.first().copied().unwrap_or(0)));
+            shared.log_line(format!(
+                "TI {}: exception FC 0x{:02X} code {}",
+                hdr.transaction_id,
+                f & 0x7F,
+                pdu.first().copied().unwrap_or(0)
+            ));
         } else if matches!(Function::from_u8(f), Some(Function::ReadHolding) | Some(Function::ReadInput)) {
             store_read(shared, func, start, pdu);
-            let shown: Vec<String> = pdu.get(1..).unwrap_or(&[]).as_chunks::<2>().0.iter().map(|&c| u16::from_be_bytes(c).to_string()).collect();
+            let shown: Vec<String> = pdu
+                .get(1..)
+                .unwrap_or(&[])
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|&c| u16::from_be_bytes(c).to_string())
+                .collect();
             shared.log_line(format!("TI {}: read @{start} x{count} = [{}]", hdr.transaction_id, shown.join(", ")));
         } else {
             shared.log_line(format!("TI {}: FC 0x{f:02X} ok", hdr.transaction_id));
@@ -197,7 +209,12 @@ fn poll_once(stream: &mut TcpStream, query: &[u8], shared: &Shared) -> std::io::
 fn log_resp(shared: &Shared, resp: &[u8]) {
     if let Ok((hdr, f, pdu)) = protocol::frame(resp) {
         if f & 0x80 != 0 {
-            shared.log_line(format!("TI {}: exception FC 0x{:02X} code {}", hdr.transaction_id, f & 0x7F, pdu.first().copied().unwrap_or(0)));
+            shared.log_line(format!(
+                "TI {}: exception FC 0x{:02X} code {}",
+                hdr.transaction_id,
+                f & 0x7F,
+                pdu.first().copied().unwrap_or(0)
+            ));
         } else {
             shared.log_line(format!("TI {}: manual FC 0x{f:02X} ok", hdr.transaction_id));
         }

@@ -63,7 +63,19 @@ fn main_window_shows_its_controls_and_opens_the_client() {
     assert!(app.server.listening.load(Ordering::SeqCst), "the server listens");
     assert!(app.message.is_none(), "no startup error: {:?}", app.message);
 
-    for label in ["File", "Edit", "View", "Options", "Tools", "Input", "Holding", "Start Address", "UID", "Interpretive", "Start"] {
+    for label in [
+        "File",
+        "Edit",
+        "View",
+        "Options",
+        "Tools",
+        "Input",
+        "Holding",
+        "Start Address",
+        "UID",
+        "Interpretive",
+        "Start",
+    ] {
         harness.get_by_label(label);
     }
     harness.get_by_label("Show").click();
@@ -84,7 +96,17 @@ fn client_connects_to_the_embedded_server() {
     harness.run();
 
     let client = window(&harness, CLIENT);
-    for label in ["Edit", "Modbus", "Disconnect", "Read address", "Write address", "Cyclic read/write", "Pause", "Cycle", "Delay"] {
+    for label in [
+        "Edit",
+        "Modbus",
+        "Disconnect",
+        "Read address",
+        "Write address",
+        "Cyclic read/write",
+        "Pause",
+        "Cycle",
+        "Delay",
+    ] {
         client.get_by_label(label);
     }
     client.get_by_label("Connect\u{2026}").click();
@@ -92,7 +114,8 @@ fn client_connects_to_the_embedded_server() {
 
     // The Server connection dialog: point it at this app's own server.
     let dialog = window(&harness, DIALOG);
-    let ip: Vec<_> = (1..=4).map(|i| dialog.get_by_label(&format!("IP part {i}")).value().unwrap_or_default()).collect();
+    let ip: Vec<_> =
+        (1..=4).map(|i| dialog.get_by_label(&format!("IP part {i}")).value().unwrap_or_default()).collect();
     assert_eq!(ip, ["127", "0", "0", "1"]);
     dialog.get_by_label("Cancel");
     replace_text(&mut harness, DIALOG, "Remote port", &port.to_string());
@@ -164,7 +187,10 @@ fn storm_window_opens_from_the_menu_and_runs_against_the_embedded_server() {
     }
     replace_text(&mut harness, TITLE, "Target (host:port):", &format!("127.0.0.1:{port}"));
     replace_text(&mut harness, TITLE, "Duration (s):", "1");
-    assert!(!is_disabled(&window(&harness, TITLE).get_by_label("Start")), "a short read-only run needs no authorisation");
+    assert!(
+        !is_disabled(&window(&harness, TITLE).get_by_label("Start")),
+        "a short read-only run needs no authorisation"
+    );
     assert!(is_disabled(&window(&harness, TITLE).get_by_label("Stop")));
 
     window(&harness, TITLE).get_by_label("Start").click();

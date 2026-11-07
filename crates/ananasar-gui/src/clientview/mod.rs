@@ -15,16 +15,16 @@ mod widgets;
 mod worker;
 
 use crate::embed::SharedRegs;
-use eframe::egui;
-use widgets::Canvas;
 use connection::ConnDialog;
+use eframe::egui;
 use lists::RangeDialog;
 use polling::{DEFAULT_WRITE, MAX_READ};
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
-use worker::{spawn_worker, Cmd, Shared};
+use widgets::Canvas;
+use worker::{Cmd, Shared, spawn_worker};
 
 pub use worker::Mode;
 

@@ -23,10 +23,7 @@ pub enum Scope {
 impl Scope {
     /// Whether the scope needs the From/To range.
     pub fn has_range(self) -> bool {
-        matches!(
-            self,
-            Self::InputRange | Self::HoldingRange | Self::BothRange
-        )
+        matches!(self, Self::InputRange | Self::HoldingRange | Self::BothRange)
     }
 }
 
@@ -64,36 +61,14 @@ impl Activation {
     /// read for the range scopes.
     pub fn new(scope: Scope, from: &str, to: &str) -> Result<Self, RangeError> {
         let all = (0, u16::MAX);
-        let range = if scope.has_range() {
-            parse_range(from, to)?
-        } else {
-            all
-        };
+        let range = if scope.has_range() { parse_range(from, to)? } else { all };
         Ok(match scope {
-            Scope::AllBoth => Self {
-                input: Some(all),
-                holding: Some(all),
-            },
-            Scope::Input => Self {
-                input: Some(all),
-                holding: None,
-            },
-            Scope::InputRange => Self {
-                input: Some(range),
-                holding: None,
-            },
-            Scope::Holding => Self {
-                input: None,
-                holding: Some(all),
-            },
-            Scope::HoldingRange => Self {
-                input: None,
-                holding: Some(range),
-            },
-            Scope::BothRange => Self {
-                input: Some(range),
-                holding: Some(range),
-            },
+            Scope::AllBoth => Self { input: Some(all), holding: Some(all) },
+            Scope::Input => Self { input: Some(all), holding: None },
+            Scope::InputRange => Self { input: Some(range), holding: None },
+            Scope::Holding => Self { input: None, holding: Some(all) },
+            Scope::HoldingRange => Self { input: None, holding: Some(range) },
+            Scope::BothRange => Self { input: Some(range), holding: Some(range) },
         })
     }
 
@@ -107,8 +82,7 @@ impl Activation {
 
     /// Whether register `addr` of `bank` is served.
     pub fn covers(&self, bank: Bank, addr: u16) -> bool {
-        self.range(bank)
-            .is_some_and(|(from, to)| (from..=to).contains(&addr))
+        self.range(bank).is_some_and(|(from, to)| (from..=to).contains(&addr))
     }
 }
 
@@ -122,9 +96,7 @@ pub fn topic_name(bank: Bank) -> &'static str {
 
 /// Maps a topic to its bank. DDE names are not case-sensitive.
 pub fn parse_topic(topic: &str) -> Option<Bank> {
-    [Bank::Input, Bank::Holding]
-        .into_iter()
-        .find(|&b| topic.eq_ignore_ascii_case(topic_name(b)))
+    [Bank::Input, Bank::Holding].into_iter().find(|&b| topic.eq_ignore_ascii_case(topic_name(b)))
 }
 
 /// The DDE item name of register `addr`.
@@ -151,11 +123,7 @@ pub fn format_value(value: u16) -> String {
 /// 16 bits; anything that is not a non-negative integer is not a value.
 pub fn parse_poke(text: &str) -> Option<u16> {
     let t = text.trim_matches(|c: char| c.is_whitespace() || c == '\0');
-    let (digits, radix) = match t
-        .strip_prefix('$')
-        .or_else(|| t.strip_prefix("0x"))
-        .or_else(|| t.strip_prefix("0X"))
-    {
+    let (digits, radix) = match t.strip_prefix('$').or_else(|| t.strip_prefix("0x")).or_else(|| t.strip_prefix("0X")) {
         Some(hex) => (hex, 16),
         None => (t, 10),
     };
@@ -175,9 +143,7 @@ mod tests {
         assert_eq!(parse_item("r0"), Some(0));
         assert_eq!(parse_item("r933"), Some(933));
         assert_eq!(parse_item("r65535"), Some(65535));
-        for bad in [
-            "r65536", "R3", "3", "r", "r-1", "r 3", "r3 ", "r0x10", "reg3", "",
-        ] {
+        for bad in ["r65536", "R3", "3", "r", "r-1", "r 3", "r3 ", "r0x10", "reg3", ""] {
             assert_eq!(parse_item(bad), None, "{bad:?}");
         }
     }
@@ -220,17 +186,7 @@ mod tests {
 
     #[test]
     fn pokes_reject_non_integers() {
-        for bad in [
-            "",
-            "abc",
-            "-5",
-            "3.7",
-            "1e2",
-            "0x",
-            "$",
-            "12 34",
-            "99999999999999999999999",
-        ] {
+        for bad in ["", "abc", "-5", "3.7", "1e2", "0x", "$", "12 34", "99999999999999999999999"] {
             assert_eq!(parse_poke(bad), None, "{bad:?}");
         }
     }
@@ -239,14 +195,7 @@ mod tests {
     fn ranges_must_be_ordered_numbers_in_16_bits() {
         assert_eq!(parse_range("0", "9"), Ok((0, 9)));
         assert_eq!(parse_range(" 5 ", "5"), Ok((5, 5)));
-        for (from, to) in [
-            ("", ""),
-            ("0", ""),
-            ("9", "0"),
-            ("0", "65536"),
-            ("-1", "5"),
-            ("a", "b"),
-        ] {
+        for (from, to) in [("", ""), ("0", ""), ("9", "0"), ("0", "65536"), ("-1", "5"), ("a", "b")] {
             assert_eq!(parse_range(from, to), Err(RangeError), "{from:?}..{to:?}");
         }
     }
