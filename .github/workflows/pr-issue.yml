@@ -1,0 +1,63 @@
+name: pr issue
+
+# Every change starts from an issue and every PR links it (AGENTS.md, rule 1).
+# Fail unless the PR description names an existing issue of this repository
+# with Fixes/Closes/Resolves/Refs #N. `edited` re-runs the check when the
+# description changes. Dependabot PRs pass without a link, so this job can be a
+# required check: a skipped job would not count as a pass.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  issue:
+    name: pr issue
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check the description links an issue
+        env:
+          # Passed through the environment, never interpolated into the script.
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          BODY: ${{ github.event.pull_request.body }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [[ "$AUTHOR" == "dependabot[bot]" ]]; then
+            echo "ok: Dependabot PRs need no issue"
+            exit 0
+          fi
+
+          help="Add a line like 'Fixes #123' to the PR description, naming the issue this PR works on (or 'Refs #123' if it does not finish the issue; 'Closes' and 'Resolves' work too). If there is no issue yet, open one first: every change starts from an issue (AGENTS.md, rule 1)."
+
+          # Drop HTML comments first, so the template's hints never count as a link.
+          body=$(printf '%s' "$BODY" | perl -0pe 's/<!--.*?-->//gs')
+          nums=$(printf '%s' "$body" \
+            | grep -oiE '(^|[^[:alnum:]_])(fix(es|ed)?|close[sd]?|resolve[sd]?|refs?):?[[:space:]]+#[0-9]+' \
+            | grep -oE '[0-9]+$' | sort -un || true)
+          if [[ -z "$nums" ]]; then
+            echo "::error::The PR description links no issue. $help"
+            exit 1
+          fi
+
+          found=0
+          for n in $nums; do
+            # Distinguish a PR (which the issues API also returns) from an issue.
+            if ! kind=$(gh api "repos/$GH_REPO/issues/$n" --jq 'if .pull_request then "pull request" else "issue" end' 2>/dev/null); then
+              echo "::warning::#$n is not an issue of $GH_REPO (not found)."
+            elif [[ "$kind" != "issue" ]]; then
+              echo "::warning::#$n is a pull request, not an issue."
+            else
+              echo "ok: links issue #$n"
+              found=1
+            fi
+          done
+          if [[ "$found" -ne 1 ]]; then
+            echo "::error::The PR description links no existing issue of $GH_REPO. $help"
+            exit 1
+          fi
