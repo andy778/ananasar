@@ -133,7 +133,6 @@ fn inject(stream: &mut TcpStream, bytes: &[u8], wait: Duration, rec: &mut Record
     *slot = slot.saturating_add(1);
 }
 
-/// One connection sending a paced request stream, with faults.
 /// How far a worker may fall behind its schedule and still catch up.
 ///
 /// `thread::sleep` wakes late (tens of milliseconds on a busy macOS runner,
@@ -162,6 +161,7 @@ impl Pacer {
     }
 }
 
+/// One connection sending a paced request stream, with faults.
 pub(crate) fn run_requests(ctx: &Ctx<'_>, id: u64) -> Stats {
     let cfg = ctx.cfg;
     let mut rec = Recorder::new(ctx.live);
