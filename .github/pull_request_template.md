@@ -3,9 +3,14 @@ Thanks for contributing. The rules are in AGENTS.md; CONTRIBUTING.md explains th
 Delete any section that does not apply.
 -->
 
+## Issues
+
+<!-- Required: every PR starts from an issue (AGENTS.md, rule 1). -->
+Fixes #
+
 ## What this changes
 
-<!-- What behaves differently afterwards, and why. If it fixes an issue: `Fixes #123`. -->
+<!-- What behaves differently afterwards, and why. -->
 
 ## How you verified it
 

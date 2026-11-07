@@ -31,7 +31,7 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 - The tag build in `build.yml` stamps the version from the tag, builds, signs with cosign and attaches the binaries. The script writes the release notes.
 
 ## Working rules
-1. **Check first.** Before starting, read the issue and its comments and search open PRs, so work is not duplicated.
+1. **Issue first.** Every change starts from an open issue, before any code is written or a PR is opened; open one if none exists. Read it and its comments, search open PRs for it, and comment on the issue that you are taking it. Every PR links its issues (`Fixes #N`, or `Refs #N` when it does not close them). Only Dependabot PRs are exempt.
 2. **Verify, don't guess.** Open a definition before using it, and confirm a bug's cause in the code.
 3. **Keep fixes narrow and tested.** Fix what the issue describes. A bug fix comes with a test that fails without the fix.
 4. **Review the diff before opening a PR.** Nothing unrelated changed, and the description is true.

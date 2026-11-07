@@ -8,6 +8,10 @@ The binding rules for everyone, people and AI agents alike, are in [AGENTS.md](A
 
 Open an [issue](https://github.com/andy778/ananasar/issues/new/choose) and pick a form. For bugs, [Troubleshooting](docs/troubleshooting.md#reporting-a-bug) lists what helps. Issues are public, so remove addresses or register contents you do not want to publish. Security problems go in a public issue too; there is no private channel.
 
+## Start with an issue
+
+Every change starts from an issue, before you write code or open a pull request. Search for an existing one first; if there is none, open one and describe what you want to change. Comment on the issue that you are working on it, so nobody else starts the same thing. The pull request then links it with `Fixes #123` (or `Refs #123` if it does not finish the issue). One issue may take several pull requests, and one pull request may close several issues. Dependabot updates are the only exception.
+
 ## Setting up
 
 Install Rust with [rustup](https://rustup.rs). The core and the headless CLI need Rust 1.92; the GUI (and so the default `ananasar` binary) needs 1.95. On Debian or Ubuntu, follow [Build from source](README.md#debian--ubuntu).
