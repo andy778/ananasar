@@ -18,6 +18,8 @@ mod setvalview;
 mod stormview;
 #[cfg(test)]
 mod screenshot;
+#[cfg(test)]
+mod smoke_tests;
 mod theme;
 
 use ananasar_core::protocol::Exception;
@@ -180,23 +182,31 @@ impl App {
     /// Build the app and start its embedded server. Worker threads keep a
     /// clone of `ctx` and repaint only when something changes.
     fn new(ctx: &egui::Context, requested_port: Option<u16>) -> Self {
+        Self::listening_on(ctx, requested_port, std::net::Ipv4Addr::UNSPECIFIED.into())
+    }
+
+    /// Like [`App::new`], with the embedded server bound to `bind_ip`.
+    fn listening_on(ctx: &egui::Context, requested_port: Option<u16>, bind_ip: std::net::IpAddr) -> Self {
         let regs: SharedRegs = Arc::new(Mutex::new(RegisterFile::new()));
-        let server = ServerHandle::new();
+        let server = ServerHandle::new(bind_ip);
         let stop = Arc::new(AtomicBool::new(false));
         let mut port = requested_port.unwrap_or(DEFAULT_PORT);
         let mut port_notice = None;
         let mut startup_error = None;
         let start = |p: u16| embed::start(ctx.clone(), regs.clone(), server.clone(), p, stop.clone());
         if requested_port.is_some() {
-            if let Err(e) = start(port) {
-                *lock(&server.status) = format!("bind :{port} failed: {e}");
-                startup_error = Some(format!("Cannot listen on port {port}: {e}"));
+            match start(port) {
+                Ok(bound) => port = bound,
+                Err(e) => {
+                    *lock(&server.status) = format!("bind :{port} failed: {e}");
+                    startup_error = Some(format!("Cannot listen on port {port}: {e}"));
+                }
             }
         } else {
             // Like the original: when the default port is used by another
             // instance, move up to the next free one and tell the user.
             match first_free_port(port, PORT_SEARCH_ATTEMPTS, start) {
-                Ok((p, ())) => {
+                Ok((p, _)) => {
                     if p != port {
                         port_notice = Some(port_changed_text(p, port));
                     }
@@ -257,7 +267,7 @@ impl App {
             return Ok(());
         }
         let stop = Arc::new(AtomicBool::new(false));
-        embed::start(ctx.clone(), self.regs.clone(), self.server.clone(), port, stop.clone())
+        let port = embed::start(ctx.clone(), self.regs.clone(), self.server.clone(), port, stop.clone())
             .map_err(|e| format!("Cannot listen on port {port}: {e}"))?;
         self.server_stop.store(true, Ordering::SeqCst);
         self.server_stop = stop;
@@ -486,10 +496,10 @@ impl App {
 
         setvalview::group_box(ui, at(START_BOX.0, 58.0, START_BOX.1, 47.0), "Start Address");
         // Every address is in the list (in hex while registers are shown as hex); it can also be typed.
-        theme::combo_u16(ui, at(START_BOX.0 + 4.0, 77.0, START_BOX.1 - 8.0, 21.0), "start_address", &mut self.start_address, 65535, 1, 65536, self.addr_hex);
+        theme::combo_u16(ui, at(START_BOX.0 + 4.0, 77.0, START_BOX.1 - 8.0, 21.0), "start_address", "Start Address", &mut self.start_address, 65535, 1, 65536, self.addr_hex);
         setvalview::group_box(ui, at(UID_BOX.0, 58.0, UID_BOX.1, 47.0), "UID");
         let mut uid_wide = u16::from(lock(&self.server.cfg).unit_id);
-        if theme::combo_u16(ui, at(UID_BOX.0 + 8.0, 77.0, UID_BOX.1 - 16.0, 21.0), "uid", &mut uid_wide, 255, 1, 256, false) {
+        if theme::combo_u16(ui, at(UID_BOX.0 + 8.0, 77.0, UID_BOX.1 - 16.0, 21.0), "uid", "UID", &mut uid_wide, 255, 1, 256, false) {
             lock(&self.server.cfg).unit_id = u8::try_from(uid_wide).unwrap_or(u8::MAX);
         }
 

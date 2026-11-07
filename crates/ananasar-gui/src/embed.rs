@@ -6,7 +6,7 @@ use ananasar_core::server::ServerConfig;
 use ananasar_core::sync::lock;
 use ananasar_net::{LogSink, Server, Stats};
 use eframe::egui;
-use std::net::TcpListener;
+use std::net::{IpAddr, TcpListener};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -18,6 +18,9 @@ pub struct ServerHandle {
     pub listening: AtomicBool,
     pub clients: Arc<AtomicUsize>,
     pub port: AtomicUsize,
+    /// The address the server listens on: every interface in the app, loopback
+    /// in tests so they open nothing to the network.
+    bind_ip: IpAddr,
     /// Bumped on every start, so a server that was replaced leaves its successor's state alone.
     generation: AtomicUsize,
     /// Data log shared with the running server; idle until the user starts it.
@@ -29,12 +32,13 @@ pub struct ServerHandle {
 }
 
 impl ServerHandle {
-    pub fn new() -> Arc<Self> {
+    pub fn new(bind_ip: IpAddr) -> Arc<Self> {
         Arc::new(Self {
             status: Mutex::new("stopped".into()),
             listening: AtomicBool::new(false),
             clients: Arc::new(AtomicUsize::new(0)),
             port: AtomicUsize::new(0),
+            bind_ip,
             generation: AtomicUsize::new(0),
             log: Arc::new(LogSink::idle()),
             stats: Arc::default(),
@@ -43,8 +47,9 @@ impl ServerHandle {
     }
 }
 
-/// Start listening on `port`. The port is bound before this returns, so a
-/// caller can report a bind error and keep the previous server running. A
+/// Start listening on `port` (0 picks a free one) and return the port bound.
+/// The port is bound before this returns, so a caller can report a bind error
+/// and keep the previous server running. A
 /// `stop` flag lets the UI take the port down (the original's "Monitor port"
 /// option); the accept loop exits when it is set. The UI is repainted whenever
 /// a client connects, disconnects or sends a request, so it can stay idle in
@@ -55,8 +60,9 @@ pub fn start(
     handle: Arc<ServerHandle>,
     port: u16,
     stop: Arc<AtomicBool>,
-) -> std::io::Result<()> {
-    let listener = TcpListener::bind(("0.0.0.0", port))?;
+) -> std::io::Result<u16> {
+    let listener = TcpListener::bind((handle.bind_ip, port))?;
+    let port = listener.local_addr()?.port();
     let generation = handle.generation.fetch_add(1, Ordering::SeqCst).wrapping_add(1);
     handle.listening.store(true, Ordering::SeqCst);
     handle.port.store(usize::from(port), Ordering::SeqCst);
@@ -83,5 +89,5 @@ pub fn start(
         }
         ctx.request_repaint();
     });
-    Ok(())
+    Ok(port)
 }

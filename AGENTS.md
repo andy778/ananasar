@@ -40,7 +40,7 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 3. **Keep fixes narrow and tested.** Fix what the issue describes. A bug fix comes with a test that fails without the fix.
 4. **Review the diff before opening a PR.** Nothing unrelated changed, and the description is true.
 5. **Report only what ran.** Say what you tested and what you could not run.
-6. **Network input is hostile.** Parsers and the server must not panic or overflow on any frame; enforce the Modbus limits and answer with an exception instead.
+6. **Network input is hostile.** Parsers and the server must not panic or overflow on any frame; enforce the Modbus limits and answer with an exception instead. `ananasar-core`, `ananasar-net`, `ananasar-mcp` and `ananasar-storm` deny `clippy::unwrap_used`, `expect_used`, `panic`, `indexing_slicing`, `unreachable`, `todo` and `unimplemented` outside tests; where something truly cannot fail, use a narrow `#[allow]` with a reason saying why.
 7. **Guards say why.** A check that looks removable has a comment saying what it prevents. Read it before changing it.
 8. **Ask before** anything hard to undo: releases, tags, force-pushes, new dependencies with a new licence, or changes to CI permissions.
 

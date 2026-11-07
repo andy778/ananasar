@@ -185,6 +185,8 @@ pub fn bevel_button(
 ) -> egui::Response {
     let sense = if enabled { egui::Sense::click() } else { egui::Sense::hover() };
     let resp = ui.interact(rect, ui.scope_id().with(("bevel_button", id)), sense);
+    // Painted by hand, so the accessibility tree (and the GUI tests) learn the label here.
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, label));
     let down = enabled && resp.is_pointer_button_down_on();
     let face = if enabled && resp.hovered() { HOT_FACE } else { BTN_FACE };
     let painter = ui.painter();
@@ -214,19 +216,20 @@ pub fn bevel_button(
 
 /// A drop-down combo box over `rect`: a white sunken box showing `value`
 /// (it can be typed into) with an arrow button on its right that opens the
-/// list `0, step, 2*step, ...` of `count` entries. Returns whether the value changed.
+/// list `0, step, 2*step, ...` of `count` entries. `name` is its accessible name,
+/// as its caption is painted beside it. Returns whether the value changed.
 #[allow(clippy::too_many_arguments, reason = "a drop-down needs its geometry, value, range and list")]
-pub fn combo_u16(ui: &mut egui::Ui, rect: egui::Rect, id: &str, value: &mut u16, max: u16, step: u16, count: usize, hex: bool) -> bool {
-    combo_with(ui, rect, id, value, max, count, hex, |i| u16::try_from(i).unwrap_or(0).saturating_mul(step).min(max))
+pub fn combo_u16(ui: &mut egui::Ui, rect: egui::Rect, id: &str, name: &str, value: &mut u16, max: u16, step: u16, count: usize, hex: bool) -> bool {
+    combo_with(ui, rect, id, name, value, max, count, hex, |i| u16::try_from(i).unwrap_or(0).saturating_mul(step).min(max))
 }
 
 /// Like [`combo_u16`], but the list holds exactly `items`.
-pub fn combo_list(ui: &mut egui::Ui, rect: egui::Rect, id: &str, value: &mut u16, max: u16, items: &[u16]) -> bool {
-    combo_with(ui, rect, id, value, max, items.len(), false, |i| items.get(i).copied().unwrap_or(0))
+pub fn combo_list(ui: &mut egui::Ui, rect: egui::Rect, id: &str, name: &str, value: &mut u16, max: u16, items: &[u16]) -> bool {
+    combo_with(ui, rect, id, name, value, max, items.len(), false, |i| items.get(i).copied().unwrap_or(0))
 }
 
 #[allow(clippy::too_many_arguments, reason = "a drop-down needs its geometry, value, range and list")]
-fn combo_with(ui: &mut egui::Ui, rect: egui::Rect, id: &str, value: &mut u16, max: u16, count: usize, hex: bool, nth: impl Fn(usize) -> u16) -> bool {
+fn combo_with(ui: &mut egui::Ui, rect: egui::Rect, id: &str, name: &str, value: &mut u16, max: u16, count: usize, hex: bool, nth: impl Fn(usize) -> u16) -> bool {
     let fmt = |v: u16| if hex { format!("{v:04X}") } else { v.to_string() };
     let mut changed = false;
     let arrow_w = 17.0;
@@ -241,7 +244,7 @@ fn combo_with(ui: &mut egui::Ui, rect: egui::Rect, id: &str, value: &mut u16, ma
     let focused = ui.memory(|m| m.has_focus(edit_id));
     let mut buf = if focused { ui.data(|d| d.get_temp::<String>(edit_id)).unwrap_or_else(|| fmt(*value)) } else { fmt(*value) };
     let edit = egui::TextEdit::singleline(&mut buf).id(edit_id).frame(egui::Frame::NONE).margin(egui::Margin::symmetric(3, 0)).align(egui::Align2::LEFT_CENTER);
-    let resp = ui.put(text_rect, edit);
+    let resp = ui.put(text_rect, edit).accessible_name(name);
     if resp.changed()
         && let Ok(v) = u32::from_str_radix(buf.trim(), if hex { 16 } else { 10 })
     {
@@ -255,6 +258,7 @@ fn combo_with(ui: &mut egui::Ui, rect: egui::Rect, id: &str, value: &mut u16, ma
     }
 
     let btn = ui.interact(arrow, ui.scope_id().with(("combo_arrow", id)), egui::Sense::click());
+    btn.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, format!("{name} list")));
     let down = btn.is_pointer_button_down_on();
     painter.rect_filled(arrow, 0.0, if btn.hovered() { HOT_FACE } else { BTN_FACE });
     let (a, b) = if down { (BTN_SHADOW, Color32::WHITE) } else { (Color32::WHITE, Color32::from_rgb(0x69, 0x69, 0x69)) };
@@ -329,7 +333,8 @@ pub fn check_item(ui: &mut egui::Ui, on: bool, enabled: bool, text: &str, shortc
 }
 
 /// A spin box over `rect`: a white sunken number field (typeable) with a small
-/// up and a down arrow button stacked on its right. Returns whether `value` changed.
+/// up and a down arrow button stacked on its right. `id` is also its accessible
+/// name, as its caption is painted beside it. Returns whether `value` changed.
 pub fn spin_u64(ui: &mut egui::Ui, rect: egui::Rect, id: &str, value: &mut u64, max: u64, step: u64, enabled: bool) -> bool {
     let arrow_w = 15.0;
     let painter = ui.painter().clone();
@@ -349,7 +354,7 @@ pub fn spin_u64(ui: &mut egui::Ui, rect: egui::Rect, id: &str, value: &mut u64, 
     let focused = ui.memory(|m| m.has_focus(edit_id));
     let mut buf = if focused { ui.data(|d| d.get_temp::<String>(edit_id)).unwrap_or_else(|| value.to_string()) } else { value.to_string() };
     let edit = egui::TextEdit::singleline(&mut buf).id(edit_id).frame(egui::Frame::NONE).margin(egui::Margin::symmetric(3, 0)).align(egui::Align2::LEFT_CENTER);
-    let resp = ui.add_enabled_ui(enabled, |ui| ui.put(text_rect, edit)).inner;
+    let resp = ui.add_enabled_ui(enabled, |ui| ui.put(text_rect, edit)).inner.accessible_name(id);
     if resp.changed()
         && let Ok(v) = buf.trim().parse::<u64>()
     {
