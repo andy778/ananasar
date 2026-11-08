@@ -6,16 +6,25 @@
 //! lists what passed, failed and was skipped. Every step runs even after one
 //! fails, so one run shows everything that needs fixing.
 
+mod layers;
+
 use std::env;
 use std::path::Path;
 use std::process::{Command, ExitCode, Stdio};
 
-/// One check: the commands it runs and, if it needs a tool beyond stable
-/// cargo, a probe command that must succeed for the step to run.
+/// One check: what it runs and, if it needs a tool beyond stable cargo, a
+/// probe command that must succeed for the step to run.
 struct Step {
     name: &'static str,
     needs: Option<Probe>,
-    commands: &'static [&'static [&'static str]],
+    action: Action,
+}
+
+enum Action {
+    /// External commands, run in order until one fails.
+    Commands(&'static [&'static [&'static str]]),
+    /// A check that runs inside xtask, given the workspace root.
+    Check(fn(&Path) -> bool),
 }
 
 struct Probe {
@@ -31,7 +40,7 @@ enum Outcome {
 }
 
 /// The checks in `.github/workflows/build.yml` (`test`, `msrv`, `deny`) plus
-/// `cargo fmt --check`. Not covered: fuzzing, the Windows and macOS builds,
+/// `cargo fmt --check` and the layer check. Not covered: fuzzing, the Windows and macOS builds,
 /// CodeQL and the version stamping check.
 const STEPS: &[Step] = &[
     Step {
@@ -40,14 +49,24 @@ const STEPS: &[Step] = &[
             command: &["cargo", "fmt", "--version"],
             missing: "rustfmt is not installed (rustup component add rustfmt)",
         }),
-        commands: &[&["cargo", "fmt", "--all", "--check"]],
+        action: Action::Commands(&[&["cargo", "fmt", "--all", "--check"]]),
     },
     Step {
         name: "clippy",
         needs: None,
-        commands: &[&["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"]],
+        action: Action::Commands(&[&[
+            "cargo",
+            "clippy",
+            "--workspace",
+            "--all-targets",
+            "--locked",
+            "--",
+            "-D",
+            "warnings",
+        ]]),
     },
-    Step { name: "test", needs: None, commands: &[&["cargo", "test", "--workspace", "--locked"]] },
+    Step { name: "test", needs: None, action: Action::Commands(&[&["cargo", "test", "--workspace", "--locked"]]) },
+    Step { name: "layers", needs: None, action: Action::Check(layers::run) },
     Step {
         // The GUI needs a newer Rust, so these are the crates and features
         // that must still build on the minimum supported version.
@@ -56,7 +75,7 @@ const STEPS: &[Step] = &[
             command: &["cargo", "+1.92", "--version"],
             missing: "the Rust 1.92 toolchain is not installed (rustup toolchain install 1.92)",
         }),
-        commands: &[
+        action: Action::Commands(&[
             &[
                 "cargo",
                 "+1.92",
@@ -73,7 +92,7 @@ const STEPS: &[Step] = &[
             ],
             &["cargo", "+1.92", "test", "--locked", "-p", "ananasar-cli", "--no-default-features"],
             &["cargo", "+1.92", "test", "--locked", "-p", "ananasar-cli", "--no-default-features", "--features", "mcp"],
-        ],
+        ]),
     },
     Step {
         name: "cargo-deny",
@@ -81,12 +100,12 @@ const STEPS: &[Step] = &[
             command: &["cargo", "deny", "--version"],
             missing: "cargo-deny is not installed (cargo install --locked cargo-deny)",
         }),
-        commands: &[&["cargo", "deny", "check", "advisories", "bans", "sources", "licenses"]],
+        action: Action::Commands(&[&["cargo", "deny", "check", "advisories", "bans", "sources", "licenses"]]),
     },
     Step {
         name: "release script tests",
         needs: Some(Probe { command: &["python3", "--version"], missing: "python3 is not on PATH" }),
-        commands: &[&["python3", "-m", "unittest", "discover", "-s", "scripts"]],
+        action: Action::Commands(&[&["python3", "-m", "unittest", "discover", "-s", "scripts"]]),
     },
 ];
 
@@ -94,20 +113,32 @@ fn main() -> ExitCode {
     let mut args = env::args().skip(1);
     match (args.next().as_deref(), args.next()) {
         (Some("ci"), None) => ci(),
+        (Some("layers"), None) => {
+            if layers::run(workspace_root()) {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            }
+        }
         _ => {
-            eprintln!("usage: cargo xtask ci");
+            eprintln!("usage: cargo xtask ci | layers");
             eprintln!();
-            eprintln!("  ci    run the checks CI runs: fmt, clippy, tests, the Rust 1.92 builds,");
-            eprintln!("        cargo-deny and the release script tests");
+            eprintln!("  ci      run the checks CI runs: fmt, clippy, tests, the layer check,");
+            eprintln!("          the Rust 1.92 builds, cargo-deny and the release script tests");
+            eprintln!("  layers  check the crate dependency graph against ARCHITECTURE.md");
             ExitCode::from(2)
         }
     }
 }
 
+/// The alias works from any directory in the repository; the commands
+/// (`-s scripts` in particular) expect the workspace root.
+fn workspace_root() -> &'static Path {
+    Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap_or_else(|| Path::new("."))
+}
+
 fn ci() -> ExitCode {
-    // The alias works from any directory in the repository; the commands
-    // (`-s scripts` in particular) expect the workspace root.
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap_or_else(|| Path::new("."));
+    let root = workspace_root();
 
     let outcomes: Vec<(&str, Outcome)> = STEPS.iter().map(|step| (step.name, run_step(step, root))).collect();
 
@@ -138,10 +169,19 @@ fn run_step(step: &Step, root: &Path) -> Outcome {
         println!("skipped: {}", probe.missing);
         return Outcome::Skipped(probe.missing);
     }
-    for command in step.commands {
-        println!("$ {}", command.join(" "));
-        if !run(command, root) {
-            return Outcome::Failed;
+    match step.action {
+        Action::Commands(commands) => {
+            for command in commands {
+                println!("$ {}", command.join(" "));
+                if !run(command, root) {
+                    return Outcome::Failed;
+                }
+            }
+        }
+        Action::Check(check) => {
+            if !check(root) {
+                return Outcome::Failed;
+            }
         }
     }
     Outcome::Passed
