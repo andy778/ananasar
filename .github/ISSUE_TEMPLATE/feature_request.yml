@@ -19,10 +19,25 @@ body:
     id: done
     attributes:
       label: Done when
-      description: How anyone can check that this is finished, such as a command and its output, or a behaviour in the GUI. A pull request is done when it meets this.
+      description: How anyone can check that this is finished, such as a command and its output, or a behaviour in the GUI. A pull request is done when it meets this. For `agent-ready`, checks that can be run as commands.
       placeholder: The new option is in the GUI and the CLI, and a test covers it.
     validations:
       required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where
+      description: Optional. The files or crates the change touches. Required before the issue can be labelled `agent-ready` (see CONTRIBUTING.md).
+  - type: textarea
+    id: tests
+    attributes:
+      label: Tests
+      description: Optional. The tests to add, and what each one checks. Required for `agent-ready`.
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: Optional. What not to change, including tempting nearby fixes. Required for `agent-ready`.
   - type: dropdown
     id: original
     attributes:

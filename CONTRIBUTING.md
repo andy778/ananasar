@@ -14,7 +14,26 @@ Every change starts from an issue, before you write code or open a pull request.
 
 The `pr issue` check enforces this: it fails until the pull request description has a line like `Fixes #123`, `Closes #123`, `Resolves #123` or `Refs #123` naming an existing issue.
 
-Each issue says when it is **done**: the forms ask for a "Done when" (required for features, optional for bugs), something anyone can check, such as a command and its output. A pull request is finished when it meets it, and a reviewer checks it against it. Issues clear enough to hand to an AI agent get the `agent-ready` label: the problem and its scope are stated, the "Done when" can be checked, and no design decision is left open. Agents pick up only `agent-ready` issues unless the person assigning the work says otherwise.
+Each issue says when it is **done**: the forms ask for a "Done when" (required for features, optional for bugs), something anyone can check, such as a command and its output. A pull request is finished when it meets it, and a reviewer checks it against it. Agents pick up only `agent-ready` issues unless the person assigning the work says otherwise.
+
+### Agent-ready issues
+
+An `agent-ready` issue is small and specific enough that an agent can finish it in one session without making a design decision. The issue and its comments are the whole brief: an agent starting with no other context, no chat history and no notes, must be able to finish it from them. Besides the problem, it states:
+
+- **Where:** the files or crates it touches.
+- **Tests:** the tests to add, and what each one checks. A bug fix names the test that fails without the fix.
+- **Out of scope:** what not to change, including tempting nearby fixes.
+- **Done when:** checks anyone can run, such as a command and the output or exit code it should give.
+
+Size: one crate (or one workflow, or one area of the docs) and up to a few hundred changed lines, tests not counted. Anything bigger is split into several issues, each `agent-ready` on its own, and the later ones say which issue they wait for.
+
+Before adding the label, the maintainer checks that:
+
+1. The problem and the wanted behaviour are stated, with no design decision left open, and nothing depends on context outside the issue.
+2. Where, Tests, Out of scope and Done when are filled in as above.
+3. It fits the size limit.
+4. It needs nothing only the maintainer can do: no repository settings, rulesets, secrets, releases or new CI permissions.
+5. It does not wait on an open pull request, or it says which one.
 
 ## Setting up
 
