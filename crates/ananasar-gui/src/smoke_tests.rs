@@ -8,6 +8,7 @@
 //! has no accessible name.
 
 use super::{App, theme};
+use ananasar_core::registers::Bank;
 use eframe::egui;
 use egui::accesskit::Role;
 use egui_kittest::kittest::{NodeT, Queryable};
@@ -221,4 +222,236 @@ fn dde_server_entry_is_greyed_out() {
     harness.get_by_label("Options").click();
     harness.run();
     assert!(is_disabled(&harness.get_by_label("DDE Server\u{2026}")));
+}
+
+const CLIENT: &str = "Modbus/TCP Client";
+
+/// Open the client window and connect it to the app's own server.
+fn connected_client() -> Harness<'static, App> {
+    const DIALOG: &str = "Server connection";
+    let mut harness = harness();
+    let port = harness.state().server_port;
+    harness.state_mut().show_client = true;
+    harness.run();
+    window(&harness, CLIENT).get_by_label("Connect\u{2026}").click();
+    harness.run();
+    replace_text(&mut harness, DIALOG, "Remote port", &port.to_string());
+    window(&harness, DIALOG).get_by_label("OK").click();
+    run_after_starting_work(&mut harness);
+    wait_for(&mut harness, "the client to connect", |app| app.client.is_connected());
+    harness
+}
+
+/// Open the client window without connecting it.
+fn unconnected_client() -> Harness<'static, App> {
+    let mut harness = harness();
+    harness.state_mut().show_client = true;
+    harness.run();
+    harness
+}
+
+fn set_holding(harness: &Harness<'_, App>, addr: u16, value: u16) {
+    harness.state().regs.lock().expect("register lock").set_holding(addr, value);
+}
+
+/// Open a menu of the client window and then the entries below it, one per path element.
+fn choose_in_client(harness: &mut Harness<'_, App>, path: &[&str]) {
+    let (first, rest) = path.split_first().expect("a menu path");
+    window(harness, CLIENT).get_by_label(first).click();
+    harness.run();
+    for label in rest {
+        menu_item(harness, label).click();
+        harness.run();
+    }
+}
+
+/// The menu entry named `label`. Entries with a keyboard shortcut (such as `Ctrl+Alt+S`) have it appended to their accessible name.
+fn menu_item<'a>(harness: &'a Harness<'_, App>, label: &'a str) -> Node<'a> {
+    harness.get_by(move |node| {
+        node.label().is_some_and(|l| l.strip_prefix(label).is_some_and(|rest| rest.is_empty() || rest.contains('+')))
+    })
+}
+
+/// Open Modbus > `entry` and fill in the address.
+fn open_write_dialog(harness: &mut Harness<'_, App>, entry: &str, title: &str, addr: u16) {
+    choose_in_client(harness, &["Modbus", entry]);
+    replace_text(harness, title, "Address", &addr.to_string());
+}
+
+fn click_apply(harness: &mut Harness<'_, App>, title: &str) {
+    window(harness, title).get_by_label("Apply").click();
+    run_after_starting_work(harness);
+}
+
+#[test]
+fn manual_write_sets_a_register_and_closes() {
+    const TITLE: &str = "Write single register";
+    let mut harness = connected_client();
+    open_write_dialog(&mut harness, "Write Single Register\u{2026}", TITLE, 7);
+    replace_text(&mut harness, TITLE, "Value", "0x1234");
+    assert!(!is_disabled(&window(&harness, TITLE).get_by_label("Use Function 16")));
+    click_apply(&mut harness, TITLE);
+    wait_for(&mut harness, "the register to change", |app| {
+        app.regs.lock().expect("register lock").get(Bank::Holding, 7) == 0x1234
+    });
+
+    window(&harness, TITLE).get_by_label("Close").click();
+    harness.run();
+    assert!(harness.query_by_role_and_label(Role::Window, TITLE).is_none(), "the dialog is gone");
+}
+
+#[test]
+fn manual_write_with_function_16_sets_a_register() {
+    const TITLE: &str = "Write single register";
+    let mut harness = connected_client();
+    open_write_dialog(&mut harness, "Write Single Register\u{2026}", TITLE, 8);
+    replace_text(&mut harness, TITLE, "Value", "4321");
+    window(&harness, TITLE).get_by_label("Use Function 16").click();
+    harness.run();
+    click_apply(&mut harness, TITLE);
+    wait_for(&mut harness, "the register to change", |app| {
+        app.regs.lock().expect("register lock").get(Bank::Holding, 8) == 4321
+    });
+}
+
+#[test]
+fn manual_mask_write_combines_and_or() {
+    const WRITE: &str = "Write single register";
+    const MASK: &str = "Mask single register";
+    let mut harness = connected_client();
+    set_holding(&harness, 9, 0x1234);
+    open_write_dialog(&mut harness, "Write Single Register\u{2026}", WRITE, 9);
+    window(&harness, WRITE).get_by_label("Mask AND + OR").click();
+    harness.run();
+    window(&harness, MASK);
+    assert!(is_disabled(&window(&harness, MASK).get_by_label("Use Function 16")));
+
+    replace_text(&mut harness, MASK, "Value", "F0F0");
+    replace_text(&mut harness, MASK, "OR (Hex)", "0A0A");
+    click_apply(&mut harness, MASK);
+    let (value, and, or) = (0x1234_u16, 0xF0F0_u16, 0x0A0A_u16);
+    let expected = (value & and) | (or & !and);
+    assert_ne!(expected, value);
+    wait_for(&mut harness, "the register to change", |app| {
+        app.regs.lock().expect("register lock").get(Bank::Holding, 9) == expected
+    });
+}
+
+#[test]
+fn mask_entry_of_the_modbus_menu_opens_the_mask_dialog() {
+    let mut harness = unconnected_client();
+    choose_in_client(&mut harness, &["Modbus", "Mask Write Register\u{2026}"]);
+    window(&harness, "Mask single register");
+}
+
+#[test]
+fn manual_write_cannot_be_applied_without_a_connection() {
+    const TITLE: &str = "Write single register";
+    let mut harness = unconnected_client();
+    open_write_dialog(&mut harness, "Write Single Register\u{2026}", TITLE, 3);
+    assert!(is_disabled(&window(&harness, TITLE).get_by_label("Apply")));
+    assert!(is_disabled(&window(&harness, CLIENT).get_by_label("Disconnect")));
+    // The exception status request needs a connection too.
+    window(&harness, CLIENT).get_by_label("Modbus").click();
+    harness.run();
+    assert!(is_disabled(&menu_item(&harness, "Read Exception Status\u{2026}")));
+}
+
+/// Like [`replace_text`], for a field whose label is also shown as a separate text label.
+fn replace_input(harness: &mut Harness<'_, App>, title: &str, label: &str, text: &str) {
+    fn input<'a>(harness: &'a Harness<'_, App>, title: &'a str, label: &'a str) -> Node<'a> {
+        window(harness, title).get_by_role_and_label(Role::TextInput, label)
+    }
+    input(harness, title, label).focus();
+    harness.run();
+    harness.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    input(harness, title, label).type_text(text);
+    harness.run();
+    assert_eq!(input(harness, title, label).value().as_deref(), Some(text));
+}
+
+/// The first button named `label` in the client window: the read row comes before the write row.
+fn read_row_button<'a>(harness: &'a Harness<'_, App>, label: &'a str) -> Node<'a> {
+    window(harness, CLIENT).get_all_by_role_and_label(Role::Button, label).next().expect("a button in the read row")
+}
+
+/// Whether the read list holds `addr`: the Remove button next to the
+/// address box is only enabled for an address that is in the list.
+fn read_list_holds(harness: &mut Harness<'_, App>, addr: u16) -> bool {
+    replace_text(harness, CLIENT, "Read address", &addr.to_string());
+    !is_disabled(&read_row_button(harness, "Remove"))
+}
+
+fn add_series(harness: &mut Harness<'_, App>, from: &str, to: &str, remove: bool) {
+    choose_in_client(harness, &["Edit", "Add Serie", "Holding Registers", "Read"]);
+    replace_input(harness, "Series", "From:", from);
+    replace_input(harness, "Series", "To:", to);
+    if remove {
+        window(harness, "Series").get_by_label("Remove").click();
+        harness.run();
+    }
+}
+
+#[test]
+fn add_and_remove_a_series_of_read_addresses() {
+    let mut harness = unconnected_client();
+    add_series(&mut harness, "10", "12", false);
+    window(&harness, "Series").get_by_label("OK").click();
+    harness.run();
+    assert!(harness.query_by_role_and_label(Role::Window, "Series").is_none(), "OK closes the dialog");
+    for addr in [10, 11, 12] {
+        assert!(read_list_holds(&mut harness, addr), "{addr} is in the list");
+    }
+    for addr in [9, 13] {
+        assert!(!read_list_holds(&mut harness, addr), "{addr} is not in the list");
+    }
+
+    add_series(&mut harness, "10", "12", true);
+    window(&harness, "Series").get_by_label("OK").click();
+    harness.run();
+    for addr in [10, 11, 12] {
+        assert!(!read_list_holds(&mut harness, addr), "{addr} was removed");
+    }
+}
+
+#[test]
+fn a_series_needs_from_not_above_to_and_numbers() {
+    let mut harness = unconnected_client();
+    choose_in_client(&mut harness, &["Edit", "Add Serie", "Input Registers"]);
+    replace_input(&mut harness, "Series", "From:", "5");
+    replace_input(&mut harness, "Series", "To:", "7");
+    assert!(!is_disabled(&window(&harness, "Series").get_by_label("OK")));
+    for (from, to) in [("8", "7"), ("x", "7"), ("5", "y"), ("-1", "7"), ("5", "65536")] {
+        replace_input(&mut harness, "Series", "From:", from);
+        replace_input(&mut harness, "Series", "To:", to);
+        assert!(is_disabled(&window(&harness, "Series").get_by_label("OK")), "{from:?}..{to:?}");
+    }
+    window(&harness, "Series").get_by_label("Cancel").click();
+    harness.run();
+    assert!(harness.query_by_role_and_label(Role::Window, "Series").is_none());
+}
+
+#[test]
+fn clear_empties_a_list_and_is_disabled_while_it_is_empty() {
+    let mut harness = unconnected_client();
+    choose_in_client(&mut harness, &["Edit", "Clear"]);
+    assert!(is_disabled(&menu_item(&harness, "Input Registers")), "an empty list has nothing to clear");
+
+    // Fill the input list with the Add button.
+    harness.key_press(egui::Key::Escape);
+    harness.run();
+    window(&harness, CLIENT).get_by_label("Input registers").click();
+    harness.run();
+    replace_text(&mut harness, CLIENT, "Read address", "4");
+    read_row_button(&harness, "Add").click();
+    harness.run();
+    assert!(!is_disabled(&read_row_button(&harness, "Remove")));
+
+    choose_in_client(&mut harness, &["Edit", "Clear"]);
+    assert!(!is_disabled(&menu_item(&harness, "Input Registers")));
+    menu_item(&harness, "Input Registers").click();
+    harness.run();
+    assert!(!read_list_holds(&mut harness, 4), "the input list is empty");
+    choose_in_client(&mut harness, &["Edit", "Clear"]);
+    assert!(is_disabled(&menu_item(&harness, "Input Registers")));
 }
