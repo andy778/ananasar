@@ -22,6 +22,8 @@ ananasar-core   -> std only
 (? = optional cargo feature, on by default)
 ```
 
+`cargo xtask layers` (also part of `cargo xtask ci`) enforces this graph: each crate may depend only on the `ananasar-*` crates listed for it, `ananasar-core` has no dependencies at all, and the headless crates (core, net, dde, storm, mcp, parity) must not pull in egui, eframe, winit or wgpu, even indirectly. Its table is `ALLOWED` in `xtask/src/layers.rs`, and a test keeps it the same as this graph, so adding a crate means updating both.
+
 A request on the wire takes this path: `ananasar-net` reads one MBAP frame from the socket, `ananasar_core::server::process` validates it against the shared `RegisterFile` and returns an `Outcome` (reply bytes, drop, or close), and `ananasar-net` writes the reply and records the traffic for the log and status panel.
 
 ## Crates
@@ -74,7 +76,7 @@ cargo-fuzz targets for the frame parser (`frame`) and the server handler (`serve
 
 ### `xtask`
 
-Repository tasks behind the `cargo xtask` alias in `.cargo/config.toml`. `cargo xtask ci` runs the checks CI runs. No dependencies; never shipped.
+Repository tasks behind the `cargo xtask` alias in `.cargo/config.toml`. `cargo xtask ci` runs the checks CI runs; `cargo xtask layers` runs only the dependency graph check. No dependencies; never shipped.
 
 ## Invariants
 

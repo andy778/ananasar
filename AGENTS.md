@@ -14,7 +14,8 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 - [ARCHITECTURE.md](ARCHITECTURE.md) maps the crates, what each may depend on and the invariants between them.
 
 ## Commands
-- All of CI's local checks: `cargo xtask ci` (fmt, clippy, tests, the Rust 1.92 builds, cargo-deny, the script tests). It skips, with a message, any step whose toolchain or tool is not installed, and prints a summary. The single commands:
+- All of CI's local checks: `cargo xtask ci` (fmt, clippy, tests, layers, the Rust 1.92 builds, cargo-deny, the script tests). It skips, with a message, any step whose toolchain or tool is not installed, and prints a summary. The single commands:
+- Layers: `cargo xtask layers` checks the crate dependency graph against ARCHITECTURE.md.
 - Lint: `cargo clippy --workspace --all-targets -- -D warnings` (workspace lints are in `Cargo.toml`).
 - Test: `cargo test --workspace --locked`.
 - Coverage: `cargo llvm-cov --html` (needs `cargo-llvm-cov`; `coverage.yml` covers core, net, storm, mcp and the CLI without `gui`).

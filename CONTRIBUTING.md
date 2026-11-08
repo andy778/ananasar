@@ -37,7 +37,7 @@ Run the checks CI runs with one command:
 cargo xtask ci
 ```
 
-It runs `cargo fmt --check`, clippy, the tests, the Rust 1.92 builds of `ananasar-core`, `-net`, `-storm`, `-mcp` and the headless CLI, `cargo-deny` and the release script tests, and ends with a summary. A step whose tool is missing is skipped with a message saying how to install it; for the full set:
+It runs `cargo fmt --check`, clippy, the tests, a check of the crate dependency graph against ARCHITECTURE.md (`cargo xtask layers` on its own), the Rust 1.92 builds of `ananasar-core`, `-net`, `-storm`, `-mcp` and the headless CLI, `cargo-deny` and the release script tests, and ends with a summary. A step whose tool is missing is skipped with a message saying how to install it; for the full set:
 
 ```bash
 rustup toolchain install 1.92
