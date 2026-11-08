@@ -90,8 +90,9 @@ One pull request is one change with one type: a feature and an unrelated fix go 
 Ananasar is an independent reimplementation. Behaviour comes from observing the original program or from the [Modbus specification](https://modbus.org/specs.php). Never:
 
 - commit the original program, its documentation PDF or archives of them;
-- use or quote anything from the original's documentation PDF (wording, examples, section references, file names);
-- add reverse-engineering internals such as disassembler function names or addresses.
+- use or quote anything from the original's documentation PDF (wording, examples, section references, file names).
+
+Comments and docs describe what the code does, in terms of the Modbus specification and Ananasar's own code, not disassembler labels or addresses in the original binary: those mean nothing to a reader and fit only one build.
 
 ## Using AI tools
 
