@@ -276,7 +276,9 @@ fn churn_against_a_refused_port_counts_connect_errors_and_ends_on_time() {
     cfg.authorised = true; // an interval of zero is an unlimited rate
     let t = std::time::Instant::now();
     let r = go(&cfg);
-    assert!(t.elapsed() < Duration::from_secs(2), "{:?}", t.elapsed());
+    // Windows takes about a second to give up on one refused connect, so allow
+    // one such attempt to straddle the deadline; a spinning loop would not end.
+    assert!(t.elapsed() < Duration::from_secs(4), "{:?}", t.elapsed());
     assert!(r.stats.connect_errors > 0);
     assert_eq!((r.stats.connects, r.stats.churn_cycles, r.stats.sent), (0, 0, 0));
 }
