@@ -39,8 +39,8 @@ enum Outcome {
     Skipped(&'static str),
 }
 
-/// The checks in `.github/workflows/build.yml` (`test`, `msrv`, `deny`) plus
-/// `cargo fmt --check` and the layer check. Not covered: fuzzing, the Windows and macOS builds,
+/// The checks in `.github/workflows/build.yml` (`test`, which includes the layer
+/// check, `msrv` and `deny`) plus `cargo fmt --check`. Not covered: fuzzing, the Windows and macOS builds,
 /// CodeQL and the version stamping check.
 const STEPS: &[Step] = &[
     Step {
