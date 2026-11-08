@@ -45,9 +45,10 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 6. **Network input is hostile.** Parsers and the server must not panic or overflow on any frame; enforce the Modbus limits and answer with an exception instead. `ananasar-core`, `ananasar-net`, `ananasar-mcp` and `ananasar-storm` deny `clippy::unwrap_used`, `expect_used`, `panic`, `indexing_slicing`, `unreachable`, `todo` and `unimplemented` outside tests; where something truly cannot fail, use a narrow `#[allow]` with a reason saying why.
 7. **Guards say why.** A check that looks removable has a comment saying what it prevents. Read it before changing it.
 8. **Ask before** anything hard to undo: releases, tags, force-pushes, new dependencies with a new licence, or changes to CI permissions.
+9. **Describe behaviour, not the binary.** Comments and docs say what the code does, in terms of the Modbus specification and Ananasar's own code. They do not cite disassembler labels (`FUN_…`, `DAT_…`) or addresses in the original binary: those mean nothing to readers and fit only one build of it.
 
 ## Never
 - Commit the original `Ananas64.exe`, the documentation PDF or any zip of them (they are gitignored on purpose).
-- Put reverse-engineering internals (Ghidra function names, addresses) in the repo. Credit REA and say the original was taken from http://www.tuomio.fi/ananas/ only as the README does; never name its author.
+- Name the original's author. Credit REA and say the original was taken from http://www.tuomio.fi/ananas/ only as the README does.
 - Use anything from the Ananas documentation PDF. It was not written by the tool's author, so nothing from it may be used or quoted: no section references, wording, examples or file naming. Behaviour comes from the program itself or from the Modbus specification.
 - Promise support or a private security channel in `SECURITY.md`.
