@@ -238,3 +238,312 @@ fn parse_request(query: &[u8]) -> (u8, u16, u16) {
         _ => (0, 0, 0),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::clientview::manual::build_command;
+    use ananasar_core::registers::{Bank, RegisterFile};
+    use ananasar_core::server::ServerConfig;
+    use ananasar_net::{Server, Stats};
+    use std::net::TcpListener;
+    use std::sync::atomic::AtomicUsize;
+    use std::sync::mpsc::{Sender, channel};
+
+    const DEADLINE: Duration = Duration::from_secs(5);
+
+    /// Polls `cond` every few milliseconds until it holds or the deadline passes.
+    fn wait_for(what: &str, mut cond: impl FnMut() -> bool) {
+        let start = Instant::now();
+        while !cond() {
+            assert!(start.elapsed() < DEADLINE, "timed out waiting for {what}");
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
+
+    /// A server from `ananasar-net` on an OS-assigned loopback port.
+    struct TestServer {
+        port: u16,
+        regs: SharedRegs,
+        stop: Arc<AtomicBool>,
+    }
+
+    impl TestServer {
+        fn start() -> Self {
+            let listener = TcpListener::bind(("127.0.0.1", 0)).expect("bind loopback");
+            let port = listener.local_addr().expect("local addr").port();
+            let regs: SharedRegs = Arc::new(Mutex::new(RegisterFile::new()));
+            let stop = Arc::new(AtomicBool::new(false));
+            let server = Server {
+                regs: regs.clone(),
+                cfg: Arc::new(Mutex::new(ServerConfig::default())),
+                clients: Arc::new(AtomicUsize::new(0)),
+                stop: stop.clone(),
+                notify: Arc::new(|_| {}),
+                log: None,
+                stats: Arc::new(Mutex::new(Stats::default())),
+            };
+            std::thread::spawn(move || server.run(&listener));
+            Self { port, regs, stop }
+        }
+    }
+
+    impl Drop for TestServer {
+        fn drop(&mut self) {
+            self.stop.store(true, Ordering::SeqCst);
+        }
+    }
+
+    struct Fixture {
+        shared: Arc<Shared>,
+        tx: Sender<Cmd>,
+    }
+
+    impl Fixture {
+        fn new() -> Self {
+            let shared = Arc::new(Shared {
+                log: Mutex::new(VecDeque::new()),
+                regs: Arc::new(Mutex::new(RegisterFile::new())),
+                connected: AtomicBool::new(false),
+                status: Mutex::new(String::new()),
+                partner: Mutex::new(None),
+                ctx: egui::Context::default(),
+            });
+            let (tx, rx) = channel();
+            spawn_worker(shared.clone(), rx);
+            Self { shared, tx }
+        }
+
+        fn send(&self, cmd: Cmd) {
+            assert!(self.tx.send(cmd).is_ok(), "the worker thread is gone");
+        }
+
+        fn connect(&self, port: u16) {
+            self.send(Cmd::Connect { host: "127.0.0.1".into(), port, uid: 1, keepalive: false });
+        }
+
+        fn connected(&self) -> bool {
+            self.shared.connected.load(Ordering::SeqCst)
+        }
+
+        fn log_has(&self, needle: &str) -> bool {
+            lock(&self.shared.log).iter().any(|l| l.contains(needle))
+        }
+
+        fn wait_log(&self, needle: &str) {
+            wait_for(needle, || self.log_has(needle));
+        }
+    }
+
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            self.tx.send(Cmd::Quit).ok();
+        }
+    }
+
+    #[test]
+    fn connects_then_disconnects() {
+        let server = TestServer::start();
+        let w = Fixture::new();
+        w.connect(server.port);
+        wait_for("the connection", || w.connected());
+        w.wait_log("connected to ");
+        assert!(lock(&w.shared.partner).is_some());
+        assert!(lock(&w.shared.status).is_empty());
+
+        w.send(Cmd::Disconnect);
+        w.wait_log("disconnected");
+        assert!(!w.connected());
+        assert!(lock(&w.shared.partner).is_none());
+    }
+
+    #[test]
+    fn connect_failure_sets_the_status() {
+        // Bind and drop a listener to get a loopback port with nothing on it.
+        let port = TcpListener::bind(("127.0.0.1", 0)).expect("bind").local_addr().expect("addr").port();
+        let w = Fixture::new();
+        w.connect(port);
+        w.wait_log("connect failed:");
+        assert!(lock(&w.shared.status).starts_with("Connect failed:"));
+        assert!(!w.connected());
+    }
+
+    #[test]
+    fn cyclic_read_stores_values_and_logs_them() {
+        let server = TestServer::start();
+        {
+            let mut regs = lock(&server.regs);
+            regs.set_holding(10, 111);
+            regs.set_holding(11, 222);
+            regs.set_holding(12, 333);
+        }
+        let w = Fixture::new();
+        w.connect(server.port);
+        wait_for("the connection", || w.connected());
+        w.send(Cmd::SetInterval(10));
+        w.send(Cmd::SetLists { rh: vec![10, 11, 12], ri: vec![], w: vec![] });
+        w.send(Cmd::SetMode(Mode::Cycle));
+        wait_for("the values in the register file", || {
+            let regs = lock(&w.shared.regs);
+            [111, 222, 333].iter().zip(10u16..).all(|(&v, a)| regs.get(Bank::Holding, a) == v)
+        });
+        w.wait_log("read @10 x3 = [111, 222, 333]");
+    }
+
+    #[test]
+    fn immediate_and_wait_after_modes_poll_too() {
+        let server = TestServer::start();
+        lock(&server.regs).set_holding(3, 7);
+        let w = Fixture::new();
+        w.connect(server.port);
+        wait_for("the connection", || w.connected());
+        w.send(Cmd::SetInterval(10));
+        w.send(Cmd::SetBase(AddressBase::Zero));
+        w.send(Cmd::SetZeroTi(true));
+        w.send(Cmd::SetLimits { read: 5, write: 5 });
+        w.send(Cmd::SetLists { rh: vec![3], ri: vec![], w: vec![] });
+        for mode in [Mode::WaitAfter, Mode::Immediate] {
+            lock(&w.shared.log).clear();
+            lock(&w.shared.regs).set_holding(3, 0);
+            w.send(Cmd::SetMode(mode));
+            w.wait_log(&format!("mode: {mode:?}"));
+            wait_for("a polled value", || lock(&w.shared.regs).get(Bank::Holding, 3) == 7);
+        }
+        w.send(Cmd::SetMode(Mode::Pause));
+        w.wait_log("mode: Pause");
+    }
+
+    #[test]
+    fn input_register_reads_are_logged_but_not_stored() {
+        let server = TestServer::start();
+        lock(&server.regs).set_input(4, 9);
+        let w = Fixture::new();
+        w.connect(server.port);
+        wait_for("the connection", || w.connected());
+        w.send(Cmd::SetInterval(10));
+        w.send(Cmd::SetLists { rh: vec![], ri: vec![4], w: vec![] });
+        w.send(Cmd::SetMode(Mode::Cycle));
+        w.wait_log("read @4 x1 = [9]");
+        assert_eq!(lock(&w.shared.regs).get(Bank::Holding, 4), 0);
+    }
+
+    #[test]
+    fn exception_replies_are_logged() {
+        // A fake server that answers the first request with "illegal data address".
+        let listener = TcpListener::bind(("127.0.0.1", 0)).expect("bind");
+        let port = listener.local_addr().expect("addr").port();
+        let fake = std::thread::spawn(move || {
+            let (mut s, _) = listener.accept().expect("accept");
+            let req = read_frame(&mut s).expect("request");
+            let reply = [req[0], req[1], 0, 0, 0, 3, 1, 0x83, 2];
+            s.write_all(&reply).expect("reply");
+            // Keep the socket open until the worker has read the reply.
+            std::thread::sleep(Duration::from_millis(200));
+        });
+        let w = Fixture::new();
+        w.connect(port);
+        wait_for("the connection", || w.connected());
+        w.send(Cmd::SetInterval(10));
+        w.send(Cmd::SetLists { rh: vec![1], ri: vec![], w: vec![] });
+        w.send(Cmd::SetMode(Mode::Cycle));
+        w.wait_log("exception FC 0x03 code 2");
+        fake.join().expect("fake server");
+    }
+
+    #[test]
+    fn manual_single_write_uses_fc6() {
+        let server = TestServer::start();
+        let w = Fixture::new();
+        w.connect(server.port);
+        wait_for("the connection", || w.connected());
+        let cmd = build_command("5", "100", "", "", false, false).expect("valid command");
+        w.send(Cmd::Manual(cmd));
+        wait_for("the server register", || lock(&server.regs).get(Bank::Holding, 5) == 100);
+        w.wait_log("manual FC 0x06 ok");
+    }
+
+    #[test]
+    fn manual_single_write_can_use_fc16() {
+        let server = TestServer::start();
+        let w = Fixture::new();
+        w.connect(server.port);
+        wait_for("the connection", || w.connected());
+        let cmd = build_command("6", "200", "", "", false, true).expect("valid command");
+        w.send(Cmd::Manual(cmd));
+        wait_for("the server register", || lock(&server.regs).get(Bank::Holding, 6) == 200);
+        w.wait_log("manual FC 0x10 ok");
+    }
+
+    #[test]
+    fn manual_command_without_a_connection_is_ignored() {
+        let w = Fixture::new();
+        let cmd = build_command("5", "1", "", "", false, false).expect("valid command");
+        w.send(Cmd::Manual(cmd));
+        // A later command is handled, so the worker did not stall on the manual one.
+        w.send(Cmd::Disconnect);
+        w.wait_log("disconnected");
+        assert!(!w.log_has("manual"));
+    }
+
+    #[test]
+    fn a_dropped_connection_is_reported_as_lost() {
+        // A listener that accepts one client and closes it at once.
+        let listener = TcpListener::bind(("127.0.0.1", 0)).expect("bind");
+        let port = listener.local_addr().expect("addr").port();
+        let accepter = std::thread::spawn(move || drop(listener.accept()));
+        let w = Fixture::new();
+        w.connect(port);
+        wait_for("the connection", || w.connected());
+        accepter.join().expect("accept thread");
+        w.send(Cmd::SetInterval(10));
+        w.send(Cmd::SetLists { rh: vec![0], ri: vec![], w: vec![] });
+        w.send(Cmd::SetMode(Mode::Cycle));
+        w.wait_log("connection lost");
+        wait_for("the connected flag to clear", || !w.connected());
+        assert!(lock(&w.shared.partner).is_none());
+    }
+
+    #[test]
+    fn quit_ends_the_thread() {
+        let w = Fixture::new();
+        w.send(Cmd::Quit);
+        // The thread owned the receiver, so once it returns, sending fails.
+        wait_for("the worker to end", || w.tx.send(Cmd::Disconnect).is_err());
+    }
+
+    #[test]
+    fn log_keeps_the_last_500_lines() {
+        let w = Fixture::new();
+        for i in 0..520 {
+            w.shared.log_line(format!("line {i}"));
+        }
+        let log = lock(&w.shared.log);
+        assert_eq!(log.len(), 500);
+        assert_eq!(log.front().map(String::as_str), Some("line 20"));
+    }
+
+    #[test]
+    fn parse_request_needs_a_full_header() {
+        assert_eq!(parse_request(&[]), (0, 0, 0));
+        assert_eq!(parse_request(&[0; 11]), (0, 0, 0));
+        let q = [0, 1, 0, 0, 0, 6, 1, 3, 0x01, 0x02, 0x00, 0x04];
+        assert_eq!(parse_request(&q), (3, 0x0102, 4));
+    }
+
+    #[test]
+    fn store_read_survives_a_short_pdu() {
+        let w = Fixture::new();
+        // Byte count claims 10 bytes; none follow.
+        store_read(&w.shared, Function::ReadHolding as u8, 0, &[10]);
+        // An empty PDU and a half register.
+        store_read(&w.shared, Function::ReadHolding as u8, 0, &[]);
+        store_read(&w.shared, Function::ReadHolding as u8, 0, &[2, 0x12]);
+        assert_eq!(lock(&w.shared.regs).get(Bank::Holding, 0), 0);
+        // The last address does not overflow.
+        store_read(&w.shared, Function::ReadHolding as u8, u16::MAX, &[4, 0, 1, 0, 2]);
+        assert_eq!(lock(&w.shared.regs).get(Bank::Holding, u16::MAX), 1);
+        // Input reads are not stored.
+        store_read(&w.shared, Function::ReadInput as u8, 1, &[2, 0, 5]);
+        assert_eq!(lock(&w.shared.regs).get(Bank::Holding, 1), 0);
+    }
+}
