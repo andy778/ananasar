@@ -204,4 +204,38 @@ mod tests {
         assert_eq!(text.matches("#1 ").count(), 1);
         assert!(!text.contains("#2 "));
     }
+
+    #[test]
+    fn start_and_stop_manage_a_log_file() {
+        let dir = std::env::temp_dir().join(format!("ananasar-net-log-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let sink = LogSink::idle();
+        assert!(!sink.is_recording());
+        assert_eq!(sink.path(), None);
+        let path = sink.start(&dir, "test", LogMode::Raw).unwrap();
+        assert!(sink.is_recording());
+        assert_eq!(sink.path(), Some(path.clone()));
+        assert!(path.exists());
+        assert_eq!(path.parent(), Some(dir.as_path()));
+        sink.record(1, &[], Response::Error("kept"));
+        sink.stop();
+        assert!(!sink.is_recording());
+        // The last file stays known after stopping.
+        assert_eq!(sink.path(), Some(path.clone()));
+        sink.record(1, &[], Response::Error("after stop"));
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(text.contains("kept"));
+        assert!(!text.contains("after stop"));
+        assert_eq!(sink.recordings(), 1);
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn start_fails_in_a_missing_directory_and_stays_idle() {
+        let dir = std::env::temp_dir().join(format!("ananasar-net-missing-{}", std::process::id()));
+        let sink = LogSink::idle();
+        assert!(sink.start(&dir, "test", LogMode::Raw).is_err());
+        assert!(!sink.is_recording());
+        assert!(LogSink::create(&dir, "test", LogMode::Raw).is_err());
+    }
 }
