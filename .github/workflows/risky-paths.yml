@@ -41,7 +41,7 @@ jobs:
           python3 scripts/risky_paths.py .github/CODEOWNERS < files.json > reasons.txt
 
           if [[ -s reasons.txt ]]; then
-            gh pr edit "$PR" --add-label needs-maintainer
+            gh api -X POST "repos/$GH_REPO/issues/$PR/labels" -f 'labels[]=needs-maintainer' > /dev/null
             {
               echo "### Needs the maintainer's review"
               echo
@@ -49,7 +49,7 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "No risky paths touched." >> "$GITHUB_STEP_SUMMARY"
-            if gh pr view "$PR" --json labels -q '.labels[].name' | grep -qx needs-maintainer; then
-              gh pr edit "$PR" --remove-label needs-maintainer
+            if gh api "repos/$GH_REPO/issues/$PR/labels" --jq '.[].name' | grep -qx needs-maintainer; then
+              gh api -X DELETE "repos/$GH_REPO/issues/$PR/labels/needs-maintainer" > /dev/null
             fi
           fi
