@@ -2,6 +2,8 @@
 
 Thanks for your interest. Ananasar is a hobby project, provided as is ([SECURITY.md](SECURITY.md)): issues and pull requests are welcome, but there is no promise of a review, a reply or a merge.
 
+New to git, or working through an AI coding agent? Start with the [guide for non-developers](docs/contributing-with-ai.md).
+
 The binding rules for everyone, people and AI agents alike, are in [AGENTS.md](AGENTS.md). This page walks through them.
 
 ## Reporting a bug or asking for a feature

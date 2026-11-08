@@ -132,6 +132,7 @@ Then ask, for example: *"Start a simulated Modbus server on port 15021, set hold
 | [Parity testing](docs/parity-testing.md) | Comparing Ananasar with the original at wire level |
 | [Differences](docs/differences.md) | Where Ananasar deliberately differs from the original, and why |
 | [Releasing](docs/releasing.md) | How releases are made |
+| [Contributing with an AI agent](docs/contributing-with-ai.md) | A guide for non-developers: from setup to a pull request |
 
 The full index is [docs/README.md](docs/README.md).
 
