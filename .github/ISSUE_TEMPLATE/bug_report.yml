@@ -72,7 +72,22 @@ body:
     id: done
     attributes:
       label: Done when
-      description: Optional. How to check that it is fixed, if that is more than "the steps above give what you expected".
+      description: Optional. How to check that it is fixed, if that is more than "the steps above give what you expected". For `agent-ready`, checks that can be run as commands.
+  - type: textarea
+    id: where
+    attributes:
+      label: Where
+      description: Optional. The files or crates the change touches. Required before the issue can be labelled `agent-ready` (see CONTRIBUTING.md).
+  - type: textarea
+    id: tests
+    attributes:
+      label: Tests
+      description: Optional. The tests to add, and what each one checks. Required for `agent-ready`.
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: Optional. What not to change, including tempting nearby fixes. Required for `agent-ready`.
   - type: textarea
     id: log
     attributes:
