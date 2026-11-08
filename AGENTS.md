@@ -26,7 +26,7 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 ## Workflow
 - `main` is protected by a ruleset: change it through a branch and PR, with the required checks (`ci passed`, `pr title`, fuzz and CodeQL) passing.
 - Run `cargo xtask ci` before pushing, and say in the PR which steps it skipped.
-- All GitHub Actions stay pinned to commit SHAs, with `permissions: contents: read` unless a job needs more. The one CI exception is the `badge` job in `coverage.yml`: on pushes to `main` it has `contents: write` to commit `coverage.json` to the orphan `badges` branch.
+- All GitHub Actions stay pinned to commit SHAs, with `permissions: contents: read` unless a job needs more. The one CI exception is the `badge` job in `coverage.yml`: on pushes to `main` it has `contents: write` to commit `coverage.json` to the orphan `badges` branch. The other is `risky-paths.yml`: it has `pull-requests: write` to label PRs `needs-maintainer`, and under `pull_request_target` it must never check out or run the PR's code.
 - Commit messages use Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `ci:`, `chore:`), with a `!` or a `BREAKING CHANGE:` footer for breaking changes.
 - Commits and PRs carry no agent attribution (no `Co-Authored-By` trailers for tools). The person who opens a PR answers for it.
 

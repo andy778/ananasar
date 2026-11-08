@@ -1,0 +1,55 @@
+name: risky paths
+
+# SECURITY: this workflow runs on `pull_request_target`, so it has a write token
+# even for PRs from forks. It must NEVER check out, build or run the PR's code.
+# It checks out only the base branch (the default under `pull_request_target`),
+# and reads the PR's file list through the API as plain data.
+#
+# A PR that touches a path listed in .github/CODEOWNERS, or adds an `unsafe` or
+# `allow`/`expect` line to a .rs file, gets the `needs-maintainer` label
+# (see scripts/risky_paths.py). The label is removed again when a later push
+# clears every reason.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  label:
+    name: risky paths
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check out the base branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Label the PR
+        env:
+          # Passed through the environment, never interpolated into the script.
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api --paginate "repos/$GH_REPO/pulls/$PR/files" > files.json
+          python3 scripts/risky_paths.py .github/CODEOWNERS < files.json > reasons.txt
+
+          if [[ -s reasons.txt ]]; then
+            gh pr edit "$PR" --add-label needs-maintainer
+            {
+              echo "### Needs the maintainer's review"
+              echo
+              sed 's/^/- /' reasons.txt
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No risky paths touched." >> "$GITHUB_STEP_SUMMARY"
+            if gh pr view "$PR" --json labels -q '.labels[].name' | grep -qx needs-maintainer; then
+              gh pr edit "$PR" --remove-label needs-maintainer
+            fi
+          fi
