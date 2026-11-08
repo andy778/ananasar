@@ -49,6 +49,9 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo test --workspace --locked
       - run: cargo clippy --workspace --all-targets -- -D warnings
+      # Keeps the crate dependency graph the same as the one in ARCHITECTURE.md.
+      - name: Check the crate layers
+        run: cargo xtask layers
       - name: Test the release script
         run: python3 -m unittest discover -s scripts
       # The tag build stamps the version with this script and then builds with
