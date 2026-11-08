@@ -34,7 +34,8 @@ Fixes #
 
 - [ ] Behaviour comes from observing the original program or from the Modbus specification
 - [ ] Nothing from the original's documentation PDF: no wording, examples, section references or file names
-- [ ] No original binaries or archives, and no reverse-engineering internals (function names, addresses)
+- [ ] No original binaries or archives
+- [ ] Comments describe behaviour, not disassembler labels or addresses
 
 ## Anything a reviewer should look at first
 
