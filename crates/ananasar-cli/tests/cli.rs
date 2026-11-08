@@ -164,3 +164,97 @@ fn server_fails_on_a_missing_load_file() {
     assert_eq!(o.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&o.stderr).contains("cannot load"));
 }
+
+/// A fresh directory under the system temp dir, removed when dropped.
+struct TempDir(std::path::PathBuf);
+
+impl TempDir {
+    fn new(name: &str) -> Self {
+        let path = std::env::temp_dir().join(format!("ananasar-cli-{name}-{}", std::process::id()));
+        std::fs::remove_dir_all(&path).ok();
+        std::fs::create_dir_all(&path).unwrap();
+        Self(path)
+    }
+}
+
+impl Drop for TempDir {
+    fn drop(&mut self) {
+        std::fs::remove_dir_all(&self.0).ok();
+    }
+}
+
+fn stderr(o: &Output) -> String {
+    String::from_utf8_lossy(&o.stderr).into_owned()
+}
+
+#[test]
+fn storm_runs_reports_and_writes_the_report_files() {
+    let s = start_server(&[]);
+    let out = TempDir::new("storm-out");
+    let target = format!("127.0.0.1:{}", s.port);
+    let dir = out.0.to_str().unwrap();
+    let o = run(&["storm", &target, "--duration-secs", "1", "--seed", "1", "--out", dir]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let text = stdout(&o);
+    assert!(text.lines().next().unwrap().starts_with("NOTICE:"), "{text}");
+    assert!(text.lines().any(|l| l.starts_with(&format!("storm {target}:")) && l.contains("seed 1")), "{text}");
+    assert!(text.contains("reproduce"), "{text}");
+    let wrote: Vec<&str> = text.lines().filter_map(|l| l.strip_prefix("wrote ")).collect();
+    assert!(!wrote.is_empty(), "{text}");
+    for f in wrote {
+        let path = std::path::Path::new(f);
+        assert!(path.is_file(), "{f} missing");
+        assert!(path.starts_with(&out.0), "{f} outside {}", out.0.display());
+    }
+}
+
+#[test]
+fn storm_with_an_invalid_config_exits_2() {
+    let o = run(&["storm", "127.0.0.1:1", "--addr-start", "50", "--addr-end", "10"]);
+    assert_eq!(o.status.code(), Some(2));
+    assert!(stderr(&o).contains("error:"), "{}", stderr(&o));
+}
+
+#[test]
+fn storm_that_cannot_write_its_report_exits_1() {
+    let s = start_server(&[]);
+    let tmp = TempDir::new("storm-badout");
+    let file = tmp.0.join("not-a-dir");
+    std::fs::write(&file, b"").unwrap();
+    let target = format!("127.0.0.1:{}", s.port);
+    let o = run(&["storm", &target, "--duration-secs", "1", "--seed", "1", "--out", file.to_str().unwrap()]);
+    assert_eq!(o.status.code(), Some(1), "{}", stderr(&o));
+    assert!(stderr(&o).contains("cannot write the report"), "{}", stderr(&o));
+}
+
+#[test]
+fn server_fails_when_the_log_directory_cannot_be_created() {
+    let tmp = TempDir::new("logdir-bad");
+    let file = tmp.0.join("not-a-dir");
+    std::fs::write(&file, b"").unwrap();
+    let dir = file.join("logs");
+    let o = run(&["server", "-p", "0", "--log-dir", dir.to_str().unwrap()]);
+    assert_eq!(o.status.code(), Some(1), "{}", stderr(&o));
+    assert!(stderr(&o).contains("cannot create log file"), "{}", stderr(&o));
+}
+
+#[test]
+fn server_writes_a_log_file_into_the_log_directory() {
+    let tmp = TempDir::new("logdir");
+    let logs = tmp.0.join("logs");
+    let s = start_server(&["--log-dir", logs.to_str().unwrap(), "--interpretive"]);
+    let target = format!("127.0.0.1:{}", s.port);
+    let o = run(&["client", &target, "--read-holding", "0", "-n", "1"]);
+    assert!(o.status.success(), "{}", stderr(&o));
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        let files: Vec<_> = std::fs::read_dir(&logs)
+            .map(|d| d.filter_map(Result::ok).filter(|e| e.path().is_file()).collect())
+            .unwrap_or_default();
+        if !files.is_empty() {
+            break;
+        }
+        assert!(Instant::now() < deadline, "no log file in {}", logs.display());
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}
