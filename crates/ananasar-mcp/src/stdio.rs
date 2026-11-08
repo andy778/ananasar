@@ -98,21 +98,15 @@ mod tests {
             Err(io::Error::other("boom"))
         }
     }
-    impl BufRead for Broken {
-        fn fill_buf(&mut self) -> io::Result<&[u8]> {
-            Err(io::Error::other("boom"))
-        }
-        fn consume(&mut self, _: usize) {}
-    }
 
-    /// A writer that fails, like a closed pipe.
+    /// A writer whose flush fails, like a closed pipe.
     struct Closed;
     impl Write for Closed {
-        fn write(&mut self, _: &[u8]) -> io::Result<usize> {
-            Err(io::ErrorKind::BrokenPipe.into())
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            Ok(buf.len())
         }
         fn flush(&mut self) -> io::Result<()> {
-            Ok(())
+            Err(io::ErrorKind::BrokenPipe.into())
         }
     }
 
@@ -165,8 +159,24 @@ mod tests {
     }
 
     #[test]
+    fn over_long_line_spanning_many_reads_is_discarded_whole() {
+        let mut input = vec![b'x'; MAX_LINE * 2];
+        input.push(b'\n');
+        input.extend_from_slice(PING.as_bytes());
+        input.push(b'\n');
+        let mut reader = io::BufReader::with_capacity(4096, Cursor::new(input));
+        let mut out = Vec::new();
+        assert_eq!(serve_io(Config::default(), &mut reader, &mut out), 0);
+        let text = String::from_utf8(out).expect("utf8");
+        let replies: Vec<Value> = text.lines().map(|l| serde_json::from_str(l).expect("json")).collect();
+        assert_eq!(replies.len(), 2);
+        assert_eq!(replies[0]["error"]["message"], "message too long");
+        assert_eq!(replies[1]["id"], 7);
+    }
+
+    #[test]
     fn read_error_exits_one() {
-        assert_eq!(serve_io(Config::default(), &mut Broken, &mut Vec::new()), 1);
+        assert_eq!(serve_io(Config::default(), &mut io::BufReader::new(Broken), &mut Vec::new()), 1);
     }
 
     #[test]
