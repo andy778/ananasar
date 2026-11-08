@@ -24,7 +24,6 @@ Fixes #
 
 - [ ] The PR title is a Conventional Commit with a deliberately chosen type: it becomes the squash commit and decides the release (`fix`/`perf` = patch, `feat` = minor, `!` = major; `docs`/`refactor`/`ci`/`chore`/`test` release nothing)
 - [ ] One change with one type; unrelated changes are in their own PRs
-- [ ] Commits are signed
 
 ## Robustness
 

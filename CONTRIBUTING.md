@@ -83,7 +83,7 @@ Pull requests are **squash-merged**: each one lands on `main` as a single commit
 | `feat!:` or a `BREAKING CHANGE:` footer | major |
 | `docs:`, `refactor:`, `ci:`, `chore:`, `test:`, `style:`, `build:` | none |
 
-One pull request is one change with one type: a feature and an unrelated fix go in separate pull requests. Commits on your branch should use Conventional Commits too, since a `BREAKING CHANGE:` footer in any of them is kept in the squash commit's body. Sign your commits ([SSH or GPG](https://docs.github.com/en/authentication/managing-commit-signature-verification)); `main` accepts only signed commits. Releases, tags and release notes are automated ([Releasing](docs/releasing.md)).
+One pull request is one change with one type: a feature and an unrelated fix go in separate pull requests. Commits on your branch should use Conventional Commits too, since a `BREAKING CHANGE:` footer in any of them is kept in the squash commit's body. `main` accepts only signed commits, and GitHub signs the squash commit for each PR, so you do not need to sign your own. Signing your branch commits is optional ([SSH or GPG](https://docs.github.com/en/authentication/managing-commit-signature-verification)) if you want them verified. Releases, tags and release notes are automated ([Releasing](docs/releasing.md)).
 
 ## Where behaviour comes from
 
