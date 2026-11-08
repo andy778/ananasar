@@ -181,3 +181,89 @@ fn check_echo(pdu: &[u8], expected: &[u8]) -> Result<(), Fail> {
         Err(Fail::soft("the device's reply does not echo the request; the write may not have taken effect"))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Read;
+    use std::net::TcpListener;
+    use std::thread::{self, JoinHandle};
+
+    const T: Duration = Duration::from_secs(5);
+
+    /// A peer that reads one request and answers it with `reply(request)`.
+    fn peer(reply: impl FnOnce(&[u8]) -> Vec<u8> + Send + 'static) -> (Session, JoinHandle<()>) {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let port = listener.local_addr().expect("addr").port();
+        let handle = thread::spawn(move || {
+            let (mut s, _) = listener.accept().expect("accept");
+            let mut req = [0u8; 12];
+            s.read_exact(&mut req).expect("request");
+            s.write_all(&reply(&req)).expect("reply");
+        });
+        (Session::open("127.0.0.1", port, 1).expect("open"), handle)
+    }
+
+    fn read_against(reply: impl FnOnce(&[u8]) -> Vec<u8> + Send + 'static, count: u16) -> Result<Vec<u16>, Fail> {
+        let (mut session, handle) = peer(reply);
+        let r = session.read(false, 0, count, T);
+        handle.join().expect("peer");
+        r
+    }
+
+    fn txn(req: &[u8]) -> u16 {
+        u16::from_be_bytes([req[0], req[1]])
+    }
+
+    #[test]
+    fn exception_names_cover_every_known_code() {
+        let known = [
+            (1, "Illegal Function"),
+            (2, "Illegal Data Address"),
+            (3, "Illegal Data Value"),
+            (4, "Slave Device Failure"),
+            (5, "Acknowledge"),
+            (6, "Slave Device Busy"),
+            (7, "Negative Acknowledge"),
+            (8, "Memory Parity Error"),
+            (10, "Gateway Path Unavailable"),
+            (11, "Gateway Target Device Failed to Respond"),
+        ];
+        for (code, name) in known {
+            assert_eq!(exception_name(code), name, "code {code}");
+        }
+        for code in [0, 9, 12, 255] {
+            assert_eq!(exception_name(code), "unknown exception", "code {code}");
+        }
+    }
+
+    #[test]
+    fn empty_read_response_is_a_malformed_reply() {
+        let r = read_against(|req| protocol::build(txn(req), 1, 3, &[]), 1);
+        let e = r.expect_err("must fail");
+        assert_eq!(e.msg, "malformed reply: empty read response");
+        assert!(!e.fatal);
+    }
+
+    #[test]
+    fn mismatched_byte_count_is_a_malformed_reply() {
+        // Asked for one register (2 bytes); the peer claims and sends 4.
+        let r = read_against(|req| protocol::build(txn(req), 1, 3, &[4, 0, 1, 0, 2]), 1);
+        let e = r.expect_err("must fail");
+        assert!(e.msg.starts_with("malformed reply: asked for 1 registers"), "{}", e.msg);
+        assert!(!e.fatal);
+    }
+
+    #[test]
+    fn byte_count_larger_than_the_data_is_a_malformed_reply() {
+        // The byte count matches the request but the data is short.
+        let r = read_against(|req| protocol::build(txn(req), 1, 3, &[2, 0]), 1);
+        assert!(r.expect_err("must fail").msg.contains("got 1 data bytes (byte count 2)"));
+    }
+
+    #[test]
+    fn well_formed_read_response_is_accepted() {
+        let r = read_against(|req| protocol::build(txn(req), 1, 3, &[2, 0x12, 0x34]), 1);
+        assert_eq!(r.ok(), Some(vec![0x1234]));
+    }
+}

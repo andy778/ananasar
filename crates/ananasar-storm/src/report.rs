@@ -523,6 +523,67 @@ mod tests {
         }
     }
 
+    /// Whether a line of the text summary starts with `label`.
+    fn has_line(text: &str, label: &str) -> bool {
+        text.lines().any(|l| l.trim_start().starts_with(label))
+    }
+
+    #[test]
+    fn fault_lines_appear_only_when_faults_were_injected() {
+        assert!(!has_line(&report().text(), "faults"));
+        assert!(!report().text().contains("malformed frames:"));
+        let mut r = report();
+        r.stats.faults.insert(FaultKind::BadLength, 3);
+        r.stats.faults.insert(FaultKind::Split, 2);
+        r.stats.fault_replied = 1;
+        r.stats.fault_closed = 2;
+        r.stats.fault_silent = 3;
+        let t = r.text();
+        assert!(t.contains("faults        5 injected (bad-length: 3"), "{t}");
+        assert!(t.contains("malformed frames: 1 answered, 2 closed the connection, 3 ignored"), "{t}");
+    }
+
+    #[test]
+    fn churn_lines_appear_only_in_churn_mode() {
+        let t = report().text();
+        assert!(!has_line(&t, "churn") && !t.contains("connect (ms)"), "{t}");
+        let mut r = report();
+        r.config.churn = true;
+        r.stats.churn_cycles = 7;
+        r.stats.connect_latency.record(800);
+        let t = r.text();
+        assert!(t.contains("churn         7 connect/disconnect cycles"), "{t}");
+        assert!(has_line(&t, "connect (ms)") && t.contains("(n=1)"), "{t}");
+    }
+
+    #[test]
+    fn half_open_line_appears_only_when_connections_were_held() {
+        assert!(!has_line(&report().text(), "half-open"));
+        let mut r = report();
+        r.config.half_open = 3;
+        r.stats.half_open_held = 2;
+        r.stats.half_open_failed = 1;
+        let t = r.text();
+        assert!(t.contains("half-open     2 idle connections held, 1 failed"), "{t}");
+    }
+
+    #[test]
+    fn worker_panics_raise_a_warning_only_when_there_were_some() {
+        assert!(!report().text().contains("WARNING"));
+        let mut r = report();
+        r.stats.worker_panics = 2;
+        let t = r.text();
+        assert!(t.contains("WARNING       2 worker thread(s) panicked"), "{t}");
+    }
+
+    #[test]
+    fn tick_line_shows_a_dash_without_latency() {
+        let mut tick = report().timeline.remove(0);
+        assert!(tick.line().ends_with("mean 2.00 ms"), "{}", tick.line());
+        tick.mean_latency_us = None;
+        assert!(tick.line().ends_with("mean -"), "{}", tick.line());
+    }
+
     #[test]
     fn json_is_well_formed_enough_and_complete() {
         let j = report().json();

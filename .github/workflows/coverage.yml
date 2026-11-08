@@ -31,14 +31,16 @@ jobs:
       - uses: taiki-e/install-action@5488ac5a951645ce95062214902ac4b6bc1a1037 # v2
         with:
           tool: cargo-llvm-cov
-      # The GUI and the Windows-only DDE crate are left out. The CLI is built
-      # without its `gui` feature (as in the msrv job) so egui is not pulled in,
-      # but with `mcp`, so `ananasar mcp` is covered too.
+      # The GUI is measured through its own headless tests (egui_kittest). Only
+      # the Windows-only DDE crate is left out. The CLI is built without its
+      # `gui` feature, since the GUI crate is measured on its own, but with
+      # `mcp`, so `ananasar mcp` is covered too.
       - name: Run the tests with coverage
         run: |
           cargo llvm-cov clean --workspace
           cargo llvm-cov --no-report --locked -p ananasar-core -p ananasar-net -p ananasar-storm -p ananasar-mcp
           cargo llvm-cov --no-report --locked -p ananasar-cli --no-default-features --features mcp
+          cargo llvm-cov --no-report --locked -p ananasar-gui
       - name: Write the reports
         run: |
           mkdir coverage

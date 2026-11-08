@@ -18,7 +18,7 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 - Layers: `cargo xtask layers` checks the crate dependency graph against ARCHITECTURE.md.
 - Lint: `cargo clippy --workspace --all-targets -- -D warnings` (workspace lints are in `Cargo.toml`).
 - Test: `cargo test --workspace --locked`.
-- Coverage: `cargo llvm-cov --html` (needs `cargo-llvm-cov`; `coverage.yml` covers core, net, storm, mcp and the CLI without `gui`).
+- Coverage: `cargo llvm-cov --html` (needs `cargo-llvm-cov`; `coverage.yml` covers core, net, storm, mcp, gui and the CLI without `gui`).
 - Rust 1.92 check: `cargo +1.92 test --locked -p ananasar-core -p ananasar-net -p ananasar-storm -p ananasar-mcp` and `cargo +1.92 test --locked -p ananasar-cli --no-default-features`. Only the GUI (and so the default `ananasar` binary) needs 1.95.
 - Fuzz: `cargo +nightly fuzz run frame`.
 - Supply chain: `cargo deny check advisories bans sources licenses`.
