@@ -46,6 +46,16 @@ fn wait_for(harness: &mut Harness<'_, App>, what: &str, mut done: impl FnMut(&Ap
     }
 }
 
+/// Run the frames after a click that starts a worker thread (a connection or
+/// a storm run). The worker asks for a repaint from its own thread each time
+/// it reports progress, so `Harness::run` would only settle once the worker
+/// goes quiet, after a number of frames that depends on thread timing (#192).
+/// Two frames are enough: one handles the click, the next shows the new state.
+/// Wait for the worker's results with [`wait_for`].
+fn run_after_starting_work(harness: &mut Harness<'_, App>) {
+    harness.run_steps(2);
+}
+
 /// Replace the text of the field named `label` in window `title` with `text`.
 fn replace_text(harness: &mut Harness<'_, App>, title: &str, label: &str, text: &str) {
     window(harness, title).get_by_label(label).focus();
@@ -120,7 +130,7 @@ fn client_connects_to_the_embedded_server() {
     dialog.get_by_label("Cancel");
     replace_text(&mut harness, DIALOG, "Remote port", &port.to_string());
     window(&harness, DIALOG).get_by_label("OK").click();
-    harness.run();
+    run_after_starting_work(&mut harness);
 
     wait_for(&mut harness, "the client to connect", |app| app.client.is_connected());
     wait_for(&mut harness, "the server to see the client", |app| app.server.clients.load(Ordering::SeqCst) == 1);
@@ -165,7 +175,7 @@ fn scanner_connects_to_the_embedded_server() {
         connect.get_by_label(label);
     }
     connect.get_by_label("Connect").click();
-    harness.run();
+    run_after_starting_work(&mut harness);
 
     wait_for(&mut harness, "the server to see the scanner", |app| app.server.clients.load(Ordering::SeqCst) == 1);
 }
@@ -194,7 +204,7 @@ fn storm_window_opens_from_the_menu_and_runs_against_the_embedded_server() {
     assert!(is_disabled(&window(&harness, TITLE).get_by_label("Stop")));
 
     window(&harness, TITLE).get_by_label("Start").click();
-    harness.run();
+    run_after_starting_work(&mut harness);
     assert!(harness.state().storm.running(), "the run did not start");
     assert!(!is_disabled(&window(&harness, TITLE).get_by_label("Stop")));
 
