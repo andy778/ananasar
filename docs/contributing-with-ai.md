@@ -33,41 +33,16 @@ You need four things. Where the steps differ by system, follow the official page
 
 On Windows, run the commands in this guide in PowerShell or Git Bash.
 
-## 3. Set up commit signing
+## 3. Commit signing is not needed
 
-The `main` branch accepts only *signed* commits, which prove who made a change. Set this up once, using GitHub's own instructions for details: [Telling git about your signing key](https://docs.github.com/en/authentication/managing-commit-signature-verification/telling-git-about-your-signing-key) and [Generating a new SSH key](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
+A signed commit carries proof of who made it. Only the `main` branch requires signatures, and GitHub signs the single commit it creates when your pull request is squash-merged, so you do **not** need to sign your own commits and can skip this step. If you would like your own commits to show as verified, see GitHub's [About commit signature verification](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification).
 
-1. Generate a key (press Enter to accept the defaults; a passphrase is a good idea):
+You do need git to know your name and email, which it writes on your commits (use an email your GitHub account accepts):
 
-   ```bash
-   ssh-keygen -t ed25519 -C "you@example.com"
-   ```
-
-2. Add the public key (the `.pub` file) to GitHub as a **signing key**: GitHub, Settings, SSH and GPG keys, New SSH key, and set *Key type* to **Signing Key**. A key added only as an *Authentication Key* does not make commits show as verified.
-3. Tell git to sign with it. Replace the path with your own `.pub` file:
-
-   ```bash
-   git config --global gpg.format ssh
-   git config --global user.signingkey ~/.ssh/id_ed25519.pub
-   git config --global commit.gpgsign true
-   ```
-
-   Also set the name and email git writes on your commits (use the email your GitHub account accepts):
-
-   ```bash
-   git config --global user.name "Your Name"
-   git config --global user.email "you@example.com"
-   ```
-
-4. After your first commit (section 4 onwards), check it:
-
-   ```bash
-   git log --show-signature -1
-   ```
-
-   It should say the signature is good. If it does not, your agent can help you debug it; show it the output.
-
-Issue [#190](https://github.com/andy778/ananasar/issues/190) may relax the signing rule for branches in forks. Do not wait for it.
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+```
 
 ## 4. Fork and clone
 
@@ -111,8 +86,8 @@ Start your agent in the cloned `ananasar` folder, on your new branch, and paste 
 ```text
 Do GitHub issue andy778/ananasar#123. Read the issue and all its comments
 (gh issue view 123 --repo andy778/ananasar --comments) and follow AGENTS.md.
-Keep to the issue's scope and change nothing else. Use signed commits with
-Conventional Commit messages and no agent attribution. Run `cargo xtask ci`
+Keep to the issue's scope and change nothing else. Use Conventional Commit
+messages and no agent attribution. Run `cargo xtask ci`
 and fix what it reports. Then open a pull request whose title is a
 Conventional Commit and whose description links the issue with `Fixes #123`,
 and tell me which steps of `cargo xtask ci` were skipped.
