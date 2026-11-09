@@ -525,6 +525,43 @@ mod tests {
     }
 
     #[test]
+    fn log_cap_is_exactly_500_lines() {
+        let w = Fixture::new();
+        // Run on a thread with a deadline: a broken cap loops instead of failing.
+        let (done_tx, done_rx) = channel();
+        let shared = w.shared.clone();
+        std::thread::spawn(move || {
+            for i in 0..500 {
+                shared.log_line(format!("line {i}"));
+            }
+            let state = || {
+                let log = lock(&shared.log);
+                (log.len(), log.front().cloned())
+            };
+            let at_cap = state();
+            shared.log_line("line 500");
+            let over = state();
+            done_tx.send((at_cap, over)).ok();
+        });
+        let (at_cap, over) = done_rx.recv_timeout(DEADLINE).expect("the log cap loop ended");
+        assert_eq!(at_cap, (500, Some("line 0".to_string())), "500 lines drop nothing");
+        assert_eq!(over, (500, Some("line 1".to_string())), "the 501st line drops the oldest");
+    }
+
+    #[test]
+    fn immediate_mode_polls_without_waiting_for_the_interval() {
+        let server = TestServer::start();
+        let w = Fixture::new();
+        w.connect(server.port);
+        wait_for("the connection", || w.connected());
+        w.send(Cmd::SetInterval(60_000));
+        w.send(Cmd::SetLists { rh: vec![1], ri: vec![], w: vec![] });
+        w.send(Cmd::SetMode(Mode::Immediate));
+        let polls = || lock(&w.shared.log).iter().filter(|l| l.contains("read @")).count();
+        wait_for("repeated polls despite the long interval", || polls() >= 5);
+    }
+
+    #[test]
     fn parse_request_needs_a_full_header() {
         assert_eq!(parse_request(&[]), (0, 0, 0));
         assert_eq!(parse_request(&[0; 11]), (0, 0, 0));
