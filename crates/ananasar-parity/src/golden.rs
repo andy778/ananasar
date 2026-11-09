@@ -84,6 +84,8 @@ pub fn parse(text: &str) -> Result<Golden, String> {
 pub struct Report {
     /// Differences nobody listed: these fail the test.
     pub unexpected: Vec<String>,
+    /// Names of the sections behind [`Report::unexpected`], each once.
+    pub unexpected_sections: Vec<String>,
     /// Sections marked `deviation` that no longer differ: these fail too.
     pub stale: Vec<String>,
     /// Differences that are allowed, with their reasons.
@@ -124,7 +126,10 @@ pub fn compare(golden: &Golden, ours: &Recording, opts: Options) -> Report {
             (false, Some(reason)) => report.allowed.push((verdict.name, reason)),
             (false, None) => match &golden.default_deviation {
                 Some(reason) => report.allowed.push((verdict.name, reason.clone())),
-                None => report.unexpected.extend(verdict.differences),
+                None => {
+                    report.unexpected_sections.push(verdict.name);
+                    report.unexpected.extend(verdict.differences);
+                }
             },
         }
     }

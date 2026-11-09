@@ -434,6 +434,8 @@ mod tests {
         let port = listener.local_addr().expect("addr").port();
         let fake = std::thread::spawn(move || {
             let (mut s, _) = listener.accept().expect("accept");
+            // Fail instead of hanging when the worker never sends a request.
+            s.set_read_timeout(Some(Duration::from_secs(5))).expect("read timeout");
             let req = read_frame(&mut s).expect("request");
             let reply = [req[0], req[1], 0, 0, 0, 3, 1, 0x83, 2];
             s.write_all(&reply).expect("reply");
@@ -520,6 +522,43 @@ mod tests {
         let log = lock(&w.shared.log);
         assert_eq!(log.len(), 500);
         assert_eq!(log.front().map(String::as_str), Some("line 20"));
+    }
+
+    #[test]
+    fn log_cap_is_exactly_500_lines() {
+        let w = Fixture::new();
+        // Run on a thread with a deadline: a broken cap loops instead of failing.
+        let (done_tx, done_rx) = channel();
+        let shared = w.shared.clone();
+        std::thread::spawn(move || {
+            for i in 0..500 {
+                shared.log_line(format!("line {i}"));
+            }
+            let state = || {
+                let log = lock(&shared.log);
+                (log.len(), log.front().cloned())
+            };
+            let at_cap = state();
+            shared.log_line("line 500");
+            let over = state();
+            done_tx.send((at_cap, over)).ok();
+        });
+        let (at_cap, over) = done_rx.recv_timeout(DEADLINE).expect("the log cap loop ended");
+        assert_eq!(at_cap, (500, Some("line 0".to_string())), "500 lines drop nothing");
+        assert_eq!(over, (500, Some("line 1".to_string())), "the 501st line drops the oldest");
+    }
+
+    #[test]
+    fn immediate_mode_polls_without_waiting_for_the_interval() {
+        let server = TestServer::start();
+        let w = Fixture::new();
+        w.connect(server.port);
+        wait_for("the connection", || w.connected());
+        w.send(Cmd::SetInterval(60_000));
+        w.send(Cmd::SetLists { rh: vec![1], ri: vec![], w: vec![] });
+        w.send(Cmd::SetMode(Mode::Immediate));
+        let polls = || lock(&w.shared.log).iter().filter(|l| l.contains("read @")).count();
+        wait_for("repeated polls despite the long interval", || polls() >= 5);
     }
 
     #[test]
