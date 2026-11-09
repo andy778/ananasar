@@ -1,2 +1,0 @@
-crates/ananasar-net/src/lib.rs:50:28: replace + with *
-crates/ananasar-net/src/lib.rs:71:18: replace > with >= in read_request
