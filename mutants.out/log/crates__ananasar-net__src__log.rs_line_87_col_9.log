@@ -1,0 +1,120 @@
+
+*** crates/ananasar-net/src/log.rs:87:9: replace LogSink::stop with ()
+
+*** mutation diff:
+--- crates/ananasar-net/src/log.rs
++++ replace LogSink::stop with ()
+@@ -79,17 +79,17 @@
+         st.mode = mode;
+         st.started = Instant::now();
+         st.number = 0;
+         st.bytes = 0;
+     }
+ 
+     /// Stop recording and close the file. The statistics stay readable.
+     pub fn stop(&self) {
+-        lock(&self.state).out = None;
++        () /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// True while entries are being written.
+     pub fn is_recording(&self) -> bool {
+         lock(&self.state).out.is_some()
+     }
+ 
+     /// The current or last log file, if the sink wrote to one.
+
+
+*** /usr/bin/cargo test --no-run --verbose --package=ananasar-net@0.1.0
+       Fresh libc v0.2.190
+       Fresh rand_core v0.10.1
+       Fresh autocfg v1.5.1
+       Fresh cfg-if v1.0.5
+       Fresh cpufeatures v0.3.1
+       Fresh socket2 v0.6.5
+       Fresh bitflags v2.13.2
+       Fresh core_detect v1.0.0
+       Fresh regex-syntax v0.8.11
+       Fresh unarray v0.1.4
+       Fresh chacha20 v0.10.2
+       Fresh rand_xorshift v0.5.0
+       Fresh getrandom v0.4.3
+       Fresh ananasar-core v0.1.0 (/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/crates/ananasar-core)
+       Fresh num-traits v0.2.19
+       Fresh rand v0.10.3
+       Dirty ananasar-net v0.1.0 (/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/crates/ananasar-net): the file `crates/ananasar-net/src/log.rs` has changed (1794202321.410903370s, 1s after last build at 1794202320.312906678s)
+   Compiling ananasar-net v0.1.0 (/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/crates/ananasar-net)
+       Fresh proptest v1.12.0
+     Running `rustc --crate-name ananasar_net --edition=2024 crates/ananasar-net/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=6f42df309dd810f7 -C extra-filename=-4ac2019a6a139298 --out-dir /tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rlib --extern proptest=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libproptest-aceb842c4289fc43.rlib --extern socket2=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libsocket2-b14077c6dd45d4e7.rlib`
+     Running `rustc --crate-name ananasar_net --edition=2024 crates/ananasar-net/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=514d7f5049d2c387 -C extra-filename=-3dcf11e648e70e2b --out-dir /tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rmeta --extern socket2=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libsocket2-b14077c6dd45d4e7.rmeta`
+     Running `rustc --crate-name properties --edition=2024 crates/ananasar-net/tests/properties.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=d84d9e2c1cf87028 -C extra-filename=-cb9a38fd4aab0d03 --out-dir /tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rlib --extern ananasar_net=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_net-3dcf11e648e70e2b.rlib --extern proptest=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libproptest-aceb842c4289fc43.rlib --extern socket2=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libsocket2-b14077c6dd45d4e7.rlib`
+     Running `rustc --crate-name connections --edition=2024 crates/ananasar-net/tests/connections.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=3692c2fdc96efbfb -C extra-filename=-7f282caacf7bdba8 --out-dir /tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rlib --extern ananasar_net=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_net-3dcf11e648e70e2b.rlib --extern proptest=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libproptest-aceb842c4289fc43.rlib --extern socket2=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libsocket2-b14077c6dd45d4e7.rlib`
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.54s
+  Executable `/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/ananasar_net-4ac2019a6a139298`
+  Executable `/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/connections-7f282caacf7bdba8`
+  Executable `/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/properties-cb9a38fd4aab0d03`
+
+*** result: Success
+
+*** /usr/bin/cargo test --verbose --package=ananasar-net@0.1.0
+       Fresh libc v0.2.190
+       Fresh rand_core v0.10.1
+       Fresh autocfg v1.5.1
+       Fresh cfg-if v1.0.5
+       Fresh cpufeatures v0.3.1
+       Fresh socket2 v0.6.5
+       Fresh bitflags v2.13.2
+       Fresh core_detect v1.0.0
+       Fresh unarray v0.1.4
+       Fresh regex-syntax v0.8.11
+       Fresh rand_xorshift v0.5.0
+       Fresh chacha20 v0.10.2
+       Fresh getrandom v0.4.3
+       Fresh ananasar-core v0.1.0 (/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/crates/ananasar-core)
+       Fresh rand v0.10.3
+       Fresh num-traits v0.2.19
+       Fresh proptest v1.12.0
+       Fresh ananasar-net v0.1.0 (/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/crates/ananasar-net)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+     Running `/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/ananasar_net-4ac2019a6a139298`
+
+running 15 tests
+test client::tests::splits_host_port ... ok
+test log::tests::numbers_entries_and_connections ... ok
+test log::tests::can_start_and_stop_while_connections_stay_numbered ... FAILED
+test stats::tests::exception_replies_are_noted ... ok
+test log::tests::start_and_stop_manage_a_log_file ... FAILED
+test log::tests::start_fails_in_a_missing_directory_and_stays_idle ... ok
+test client::tests::rejects_bad_endpoints ... ok
+test stats::tests::set_nagle_changes_the_socket_option_of_that_slot ... ok
+test client::tests::connects_with_and_without_keepalive ... ok
+test stats::tests::records_request_fields_and_flags ... ok
+test client::tests::parses_valid_endpoint ... ok
+test stats::tests::slots_fill_lowest_first_and_free_again ... ok
+test tests::reads_a_whole_frame ... ok
+test tests::rejects_bad_or_truncated_frames ... ok
+test tests::requests_with_a_bad_header_are_handed_over_whole ... ok
+
+failures:
+
+---- log::tests::can_start_and_stop_while_connections_stay_numbered stdout ----
+
+thread 'log::tests::can_start_and_stop_while_connections_stay_numbered' (1967047) panicked at crates/ananasar-net/src/log.rs:199:9:
+assertion failed: !sink.is_recording()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- log::tests::start_and_stop_manage_a_log_file stdout ----
+
+thread 'log::tests::start_and_stop_manage_a_log_file' (1967049) panicked at crates/ananasar-net/src/log.rs:224:9:
+assertion failed: !sink.is_recording()
+
+
+failures:
+    log::tests::can_start_and_stop_while_connections_stay_numbered
+    log::tests::start_and_stop_manage_a_log_file
+
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p ananasar-net --lib`
+
+*** result: Failure(101)

@@ -1,0 +1,21 @@
+--- crates/ananasar-net/src/lib.rs
++++ replace + with *
+@@ -42,17 +42,17 @@
+ /// Maximum simultaneous clients, as in the original.
+ pub const MAX_CLIENTS: usize = 2;
+ /// A connection silent for this long is dropped so idle clients cannot hold
+ /// both slots forever.
+ pub const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
+ /// Largest request a server accepts (a 253-byte PDU plus header, with margin).
+ const MAX_REQUEST: usize = 600;
+ /// Largest frame the 16-bit MBAP length field can describe.
+-const MAX_FRAME: usize = 6 + u16::MAX as usize;
++const MAX_FRAME: usize = 6 * /* ~ changed by cargo-mutants ~ */ u16::MAX as usize;
+ 
+ /// Read one complete frame: the MBAP prefix and function byte, then the rest
+ /// as declared by the length field.
+ pub fn read_frame(r: &mut impl Read) -> io::Result<Vec<u8>> {
+     read_frame_max(r, MAX_FRAME)
+ }
+ 
+ /// Read one request for the server. Like [`read_frame`], except that a frame

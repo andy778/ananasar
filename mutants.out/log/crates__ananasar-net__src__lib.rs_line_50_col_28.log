@@ -1,0 +1,73 @@
+
+*** crates/ananasar-net/src/lib.rs:50:28: replace + with -
+
+*** mutation diff:
+--- crates/ananasar-net/src/lib.rs
++++ replace + with -
+@@ -42,17 +42,17 @@
+ /// Maximum simultaneous clients, as in the original.
+ pub const MAX_CLIENTS: usize = 2;
+ /// A connection silent for this long is dropped so idle clients cannot hold
+ /// both slots forever.
+ pub const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
+ /// Largest request a server accepts (a 253-byte PDU plus header, with margin).
+ const MAX_REQUEST: usize = 600;
+ /// Largest frame the 16-bit MBAP length field can describe.
+-const MAX_FRAME: usize = 6 + u16::MAX as usize;
++const MAX_FRAME: usize = 6 - /* ~ changed by cargo-mutants ~ */ u16::MAX as usize;
+ 
+ /// Read one complete frame: the MBAP prefix and function byte, then the rest
+ /// as declared by the length field.
+ pub fn read_frame(r: &mut impl Read) -> io::Result<Vec<u8>> {
+     read_frame_max(r, MAX_FRAME)
+ }
+ 
+ /// Read one request for the server. Like [`read_frame`], except that a frame
+
+
+*** /usr/bin/cargo test --no-run --verbose --package=ananasar-net@0.1.0
+       Fresh libc v0.2.190
+       Fresh rand_core v0.10.1
+       Fresh cfg-if v1.0.5
+       Fresh autocfg v1.5.1
+       Fresh getrandom v0.4.3
+       Fresh cpufeatures v0.3.1
+       Fresh chacha20 v0.10.2
+       Fresh num-traits v0.2.19
+       Fresh rand v0.10.3
+       Fresh ananasar-core v0.1.0 (/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/crates/ananasar-core)
+       Fresh rand_xorshift v0.5.0
+       Fresh socket2 v0.6.5
+       Fresh bitflags v2.13.2
+       Fresh core_detect v1.0.0
+       Fresh regex-syntax v0.8.11
+       Fresh unarray v0.1.4
+       Fresh proptest v1.12.0
+       Dirty ananasar-net v0.1.0 (/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/crates/ananasar-net): the file `crates/ananasar-net/src/lib.rs` has changed (1794202261.285084565s, 4s after last build at 1794202257.436655339s)
+   Compiling ananasar-net v0.1.0 (/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/crates/ananasar-net)
+     Running `rustc --crate-name ananasar_net --edition=2024 crates/ananasar-net/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=6f42df309dd810f7 -C extra-filename=-4ac2019a6a139298 --out-dir /tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rlib --extern proptest=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libproptest-aceb842c4289fc43.rlib --extern socket2=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libsocket2-b14077c6dd45d4e7.rlib`
+     Running `rustc --crate-name ananasar_net --edition=2024 crates/ananasar-net/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=514d7f5049d2c387 -C extra-filename=-3dcf11e648e70e2b --out-dir /tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rmeta --extern socket2=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libsocket2-b14077c6dd45d4e7.rmeta`
+error[E0080]: attempt to compute `6_usize - 65535_usize`, which would overflow
+  --> crates/ananasar-net/src/lib.rs:50:26
+   |
+50 | const MAX_FRAME: usize = 6 - /* ~ changed by cargo-mutants ~ */ u16::MAX as usize;
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `MAX_FRAME` failed here
+
+note: erroneous constant encountered
+  --> crates/ananasar-net/src/lib.rs:55:23
+   |
+55 |     read_frame_max(r, MAX_FRAME)
+   |                       ^^^^^^^^^
+
+For more information about this error, try `rustc --explain E0080`.
+error: could not compile `ananasar-net` (lib) due to 1 previous error
+
+Caused by:
+  process didn't exit successfully: `rustc --crate-name ananasar_net --edition=2024 crates/ananasar-net/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=514d7f5049d2c387 -C extra-filename=-3dcf11e648e70e2b --out-dir /tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rmeta --extern socket2=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libsocket2-b14077c6dd45d4e7.rmeta` (exit status: 1)
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `ananasar-net` (lib test) due to 1 previous error
+
+Caused by:
+  process didn't exit successfully: `rustc --crate-name ananasar_net --edition=2024 crates/ananasar-net/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=6f42df309dd810f7 -C extra-filename=-4ac2019a6a139298 --out-dir /tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rlib --extern proptest=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libproptest-aceb842c4289fc43.rlib --extern socket2=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libsocket2-b14077c6dd45d4e7.rlib` (exit status: 1)
+
+*** result: Failure(101)
