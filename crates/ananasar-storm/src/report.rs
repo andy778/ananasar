@@ -647,4 +647,75 @@ mod tests {
         assert!(first.iter().chain(&second).all(|p| p.exists()));
         std::fs::remove_dir_all(&dir).unwrap();
     }
+
+    #[test]
+    fn round3_rounds_to_three_decimals() {
+        assert_eq!(round3(1.23456), 1.235);
+        assert_eq!(round3(2.0004), 2.0);
+        assert_eq!(round3(-1.23456), -1.235);
+        assert_eq!(round3(1234.5678), 1234.568);
+        assert_eq!(round3(0.0), 0.0);
+    }
+
+    #[test]
+    fn json_and_csv_carry_the_rounded_float_results() {
+        let mut r = report();
+        r.elapsed = Duration::from_secs_f64(1.23456);
+        r.stats.sent = 10;
+        // 10 / 1.23456 = 8.0999..., rounded to 8.1.
+        let j = r.json();
+        assert!(j.contains("\"elapsed_seconds\": 1.235"), "{j}");
+        assert!(j.contains("\"achieved_rate_total\": 8.1,") || j.contains("\"achieved_rate_total\": 8.1\n"), "{j}");
+        let c = r.csv();
+        assert!(c.contains("result,elapsed_seconds,1.235\n"), "{c}");
+        assert!(c.contains("result,achieved_rate_total,8.1\n"), "{c}");
+        let t = report().json();
+        assert!(t.contains("\"elapsed_seconds\": 2,"), "{t}");
+        assert!(t.contains("\"achieved_rate_total\": 5,"), "{t}");
+    }
+
+    #[test]
+    fn non_finite_floats_are_null_in_json_and_empty_in_csv() {
+        for f in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(Value::Float(f).json(), "null");
+            assert_eq!(Value::Float(f).csv(), "");
+        }
+        assert_eq!(Value::Float(1.5).json(), "1.5");
+        assert_eq!(Value::Float(1.5).csv(), "1.5");
+        let mut r = report();
+        r.config.rate = f64::NAN;
+        r.config.ramp_to = Some(f64::INFINITY);
+        let j = r.json();
+        assert!(j.contains("\"rate_per_connection\": null"), "{j}");
+        assert!(j.contains("\"ramp_to_rate_per_connection\": null"), "{j}");
+        let c = r.csv();
+        assert!(c.contains("parameter,rate_per_connection,\n"), "{c}");
+        assert!(c.contains("parameter,ramp_to_rate_per_connection,\n"), "{c}");
+        // The reproduce command line may spell the value out; no numeric field does.
+        let numeric =
+            |t: &str| t.lines().filter(|l| !l.contains("reproduce")).any(|l| l.contains("inf") || l.contains("NaN"));
+        assert!(!numeric(&j) && !numeric(&c));
+    }
+
+    #[test]
+    fn dotted_keys_group_into_one_nested_object() {
+        let items: Items =
+            vec![("a.x".to_owned(), Value::Int(1)), ("b".to_owned(), Value::Int(2)), ("a.y".to_owned(), Value::Int(3))];
+        assert_eq!(json_object(&items, 0), "{\n  \"a\": {\n    \"x\": 1,\n    \"y\": 3\n  },\n  \"b\": 2\n}");
+        let j = report().json();
+        assert_eq!(j.matches("\"mix_weight\":").count(), 1, "{j}");
+        assert_eq!(j.matches("\"fc3\":").count(), 1, "{j}");
+    }
+
+    #[test]
+    fn zero_elapsed_time_gives_a_zero_rate() {
+        let mut r = report();
+        r.elapsed = Duration::ZERO;
+        assert_eq!(r.achieved_rate(), 0.0);
+        let j = r.json();
+        assert!(j.contains("\"achieved_rate_total\": 0,"), "{j}");
+        assert!(j.contains("\"elapsed_seconds\": 0,"), "{j}");
+        assert!(r.csv().contains("result,achieved_rate_total,0\n"));
+        assert!(r.text().contains("0.0/s"));
+    }
 }
