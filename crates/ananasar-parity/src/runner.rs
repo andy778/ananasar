@@ -36,6 +36,24 @@ pub fn run_profile(
     Ok(rec)
 }
 
+/// Run the one scenario called `name` of `profile` and return its section, or
+/// `None` when the profile has no such scenario. Used to re-run a scenario with
+/// a long `timeout` before reporting a difference: a reply that is really
+/// missing is still missing after the long wait, but one that only arrived late
+/// on a slow machine is then recorded.
+pub fn run_scenario_by_name(
+    addr: impl ToSocketAddrs,
+    profile: &str,
+    name: &str,
+    unit: u8,
+    timeout: Duration,
+) -> io::Result<Option<Section>> {
+    match scenarios::for_profile(profile, unit).into_iter().find(|s| s.name == name) {
+        Some(scenario) => run_scenario(addr, &scenario, timeout).map(Some),
+        None => Ok(None),
+    }
+}
+
 /// Pause between the TCP segments of a split step.
 const SEGMENT_GAP: Duration = Duration::from_millis(40);
 
@@ -116,4 +134,55 @@ fn collect_reply(stream: &mut TcpStream, timeout: Duration) -> io::Result<Vec<En
         entries.push(Entry::NoReply);
     }
     Ok(entries)
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "test code")]
+    use super::*;
+    use std::net::TcpListener;
+
+    /// A server that answers every request after 400 ms with a fixed frame.
+    fn slow_server() -> std::net::SocketAddr {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(mut stream) = stream else { return };
+                std::thread::spawn(move || {
+                    let mut buf = [0u8; 256];
+                    while matches!(stream.read(&mut buf), Ok(n) if n > 0) {
+                        std::thread::sleep(Duration::from_millis(400));
+                        if stream.write_all(&[0, 1, 0, 0, 0, 3, 1, 0x83, 1]).is_err() {
+                            return;
+                        }
+                    }
+                });
+            }
+        });
+        addr
+    }
+
+    #[test]
+    fn a_long_timeout_records_a_late_reply_a_short_one_misses() {
+        let addr = slow_server();
+        let name = scenarios::for_profile(scenarios::DEFAULT_PROFILE, 1)[0].name;
+        let short = run_scenario_by_name(addr, scenarios::DEFAULT_PROFILE, name, 1, Duration::from_millis(250))
+            .unwrap()
+            .unwrap();
+        assert_eq!(short.entries[1], Entry::NoReply);
+        let long =
+            run_scenario_by_name(addr, scenarios::DEFAULT_PROFILE, name, 1, Duration::from_secs(5)).unwrap().unwrap();
+        assert!(matches!(long.entries[1], Entry::Received(_)));
+    }
+
+    #[test]
+    fn unknown_scenario_names_give_none() {
+        let addr = slow_server();
+        assert!(
+            run_scenario_by_name(addr, scenarios::DEFAULT_PROFILE, "nope", 1, Duration::from_millis(10))
+                .unwrap()
+                .is_none()
+        );
+    }
 }
