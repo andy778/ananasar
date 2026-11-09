@@ -1,4 +1,5 @@
 name: pr title
+# (throwaway test of risky-paths.yml, do not merge)
 
 # PRs are squash-merged, so the PR title becomes the commit subject on `main`
 # that scripts/next-release.py reads to decide the version bump. Reject titles
