@@ -36,7 +36,8 @@ class RiskyPathsTest(unittest.TestCase):
         self.assertTrue(check(f("Cargo.toml")))
 
     def test_exact_files(self):
-        for name in ("deny.toml", "Cargo.lock", ".cargo/config.toml", "AGENTS.md",
+        for name in ("deny.toml", "Cargo.lock", "fuzz/Cargo.lock", "clippy.toml", "xtask/src/main.rs",
+                     "crates/ananasar-core/build.rs", "scripts/audit-sarif.py", "scripts/risky_paths.py", ".cargo/config.toml", "AGENTS.md",
                      "crates/ananasar-net/src/lib.rs", "scripts/next-release.py"):
             self.assertTrue(check(f(name, patch=None if name.endswith(".rs") else "x")), name)
         self.assertEqual(check(f("crates/ananasar-core/src/lib.rs")), [])
@@ -47,12 +48,20 @@ class RiskyPathsTest(unittest.TestCase):
 
     def test_added_unsafe_and_allow_are_flagged_with_file(self):
         for added in ("unsafe {", "unsafe fn f() {}", "unsafe impl Send for T {}",
+                      'unsafe extern "C" { }', "unsafe trait T {}", "#[unsafe(no_mangle)]",
+                      "#[cfg_attr(test, allow(clippy::x))]", "#[cfg_attr(test, unsafe(no_mangle))]",
                       "#[allow(clippy::x)]", "#![allow(dead_code)]", "#[expect(unused)]"):
             r = check(f("crates/ananasar-cli/src/a.rs", patch=f"@@ -1 +1 @@\n context\n+{added}"))
             self.assertTrue(r and "crates/ananasar-cli/src/a.rs" in r[0], added)
 
     def test_removed_and_context_lines_are_not_flagged(self):
         patch = "@@ -1,2 +1,2 @@\n-unsafe {\n #[allow(clippy::x)]\n+safe();"
+        self.assertEqual(check(f("crates/ananasar-cli/src/a.rs", patch=patch)), [])
+
+    def test_mentions_in_comments_and_strings_are_not_flagged(self):
+        added = ["// unsafe { is avoided here", '    let s = "unsafe { #[allow(x)] }";',
+                 "let x = 1; // no unsafe fn or #[allow(y)]"]
+        patch = "@@ -1 +1 @@\n" + "\n".join("+" + a for a in added)
         self.assertEqual(check(f("crates/ananasar-cli/src/a.rs", patch=patch)), [])
 
     def test_rs_without_patch_needs_hand_check(self):
@@ -69,10 +78,10 @@ class RiskyPathsTest(unittest.TestCase):
     def test_real_codeowners_parses_and_lists_every_risky_path(self):
         patterns = rp.parse_patterns(CODEOWNERS)
         shown = {rp._show(p) for p in patterns}
-        for want in ("/.github/", "/deny.toml", "**/Cargo.toml", "/Cargo.lock", "/.cargo/",
+        for want in ("/.github/", "/deny.toml", "**/Cargo.toml", "**/Cargo.lock", "/.cargo/",
+                     "**/build.rs", "/clippy.toml", "/xtask/", "/scripts/",
                      "/crates/ananasar-core/src/protocol.rs", "/crates/ananasar-core/src/server.rs",
-                     "/crates/ananasar-net/src/lib.rs", "/scripts/next-release.py",
-                     "/scripts/stamp-version.sh", "/SECURITY.md", "/AGENTS.md", "/CLAUDE.md"):
+                     "/crates/ananasar-net/src/lib.rs", "/SECURITY.md", "/AGENTS.md", "/CLAUDE.md"):
             self.assertIn(want, shown)
 
 

@@ -96,7 +96,7 @@ Comments and docs describe what the code does, in terms of the Modbus specificat
 
 ## The `needs-maintainer` label
 
-A workflow labels a PR `needs-maintainer` when it touches something that keeps the project safe, and CODEOWNERS asks the maintainer to review it. The paths are listed in [.github/CODEOWNERS](.github/CODEOWNERS) (CI, dependencies, the frame parsers and server dispatch, the release scripts, the agent rules). It also fires when a `.rs` file gains an added `unsafe` block, fn or impl, or a new `#[allow(`, `#![allow(` or `#[expect(` attribute. Such PRs wait for the maintainer; the label goes away if a later push removes every trigger.
+A workflow labels a PR `needs-maintainer` when it touches something that keeps the project safe, and CODEOWNERS asks the maintainer to review it. The paths are listed in [.github/CODEOWNERS](.github/CODEOWNERS) (CI, dependencies and `Cargo.lock`, `build.rs`, `clippy.toml`, `xtask/`, the frame parsers and server dispatch, `scripts/`, the agent rules). It also fires when a `.rs` file gains an added `unsafe` block, fn, impl, trait or extern block, a `#[unsafe(` attribute, or a new `#[allow(`, `#![allow(` or `#[expect(` attribute (also inside `#[cfg_attr(`). Lines that only mention these in a comment or string are ignored. Such PRs wait for the maintainer; the label goes away if a later push removes every trigger.
 
 ## Using AI tools
 

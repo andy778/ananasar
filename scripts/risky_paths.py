@@ -15,8 +15,15 @@ import json
 import re
 import sys
 
-UNSAFE = re.compile(r"\bunsafe\s*\{|\bunsafe\s+(fn|impl)\b")
-ALLOW = re.compile(r"#!?\[\s*(allow|expect)\s*\(")
+UNSAFE = re.compile(
+    r"\bunsafe\s*\{|\bunsafe\s+(fn|impl|extern|trait)\b"
+    r"|#!?\[\s*(cfg_attr\s*\(.*)?\bunsafe\s*\("
+)
+ALLOW = re.compile(r"#!?\[\s*(allow|expect)\s*\(|#!?\[\s*cfg_attr\s*\(.*\b(allow|expect)\s*\(")
+# Blank out string literals, then drop `//` comments, so a line that only
+# mentions `unsafe` or `allow(` in prose is not flagged. Multi-line attributes
+# and block comments are not tracked.
+STRING = re.compile(r'"(?:\\.|[^"\\])*"')
 
 
 def parse_patterns(text):
@@ -78,9 +85,10 @@ def reasons(codeowners_text, files):
             for line in patch.splitlines():
                 if not line.startswith("+"):
                     continue
-                if UNSAFE.search(line):
+                code = STRING.sub('""', line[1:]).split("//", 1)[0]
+                if UNSAFE.search(code):
                     out.append(f"{name}: added unsafe: {line[1:].strip()}")
-                if ALLOW.search(line):
+                if ALLOW.search(code):
                     out.append(f"{name}: added allow/expect attribute: {line[1:].strip()}")
     return out
 

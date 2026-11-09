@@ -9,10 +9,13 @@
 # CI, templates and this file
 /.github/ @andy778
 
-# Dependencies, build configuration and supply chain
+# Dependencies, build configuration (build.rs runs at build time) and supply chain
 /deny.toml @andy778
 **/Cargo.toml @andy778
-/Cargo.lock @andy778
+**/Cargo.lock @andy778
+/clippy.toml @andy778
+**/build.rs @andy778
+/xtask/ @andy778
 /.cargo/ @andy778
 
 # Frame parsers and server dispatch
@@ -20,9 +23,8 @@
 /crates/ananasar-core/src/server.rs @andy778
 /crates/ananasar-net/src/lib.rs @andy778
 
-# Release scripts
-/scripts/next-release.py @andy778
-/scripts/stamp-version.sh @andy778
+# Scripts (release scripts and others that run in CI, including the checker itself)
+/scripts/ @andy778
 
 # Security policy and agent rules
 /SECURITY.md @andy778
