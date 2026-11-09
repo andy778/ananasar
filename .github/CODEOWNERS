@@ -1,0 +1,32 @@
+# The risky paths. scripts/risky_paths.py reads this file too: .github/workflows/risky-paths.yml
+# labels a PR `needs-maintainer` when it touches any path below, so this is the one list.
+# Only these pattern forms are understood (the checker fails on others): a directory
+# (/dir/), an exact file (/file), **/name, and a plain filename glob.
+#
+# GitHub uses the LAST matching line. A catch-all owner (`* @andy778`, see #186) must go
+# at the very top of the rules, above these lines, so it never overrides them.
+
+# CI, templates and this file
+/.github/ @andy778
+
+# Dependencies, build configuration (build.rs runs at build time) and supply chain
+/deny.toml @andy778
+**/Cargo.toml @andy778
+**/Cargo.lock @andy778
+/clippy.toml @andy778
+**/build.rs @andy778
+/xtask/ @andy778
+/.cargo/ @andy778
+
+# Frame parsers and server dispatch
+/crates/ananasar-core/src/protocol.rs @andy778
+/crates/ananasar-core/src/server.rs @andy778
+/crates/ananasar-net/src/lib.rs @andy778
+
+# Scripts (release scripts and others that run in CI, including the checker itself)
+/scripts/ @andy778
+
+# Security policy and agent rules
+/SECURITY.md @andy778
+/AGENTS.md @andy778
+/CLAUDE.md @andy778

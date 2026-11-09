@@ -94,6 +94,10 @@ Ananasar is an independent reimplementation. Behaviour comes from observing the 
 
 Comments and docs describe what the code does, in terms of the Modbus specification and Ananasar's own code, not disassembler labels or addresses in the original binary: those mean nothing to a reader and fit only one build.
 
+## The `needs-maintainer` label
+
+A workflow labels a PR `needs-maintainer` when it touches something that keeps the project safe, and CODEOWNERS asks the maintainer to review it. The paths are listed in [.github/CODEOWNERS](.github/CODEOWNERS) (CI, dependencies and `Cargo.lock`, `build.rs`, `clippy.toml`, `xtask/`, the frame parsers and server dispatch, `scripts/`, the agent rules). It also fires when a `.rs` file gains an added `unsafe` block, fn, impl, trait or extern block, a `#[unsafe(` attribute, or a new `#[allow(`, `#![allow(` or `#[expect(` attribute (also inside `#[cfg_attr(`). Lines that only mention these in a comment or string are ignored. Such PRs wait for the maintainer; the label goes away if a later push removes every trigger.
+
 ## Using AI tools
 
 AI coding tools are welcome; Ananasar itself was built with them. You are responsible for what you submit: read and understand every line, run the checks yourself and say in the pull request what you tested. Do not add tool attribution such as `Co-Authored-By` trailers. Agents find their instructions in [AGENTS.md](AGENTS.md), which `CLAUDE.md` imports.
