@@ -1,0 +1,21 @@
+--- crates/ananasar-net/src/lib.rs
++++ replace == with != in read_request
+@@ -61,17 +61,17 @@
+ /// engine can decide what to answer before the connection is closed.
+ fn read_request(r: &mut impl Read, max: usize) -> io::Result<Vec<u8>> {
+     let mut head = [0u8; MBAP_PREFIX + 1];
+     r.read_exact(&mut head)?;
+     if !has_bad_header(&head) {
+         return finish_frame(r, head, max);
+     }
+     let mut out = head.to_vec();
+-    if head.get(4) == Some(&0) {
++    if head.get(4) != /* ~ changed by cargo-mutants ~ */ Some(&0) {
+         let total = protocol::be_u16(&head, 4).map_or(0, usize::from).saturating_add(6);
+         if total > out.len() {
+             out.resize(total, 0);
+             let mut got = head.len();
+             while let Some(rest) = out.get_mut(got..).filter(|b| !b.is_empty()) {
+                 match r.read(rest) {
+                     Ok(0) | Err(_) => break,
+                     Ok(n) => got = got.saturating_add(n),

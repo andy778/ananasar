@@ -1,0 +1,25 @@
+--- crates/ananasar-net/src/log.rs
++++ replace LogSink::start -> io::Result<PathBuf> with Ok(Default::default())
+@@ -60,21 +60,17 @@
+         let sink = Self::idle();
+         sink.start_writer(out, None, mode);
+         sink
+     }
+ 
+     /// Start recording into a new file in `dir`, replacing any current
+     /// recording. Returns the file's path.
+     pub fn start(&self, dir: &Path, label: &str, mode: LogMode) -> io::Result<PathBuf> {
+-        let secs = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
+-        let path = dir.join(file_name(label, secs));
+-        let file = File::create(&path)?;
+-        self.start_writer(Box::new(file), Some(path.clone()), mode);
+-        Ok(path)
++        Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     fn start_writer(&self, out: Box<dyn Write + Send>, path: Option<PathBuf>, mode: LogMode) {
+         let mut st = lock(&self.state);
+         st.out = Some(out);
+         st.path = path;
+         st.mode = mode;
+         st.started = Instant::now();

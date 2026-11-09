@@ -1,0 +1,24 @@
+--- crates/ananasar-net/src/log.rs
++++ replace LogSink::close_connection with ()
+@@ -119,20 +119,17 @@
+                 u8::try_from(i).map_or(0, |n| n.saturating_add(1))
+             }
+             None => 0,
+         }
+     }
+ 
+     /// Release a number from [`open_connection`](Self::open_connection).
+     pub fn close_connection(&self, connection: u8) {
+-        let mut st = lock(&self.state);
+-        if let Some(used) = usize::from(connection).checked_sub(1).and_then(|i| st.used.get_mut(i)) {
+-            *used = false;
+-        }
++        () /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Append one entry while recording; otherwise do nothing. Write errors
+     /// are ignored: a full disk must not stop the server answering.
+     pub fn record(&self, connection: u8, query: &[u8], response: Response<'_>) {
+         let mut st = lock(&self.state);
+         if st.out.is_none() {
+             return;

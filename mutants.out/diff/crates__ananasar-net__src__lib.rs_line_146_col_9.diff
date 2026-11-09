@@ -1,0 +1,21 @@
+--- crates/ananasar-net/src/lib.rs
++++ replace <impl Drop for Slot>::drop with ()
+@@ -138,17 +138,17 @@
+     pub stats: Arc<Mutex<Stats>>,
+ }
+ 
+ /// Decrements the client count when a connection thread ends, even by panic.
+ struct Slot(Arc<AtomicUsize>);
+ 
+ impl Drop for Slot {
+     fn drop(&mut self) {
+-        self.0.fetch_sub(1, Ordering::SeqCst);
++        () /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ impl Server {
+     /// Accept clients on `listener` until `stop` is set. Connections beyond
+     /// [`MAX_CLIENTS`] are refused by dropping them.
+     pub fn run(&self, listener: &TcpListener) {
+         listener.set_nonblocking(true).ok();
