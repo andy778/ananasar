@@ -455,3 +455,89 @@ fn clear_empties_a_list_and_is_disabled_while_it_is_empty() {
     choose_in_client(&mut harness, &["Edit", "Clear"]);
     assert!(is_disabled(&menu_item(&harness, "Input Registers")));
 }
+
+/// The `n`th (0-based) button named `label` in the client window: the read row comes first, then the write row.
+fn row_button<'a>(harness: &'a Harness<'_, App>, label: &'a str, n: usize) -> Node<'a> {
+    window(harness, CLIENT).get_all_by_role_and_label(Role::Button, label).nth(n).expect("a row button")
+}
+
+/// Put `addr` in the list of address row `n` (0 = read, 1 = write) with its Add button.
+fn add_address(harness: &mut Harness<'_, App>, n: usize, addr: u16) {
+    let field = ["Read address", "Write address"][n];
+    replace_text(harness, CLIENT, field, &addr.to_string());
+    row_button(harness, "Add", n).click();
+    harness.run();
+}
+
+/// Whether the Remove button of address row `n` is enabled for `addr`, that is, `addr` is in the list.
+fn row_holds(harness: &mut Harness<'_, App>, n: usize, addr: u16) -> bool {
+    let field = ["Read address", "Write address"][n];
+    replace_text(harness, CLIENT, field, &addr.to_string());
+    !is_disabled(&row_button(harness, "Remove", n))
+}
+
+#[test]
+fn remove_takes_out_only_the_selected_address() {
+    for n in [0, 1] {
+        let mut harness = unconnected_client();
+        for addr in [1, 2, 3] {
+            add_address(&mut harness, n, addr);
+        }
+        replace_text(&mut harness, CLIENT, ["Read address", "Write address"][n], "2");
+        row_button(&harness, "Remove", n).click();
+        harness.run();
+        assert!(row_holds(&mut harness, n, 1), "row {n}: 1 stays");
+        assert!(!row_holds(&mut harness, n, 2), "row {n}: 2 was removed");
+        assert!(row_holds(&mut harness, n, 3), "row {n}: 3 stays");
+    }
+}
+
+#[test]
+fn clear_works_for_the_holding_write_and_read_lists() {
+    for (n, entry) in [(1, "Write"), (0, "Read")] {
+        let mut harness = unconnected_client();
+        choose_in_client(&mut harness, &["Edit", "Clear", "Holding Registers"]);
+        assert!(is_disabled(&menu_item(&harness, entry)), "{entry}: an empty list has nothing to clear");
+        harness.key_press(egui::Key::Escape);
+        harness.run();
+
+        add_address(&mut harness, n, 4);
+        assert!(row_holds(&mut harness, n, 4));
+        choose_in_client(&mut harness, &["Edit", "Clear", "Holding Registers"]);
+        assert!(!is_disabled(&menu_item(&harness, entry)), "{entry}: a filled list can be cleared");
+        menu_item(&harness, entry).click();
+        harness.run();
+        assert!(!row_holds(&mut harness, n, 4), "{entry}: cleared");
+        choose_in_client(&mut harness, &["Edit", "Clear", "Holding Registers"]);
+        assert!(is_disabled(&menu_item(&harness, entry)), "{entry}: empty again");
+    }
+}
+
+#[test]
+fn the_read_radio_shows_the_selected_choice() {
+    let mut harness = unconnected_client();
+    let checked = |harness: &Harness<'_, App>, label: &str| {
+        window(harness, CLIENT).get_by_label(label).accesskit_node().toggled() == Some(egui::accesskit::Toggled::True)
+    };
+    assert!(checked(&harness, "Holding registers"));
+    assert!(!checked(&harness, "Input registers"));
+    window(&harness, CLIENT).get_by_label("Input registers").click();
+    harness.run();
+    assert!(checked(&harness, "Input registers"));
+    assert!(!checked(&harness, "Holding registers"));
+}
+
+#[test]
+fn a_write_address_reaches_the_worker() {
+    let mut harness = connected_client();
+    add_address(&mut harness, 1, 7);
+    window(&harness, CLIENT).get_by_label("Cyclic read/write").click();
+    run_after_starting_work(&mut harness);
+    let deadline = Instant::now().checked_add(Duration::from_secs(10)).expect("a deadline");
+    // A write poll is logged as "TI n: FC 0x06 ok" (or 0x10); a read poll would say "read @".
+    while harness.query_by_label_contains(" ok").is_none() {
+        assert!(Instant::now() < deadline, "the worker never wrote the address");
+        harness.step();
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}
