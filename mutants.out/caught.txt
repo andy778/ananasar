@@ -1,0 +1,46 @@
+crates/ananasar-net/src/lib.rs:55:5: replace read_frame -> io::Result<Vec<u8>> with Ok(vec![])
+crates/ananasar-net/src/lib.rs:55:5: replace read_frame -> io::Result<Vec<u8>> with Ok(vec![0])
+crates/ananasar-net/src/lib.rs:55:5: replace read_frame -> io::Result<Vec<u8>> with Ok(vec![1])
+crates/ananasar-net/src/lib.rs:63:5: replace read_request -> io::Result<Vec<u8>> with Ok(vec![])
+crates/ananasar-net/src/lib.rs:63:5: replace read_request -> io::Result<Vec<u8>> with Ok(vec![0])
+crates/ananasar-net/src/lib.rs:63:5: replace read_request -> io::Result<Vec<u8>> with Ok(vec![1])
+crates/ananasar-net/src/lib.rs:65:8: delete ! in read_request
+crates/ananasar-net/src/lib.rs:69:20: replace == with != in read_request
+crates/ananasar-net/src/lib.rs:71:18: replace > with == in read_request
+crates/ananasar-net/src/lib.rs:71:18: replace > with < in read_request
+crates/ananasar-net/src/lib.rs:74:66: delete ! in read_request
+crates/ananasar-net/src/lib.rs:88:5: replace has_bad_header -> bool with true
+crates/ananasar-net/src/lib.rs:88:5: replace has_bad_header -> bool with false
+crates/ananasar-net/src/lib.rs:88:62: replace || with && in has_bad_header
+crates/ananasar-net/src/lib.rs:88:31: replace != with == in has_bad_header
+crates/ananasar-net/src/lib.rs:88:77: replace != with == in has_bad_header
+crates/ananasar-net/src/lib.rs:92:5: replace read_frame_max -> io::Result<Vec<u8>> with Ok(vec![])
+crates/ananasar-net/src/lib.rs:92:5: replace read_frame_max -> io::Result<Vec<u8>> with Ok(vec![0])
+crates/ananasar-net/src/lib.rs:92:5: replace read_frame_max -> io::Result<Vec<u8>> with Ok(vec![1])
+crates/ananasar-net/src/lib.rs:98:5: replace finish_frame -> io::Result<Vec<u8>> with Ok(vec![])
+crates/ananasar-net/src/lib.rs:98:5: replace finish_frame -> io::Result<Vec<u8>> with Ok(vec![0])
+crates/ananasar-net/src/lib.rs:98:5: replace finish_frame -> io::Result<Vec<u8>> with Ok(vec![1])
+crates/ananasar-net/src/lib.rs:100:8: delete ! in finish_frame
+crates/ananasar-net/src/lib.rs:146:9: replace <impl Drop for Slot>::drop with ()
+crates/ananasar-net/src/lib.rs:154:9: replace Server::run with ()
+crates/ananasar-net/src/lib.rs:155:15: delete ! in Server::run
+crates/ananasar-net/src/lib.rs:164:9: replace Server::spawn_connection with ()
+crates/ananasar-net/src/lib.rs:164:48: replace >= with < in Server::spawn_connection
+crates/ananasar-net/src/lib.rs:174:25: delete ! in Server::spawn_connection
+crates/ananasar-net/src/lib.rs:199:9: replace Server::serve_connection with ()
+crates/ananasar-net/src/lib.rs:211:33: replace == with != in Server::serve_connection
+crates/ananasar-net/src/log.rs:68:9: replace LogSink::start -> io::Result<PathBuf> with Ok(Default::default())
+crates/ananasar-net/src/log.rs:76:9: replace LogSink::start_writer with ()
+crates/ananasar-net/src/log.rs:87:9: replace LogSink::stop with ()
+crates/ananasar-net/src/log.rs:92:9: replace LogSink::is_recording -> bool with true
+crates/ananasar-net/src/log.rs:92:9: replace LogSink::is_recording -> bool with false
+crates/ananasar-net/src/log.rs:97:9: replace LogSink::path -> Option<PathBuf> with None
+crates/ananasar-net/src/log.rs:97:9: replace LogSink::path -> Option<PathBuf> with Some(Default::default())
+crates/ananasar-net/src/log.rs:102:9: replace LogSink::recordings -> u64 with 0
+crates/ananasar-net/src/log.rs:102:9: replace LogSink::recordings -> u64 with 1
+crates/ananasar-net/src/log.rs:107:9: replace LogSink::bytes -> u64 with 0
+crates/ananasar-net/src/log.rs:107:9: replace LogSink::bytes -> u64 with 1
+crates/ananasar-net/src/log.rs:113:9: replace LogSink::open_connection -> u8 with 0
+crates/ananasar-net/src/log.rs:113:9: replace LogSink::open_connection -> u8 with 1
+crates/ananasar-net/src/log.rs:127:9: replace LogSink::close_connection with ()
+crates/ananasar-net/src/log.rs:136:9: replace LogSink::record with ()

@@ -1,0 +1,27 @@
+--- crates/ananasar-net/src/log.rs
++++ replace LogSink::start_writer with ()
+@@ -68,23 +68,17 @@
+         let secs = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs());
+         let path = dir.join(file_name(label, secs));
+         let file = File::create(&path)?;
+         self.start_writer(Box::new(file), Some(path.clone()), mode);
+         Ok(path)
+     }
+ 
+     fn start_writer(&self, out: Box<dyn Write + Send>, path: Option<PathBuf>, mode: LogMode) {
+-        let mut st = lock(&self.state);
+-        st.out = Some(out);
+-        st.path = path;
+-        st.mode = mode;
+-        st.started = Instant::now();
+-        st.number = 0;
+-        st.bytes = 0;
++        () /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Stop recording and close the file. The statistics stay readable.
+     pub fn stop(&self) {
+         lock(&self.state).out = None;
+     }
+ 
+     /// True while entries are being written.

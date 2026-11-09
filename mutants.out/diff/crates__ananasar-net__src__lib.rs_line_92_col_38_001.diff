@@ -1,0 +1,21 @@
+--- crates/ananasar-net/src/lib.rs
++++ replace + with * in read_frame_max
+@@ -84,17 +84,17 @@
+ }
+ 
+ /// Whether an MBAP head has a non-zero protocol id or length high byte.
+ fn has_bad_header(head: &[u8]) -> bool {
+     protocol::be_u16(head, 2) != Some(protocol::PROTOCOL_ID) || head.get(4) != Some(&0)
+ }
+ 
+ fn read_frame_max(r: &mut impl Read, max: usize) -> io::Result<Vec<u8>> {
+-    let mut head = [0u8; MBAP_PREFIX + 1];
++    let mut head = [0u8; MBAP_PREFIX * /* ~ changed by cargo-mutants ~ */ 1];
+     r.read_exact(&mut head)?;
+     finish_frame(r, head, max)
+ }
+ 
+ fn finish_frame(r: &mut impl Read, head: [u8; MBAP_PREFIX + 1], max: usize) -> io::Result<Vec<u8>> {
+     let declared = protocol::be_u16(&head, 4).map_or(0, usize::from);
+     let total = declared.saturating_add(6);
+     if !(head.len()..=max).contains(&total) {

@@ -1,0 +1,21 @@
+--- crates/ananasar-net/src/log.rs
++++ replace LogSink::path -> Option<PathBuf> with Some(Default::default())
+@@ -89,17 +89,17 @@
+ 
+     /// True while entries are being written.
+     pub fn is_recording(&self) -> bool {
+         lock(&self.state).out.is_some()
+     }
+ 
+     /// The current or last log file, if the sink wrote to one.
+     pub fn path(&self) -> Option<PathBuf> {
+-        lock(&self.state).path.clone()
++        Some(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Entries written to the current or last recording.
+     pub fn recordings(&self) -> u64 {
+         lock(&self.state).number
+     }
+ 
+     /// Bytes written to the current or last recording.

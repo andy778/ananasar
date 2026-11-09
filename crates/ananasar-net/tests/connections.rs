@@ -103,6 +103,29 @@ fn read_request(txn: u16) -> Vec<u8> {
 }
 
 #[test]
+fn client_slots_are_released_so_connections_in_sequence_are_never_refused() {
+    let server = start(ServerConfig::default());
+    // Well past MAX_CLIENTS, each closed before the next opens. A slot that is
+    // never released would make the later ones be refused (closed unanswered).
+    for txn in 1..=(ananasar_net::MAX_CLIENTS as u16 * 3) {
+        let mut s = connect(&server);
+        s.write_all(&read_request(txn)).unwrap();
+        assert_eq!(next(&mut s), Some(build(txn, 1, 0x03, &[2, 0, 0])));
+        drop(s);
+        // Wait for the server to notice the close and free the slot.
+        for _ in 0..100 {
+            if server.stats.lock().unwrap().slots.iter().all(Option::is_none) {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        // The connection thread drops its client slot just after freeing the
+        // stats slot; give it that moment so a free slot is not a race.
+        std::thread::sleep(Duration::from_millis(50));
+    }
+}
+
+#[test]
 fn bad_protocol_id_or_length_high_byte_closes_the_connection() {
     let server = start(ServerConfig::default());
     let patches: [fn(&mut Vec<u8>); 3] = [|f| f[3] = 1, |f| f[2] = 1, |f| f[4] = 1];
