@@ -53,16 +53,20 @@ gh repo fork andy778/ananasar --clone
 cd ananasar
 ```
 
-Later, to bring your fork up to date with the original, run these inside the clone:
+To bring your clone up to date with the original project, run these inside the clone:
 
 ```bash
+git switch main
 gh repo sync
-git pull
 ```
 
-Make a new branch for each issue, named after it:
+To update your fork on GitHub too, run `gh repo sync YOUR-NAME/ananasar`, with your own GitHub name.
+
+Make a new branch for each issue, named after it, always starting from an up-to-date `main`:
 
 ```bash
+git switch main
+gh repo sync
 git switch -c fix-issue-123
 ```
 
@@ -90,10 +94,12 @@ Keep to the issue's scope and change nothing else. Use Conventional Commit
 messages and no agent attribution. Run `cargo xtask ci`
 and fix what it reports. Then open a pull request whose title is a
 Conventional Commit and whose description links the issue with `Fixes #123`,
-and tell me which steps of `cargo xtask ci` were skipped.
+and tell me which steps of `cargo xtask ci` were skipped. Stop before pushing:
+show me `git diff main` and a summary of each change, and push and open the
+pull request only when I say so.
 ```
 
-Before the agent pushes anything, **read what it did**: look at the changed files (`git diff main`) or ask it to summarise each change. Ask it to explain anything you do not follow. If it changed something the issue did not ask for, have it undo that.
+The agent stops and shows you its work. **Read what it did**: the `git diff main` output and the summary of each change. Ask it to explain anything you do not follow. If it changed something the issue did not ask for, have it undo that. When you are satisfied, tell the agent to push and open the pull request.
 
 ## 7. Before opening the pull request
 
