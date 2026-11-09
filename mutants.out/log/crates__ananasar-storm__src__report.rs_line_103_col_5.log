@@ -1,0 +1,389 @@
+
+*** crates/ananasar-storm/src/report.rs:103:5: replace text with ()
+
+*** mutation diff:
+--- crates/ananasar-storm/src/report.rs
++++ replace text with ()
+@@ -95,17 +95,17 @@
+     items.push((k.to_owned(), Value::Int(v)));
+ }
+ 
+ fn opt(items: &mut Items, k: &str, v: Option<u64>) {
+     items.push((k.to_owned(), v.map_or(Value::Null, Value::Int)));
+ }
+ 
+ fn text(items: &mut Items, k: &str, v: impl Into<String>) {
+-    items.push((k.to_owned(), Value::Text(v.into())));
++    () /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn float(items: &mut Items, k: &str, v: f64) {
+     items.push((k.to_owned(), Value::Float(v)));
+ }
+ 
+ fn json_string(s: &str) -> String {
+     let mut out = String::with_capacity(s.len().saturating_add(2));
+
+
+*** /usr/bin/cargo test --no-run --verbose --package=ananasar-storm@0.1.0
+       Fresh libc v0.2.190
+       Fresh socket2 v0.6.5
+       Fresh ananasar-core v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-core)
+       Fresh ananasar-net v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-net)
+       Dirty ananasar-storm v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-storm): the file `crates/ananasar-storm/src/report.rs` has changed (1794202296.006979907s, 2s after last build at 1794202294.221985285s)
+   Compiling ananasar-storm v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-storm)
+     Running `rustc --crate-name ananasar_storm --edition=2024 crates/ananasar-storm/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=46e0d62554e1e8ce -C extra-filename=-7098e05498bcede1 --out-dir /tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rlib --extern ananasar_net=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_net-3dcf11e648e70e2b.rlib`
+     Running `rustc --crate-name ananasar_storm --edition=2024 crates/ananasar-storm/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=7f3a44e9f92c59d9 -C extra-filename=-042479ff3e63d07e --out-dir /tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rmeta --extern ananasar_net=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_net-3dcf11e648e70e2b.rmeta`
+warning: unused variable: `items`
+   --> crates/ananasar-storm/src/report.rs:102:9
+    |
+102 | fn text(items: &mut Items, k: &str, v: impl Into<String>) {
+    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_items`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `k`
+   --> crates/ananasar-storm/src/report.rs:102:28
+    |
+102 | fn text(items: &mut Items, k: &str, v: impl Into<String>) {
+    |                            ^ help: if this is intentional, prefix it with an underscore: `_k`
+
+warning: unused variable: `v`
+   --> crates/ananasar-storm/src/report.rs:102:37
+    |
+102 | fn text(items: &mut Items, k: &str, v: impl Into<String>) {
+    |                                     ^ help: if this is intentional, prefix it with an underscore: `_v`
+
+warning: variant `Text` is never constructed
+  --> crates/ananasar-storm/src/report.rs:87:5
+   |
+84 | enum Value {
+   |      ----- variant in this enum
+...
+87 |     Text(String),
+   |     ^^^^
+   |
+   = note: `Value` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ananasar-storm` (lib) generated 4 warnings (run `cargo fix --lib -p ananasar-storm` to apply 3 suggestions)
+     Running `rustc --crate-name against_server --edition=2024 crates/ananasar-storm/tests/against_server.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=f22170746b19b864 -C extra-filename=-bfd18acc92b1ac21 --out-dir /tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rlib --extern ananasar_net=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_net-3dcf11e648e70e2b.rlib --extern ananasar_storm=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_storm-042479ff3e63d07e.rlib`
+warning: `ananasar-storm` (lib test) generated 3 warnings (3 duplicates)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.70s
+  Executable `/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/ananasar_storm-7098e05498bcede1`
+  Executable `/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/against_server-bfd18acc92b1ac21`
+
+*** result: Success
+
+*** /usr/bin/cargo test --verbose --package=ananasar-storm@0.1.0
+       Fresh libc v0.2.190
+       Fresh socket2 v0.6.5
+       Fresh ananasar-core v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-core)
+       Fresh ananasar-net v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-net)
+warning: unused variable: `items`
+   --> crates/ananasar-storm/src/report.rs:102:9
+    |
+102 | fn text(items: &mut Items, k: &str, v: impl Into<String>) {
+    |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_items`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `k`
+   --> crates/ananasar-storm/src/report.rs:102:28
+    |
+102 | fn text(items: &mut Items, k: &str, v: impl Into<String>) {
+    |                            ^ help: if this is intentional, prefix it with an underscore: `_k`
+
+warning: unused variable: `v`
+   --> crates/ananasar-storm/src/report.rs:102:37
+    |
+102 | fn text(items: &mut Items, k: &str, v: impl Into<String>) {
+    |                                     ^ help: if this is intentional, prefix it with an underscore: `_v`
+
+warning: variant `Text` is never constructed
+  --> crates/ananasar-storm/src/report.rs:87:5
+   |
+84 | enum Value {
+   |      ----- variant in this enum
+...
+87 |     Text(String),
+   |     ^^^^
+   |
+   = note: `Value` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ananasar-storm` (lib) generated 4 warnings (run `cargo fix --lib -p ananasar-storm` to apply 3 suggestions)
+       Fresh ananasar-storm v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-storm)
+warning: `ananasar-storm` (lib test) generated 3 warnings (3 duplicates)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.27s
+     Running `/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/ananasar_storm-7098e05498bcede1`
+
+running 52 tests
+test config::tests::a_ramp_counts_its_peak ... ok
+test config::tests::defaults_are_modest_and_pass_without_authorisation ... ok
+test config::tests::fixed_rate_is_constant ... ok
+test config::tests::high_rate_many_connections_and_faults_need_the_flag ... ok
+test config::tests::mix_weights_select_functions ... ok
+test config::tests::ramp_is_linear_and_then_holds ... ok
+test config::tests::reproduce_args_names_the_seed_and_parameters ... ok
+test fault::tests::faults_are_deterministic_for_a_seed ... ok
+test fault::tests::names_are_unique ... ok
+test fault::tests::oversized_pdu_exceeds_253_bytes_with_a_consistent_header ... ok
+test config::tests::rejects_bad_arguments ... ok
+test hist::tests::atomic_snapshot_matches_the_plain_histogram ... ok
+test fault::tests::wrong_length_disagrees_with_the_bytes_sent ... ok
+test fault::tests::short_header_is_shorter_than_an_mbap_header ... ok
+test hist::tests::merge_adds_up ... ok
+test fault::tests::valid_baseline_frames_correctly ... ok
+test hist::tests::bucket_upper_edge_covers_its_values ... ok
+test hist::tests::empty_has_no_statistics ... ok
+test hist::tests::exact_for_small_values ... ok
+test hist::tests::large_values_are_within_three_percent ... ok
+test fault::tests::wrong_protocol_id_is_rejected_by_the_header_check ... ok
+test report::tests::csv_has_parameters_and_results ... FAILED
+test report::tests::dotted_keys_group_into_one_nested_object ... ok
+test hist::tests::single_sample_percentiles_equal_the_sample ... ok
+test report::tests::half_open_line_appears_only_when_connections_were_held ... ok
+test report::tests::json_and_csv_carry_the_rounded_float_results ... ok
+test fault::tests::truncated_pdu_keeps_the_header_but_loses_bytes ... ok
+test config::tests::fault_picks_follow_percentages ... ok
+test report::tests::churn_lines_appear_only_in_churn_mode ... ok
+test report::tests::round3_rounds_to_three_decimals ... ok
+test report::tests::non_finite_floats_are_null_in_json_and_empty_in_csv ... ok
+test report::tests::fault_lines_appear_only_when_faults_were_injected ... ok
+test report::tests::json_is_well_formed_enough_and_complete ... FAILED
+test report::tests::json_strings_are_escaped ... ok
+test report::tests::text_summary_has_the_key_numbers ... ok
+test report::tests::tick_line_shows_a_dash_without_latency ... ok
+test report::tests::timeline_csv_has_a_row_per_tick ... ok
+test request::tests::write_replies_must_echo ... ok
+test report::tests::worker_panics_raise_a_warning_only_when_there_were_some ... ok
+test worker::tests::a_long_stall_does_not_burst ... ok
+test worker::tests::late_wake_ups_are_made_up ... ok
+test report::tests::writes_three_timestamped_files_without_overwriting ... ok
+test report::tests::zero_elapsed_time_gives_a_zero_rate ... ok
+test request::tests::detects_each_kind_of_mismatch ... ok
+test request::tests::exceptions_are_recognised_and_kept_apart_from_mismatches ... ok
+test request::tests::narrow_ranges_clamp_the_quantity ... ok
+test request::tests::same_seed_gives_the_same_request_sequence ... ok
+test rng::tests::ranges_stay_inside ... ok
+test rng::tests::same_seed_same_sequence_and_streams_differ ... ok
+test stats::tests::recorder_keeps_stats_and_live_in_step_and_merges ... ok
+test request::tests::mix_follows_weights_and_stays_in_range ... ok
+test request::tests::real_server_replies_to_every_function_validate_ok ... ok
+
+failures:
+
+---- report::tests::csv_has_parameters_and_results stdout ----
+
+thread 'report::tests::csv_has_parameters_and_results' (1953378) panicked at crates/ananasar-storm/src/report.rs:625:13:
+section,key,value
+parameter,port,502
+parameter,unit_id,1
+parameter,connections,4
+parameter,rate_per_connection,10
+parameter,duration_seconds,10
+parameter,reply_timeout_ms,1000
+parameter,seed,99
+parameter,mix_weight.fc3,70
+parameter,mix_weight.fc4,30
+parameter,mix_weight.fc6,0
+parameter,mix_weight.fc16,0
+parameter,mix_weight.fc22,0
+parameter,mix_weight.fc23,0
+parameter,addr_start,0
+parameter,addr_end,99
+parameter,qty_min,1
+parameter,qty_max,10
+parameter,fault_percent.short-header,0
+parameter,fault_percent.bad-protocol,0
+parameter,fault_percent.bad-length,0
+parameter,fault_percent.truncated-pdu,0
+parameter,fault_percent.oversized-pdu,0
+parameter,fault_percent.coalesced,0
+parameter,fault_percent.split,0
+parameter,split_delay_ms,50
+parameter,coalesce_count,3
+parameter,fault_wait_ms,200
+parameter,churn,false
+parameter,churn_interval_ms,100
+parameter,churn_request,false
+parameter,half_open,0
+parameter,authorised_flag_given,false
+result,started_unix_ms,1700000000000
+result,elapsed_seconds,2
+result,requests_sent,10
+result,achieved_rate_total,5
+result,ok,8
+result,exceptions_total,1
+result,exceptions.code_2,1
+result,timeouts,1
+result,resets,0
+result,io_errors,0
+result,connect_errors,0
+result,connects,0
+result,reconnects,0
+result,mismatches_total,0
+result,mismatches.malformed,0
+result,mismatches.protocol-id,0
+result,mismatches.transaction-id,0
+result,mismatches.unit-id,0
+result,mismatches.function-code,0
+result,mismatches.byte-count,0
+result,mismatches.echo-data,0
+result,requests_accounted,10
+result,faults_total,0
+result,faults.short-header,0
+result,faults.bad-protocol,0
+result,faults.bad-length,0
+result,faults.truncated-pdu,0
+result,faults.oversized-pdu,0
+result,faults.coalesced,0
+result,faults.split,0
+result,fault_replied,0
+result,fault_connection_closed,0
+result,fault_ignored,0
+result,churn_cycles,0
+result,half_open_held,0
+result,half_open_failed,0
+result,worker_panics,0
+result,latency_us.count,2
+result,latency_us.min,1500
+result,latency_us.mean,2000
+result,latency_us.p50,1503
+result,latency_us.p95,2500
+result,latency_us.p99,2500
+result,latency_us.max,2500
+result,connect_latency_us.count,0
+result,connect_latency_us.min,
+result,connect_latency_us.mean,
+result,connect_latency_us.p50,
+result,connect_latency_us.p95,
+result,connect_latency_us.p99,
+result,connect_latency_us.max,
+
+lacks parameter,host,10.0.0.5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- report::tests::json_is_well_formed_enough_and_complete stdout ----
+
+thread 'report::tests::json_is_well_formed_enough_and_complete' (1953385) panicked at crates/ananasar-storm/src/report.rs:602:13:
+{
+  "parameters": {
+    "port": 502,
+    "unit_id": 1,
+    "connections": 4,
+    "rate_per_connection": 10,
+    "duration_seconds": 10,
+    "reply_timeout_ms": 1000,
+    "seed": 99,
+    "mix_weight": {
+      "fc3": 70,
+      "fc4": 30,
+      "fc6": 0,
+      "fc16": 0,
+      "fc22": 0,
+      "fc23": 0
+    },
+    "addr_start": 0,
+    "addr_end": 99,
+    "qty_min": 1,
+    "qty_max": 10,
+    "fault_percent": {
+      "short-header": 0,
+      "bad-protocol": 0,
+      "bad-length": 0,
+      "truncated-pdu": 0,
+      "oversized-pdu": 0,
+      "coalesced": 0,
+      "split": 0
+    },
+    "split_delay_ms": 50,
+    "coalesce_count": 3,
+    "fault_wait_ms": 200,
+    "churn": false,
+    "churn_interval_ms": 100,
+    "churn_request": false,
+    "half_open": 0,
+    "authorised_flag_given": false
+  },
+  "results": {
+    "started_unix_ms": 1700000000000,
+    "elapsed_seconds": 2,
+    "requests_sent": 10,
+    "achieved_rate_total": 5,
+    "ok": 8,
+    "exceptions_total": 1,
+    "exceptions": {
+      "code_2": 1
+    },
+    "timeouts": 1,
+    "resets": 0,
+    "io_errors": 0,
+    "connect_errors": 0,
+    "connects": 0,
+    "reconnects": 0,
+    "mismatches_total": 0,
+    "mismatches": {
+      "malformed": 0,
+      "protocol-id": 0,
+      "transaction-id": 0,
+      "unit-id": 0,
+      "function-code": 0,
+      "byte-count": 0,
+      "echo-data": 0
+    },
+    "requests_accounted": 10,
+    "faults_total": 0,
+    "faults": {
+      "short-header": 0,
+      "bad-protocol": 0,
+      "bad-length": 0,
+      "truncated-pdu": 0,
+      "oversized-pdu": 0,
+      "coalesced": 0,
+      "split": 0
+    },
+    "fault_replied": 0,
+    "fault_connection_closed": 0,
+    "fault_ignored": 0,
+    "churn_cycles": 0,
+    "half_open_held": 0,
+    "half_open_failed": 0,
+    "worker_panics": 0,
+    "latency_us": {
+      "count": 2,
+      "min": 1500,
+      "mean": 2000,
+      "p50": 1503,
+      "p95": 2500,
+      "p99": 2500,
+      "max": 2500
+    },
+    "connect_latency_us": {
+      "count": 0,
+      "min": null,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "max": null
+    }
+  },
+  "timeline": [
+    {"second": 1,"unix_ms": 1700000001000,"elapsed_s": 1,"sent": 5,"replies": 4,"exceptions": 0,"timeouts": 1,"errors": 0,"mismatches": 0,"faults": 0,"churn_cycles": 0,"mean_latency_us": 2000}
+  ]
+}
+
+lacks "version": "1.2.3"
+
+
+failures:
+    report::tests::csv_has_parameters_and_results
+    report::tests::json_is_well_formed_enough_and_complete
+
+test result: FAILED. 50 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p ananasar-storm --lib`
+
+*** result: Failure(101)

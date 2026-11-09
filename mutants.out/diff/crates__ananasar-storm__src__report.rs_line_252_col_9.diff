@@ -1,0 +1,57 @@
+--- crates/ananasar-storm/src/report.rs
++++ replace Report::results -> Items with Default::default()
+@@ -244,53 +244,17 @@
+         p.push(("churn_request".to_owned(), Value::Bool(c.churn_request)));
+         int(&mut p, "half_open", c.half_open as u64);
+         p.push(("authorised_flag_given".to_owned(), Value::Bool(c.authorised)));
+         text(&mut p, "reproduce", format!("ananasar {}", c.reproduce_args()));
+         p
+     }
+ 
+     fn results(&self) -> Items {
+-        let s = &self.stats;
+-        let mut r = Items::new();
+-        text(&mut r, "started_utc", self.started_utc());
+-        int(&mut r, "started_unix_ms", self.started_unix_ms);
+-        float(&mut r, "elapsed_seconds", round3(self.elapsed_s()));
+-        int(&mut r, "requests_sent", s.sent);
+-        float(&mut r, "achieved_rate_total", round3(self.achieved_rate()));
+-        int(&mut r, "ok", s.ok);
+-        int(&mut r, "exceptions_total", s.exception_total());
+-        for (code, n) in &s.exceptions {
+-            int(&mut r, &format!("exceptions.code_{code}"), *n);
+-        }
+-        int(&mut r, "timeouts", s.timeouts);
+-        int(&mut r, "resets", s.resets);
+-        int(&mut r, "io_errors", s.io_errors);
+-        int(&mut r, "connect_errors", s.connect_errors);
+-        int(&mut r, "connects", s.connects);
+-        int(&mut r, "reconnects", s.reconnects);
+-        int(&mut r, "mismatches_total", s.mismatch_total());
+-        for kind in MismatchKind::ALL {
+-            int(&mut r, &format!("mismatches.{}", kind.name()), s.mismatches.get(&kind).copied().unwrap_or(0));
+-        }
+-        int(&mut r, "requests_accounted", s.accounted());
+-        int(&mut r, "faults_total", s.fault_total());
+-        for kind in FaultKind::ALL {
+-            int(&mut r, &format!("faults.{}", kind.name()), s.faults.get(&kind).copied().unwrap_or(0));
+-        }
+-        int(&mut r, "fault_replied", s.fault_replied);
+-        int(&mut r, "fault_connection_closed", s.fault_closed);
+-        int(&mut r, "fault_ignored", s.fault_silent);
+-        int(&mut r, "churn_cycles", s.churn_cycles);
+-        int(&mut r, "half_open_held", s.half_open_held);
+-        int(&mut r, "half_open_failed", s.half_open_failed);
+-        int(&mut r, "worker_panics", s.worker_panics);
+-        Self::latency_items(&mut r, "latency_us", &s.latency);
+-        Self::latency_items(&mut r, "connect_latency_us", &s.connect_latency);
+-        r
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     fn latency_items(items: &mut Items, name: &str, h: &crate::hist::Histogram) {
+         int(items, &format!("{name}.count"), h.count());
+         opt(items, &format!("{name}.min"), h.min());
+         opt(items, &format!("{name}.mean"), h.mean());
+         opt(items, &format!("{name}.p50"), h.percentile(50.0));
+         opt(items, &format!("{name}.p95"), h.percentile(95.0));

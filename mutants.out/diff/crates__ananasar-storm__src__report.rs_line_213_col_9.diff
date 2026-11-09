@@ -1,0 +1,56 @@
+--- crates/ananasar-storm/src/report.rs
++++ replace Report::parameters -> Items with Default::default()
+@@ -205,52 +205,17 @@
+         }
+     }
+ 
+     fn file_stem(&self) -> String {
+         format!("ananasar-storm-{}", format_timestamp(self.started_unix_ms / 1000).replace(' ', "_"))
+     }
+ 
+     fn parameters(&self) -> Items {
+-        let c = &self.config;
+-        let mut p = Items::new();
+-        text(&mut p, "tool", "ananasar-storm");
+-        text(&mut p, "version", self.version);
+-        text(&mut p, "host", c.host.as_str());
+-        int(&mut p, "port", u64::from(c.port));
+-        int(&mut p, "unit_id", u64::from(c.unit_id));
+-        int(&mut p, "connections", c.connections as u64);
+-        float(&mut p, "rate_per_connection", c.rate);
+-        if let Some(end) = c.ramp_to {
+-            float(&mut p, "ramp_to_rate_per_connection", end);
+-            float(&mut p, "ramp_seconds", c.ramp_duration.as_secs_f64());
+-        }
+-        float(&mut p, "duration_seconds", c.duration.as_secs_f64());
+-        int(&mut p, "reply_timeout_ms", c.reply_timeout.as_millis() as u64);
+-        int(&mut p, "seed", c.seed);
+-        for (fc, w) in MIX_FUNCTIONS.iter().zip(&c.mix.weights) {
+-            int(&mut p, &format!("mix_weight.fc{fc}"), u64::from(*w));
+-        }
+-        int(&mut p, "addr_start", u64::from(c.mix.addr_start));
+-        int(&mut p, "addr_end", u64::from(c.mix.addr_end));
+-        int(&mut p, "qty_min", u64::from(c.mix.qty_min));
+-        int(&mut p, "qty_max", u64::from(c.mix.qty_max));
+-        for kind in FaultKind::ALL {
+-            float(&mut p, &format!("fault_percent.{}", kind.name()), c.faults.get(kind));
+-        }
+-        int(&mut p, "split_delay_ms", c.split_delay.as_millis() as u64);
+-        int(&mut p, "coalesce_count", c.coalesce_count as u64);
+-        int(&mut p, "fault_wait_ms", c.fault_wait.as_millis() as u64);
+-        p.push(("churn".to_owned(), Value::Bool(c.churn)));
+-        int(&mut p, "churn_interval_ms", c.churn_interval.as_millis() as u64);
+-        p.push(("churn_request".to_owned(), Value::Bool(c.churn_request)));
+-        int(&mut p, "half_open", c.half_open as u64);
+-        p.push(("authorised_flag_given".to_owned(), Value::Bool(c.authorised)));
+-        text(&mut p, "reproduce", format!("ananasar {}", c.reproduce_args()));
+-        p
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     fn results(&self) -> Items {
+         let s = &self.stats;
+         let mut r = Items::new();
+         text(&mut r, "started_utc", self.started_utc());
+         int(&mut r, "started_unix_ms", self.started_unix_ms);
+         float(&mut r, "elapsed_seconds", round3(self.elapsed_s()));

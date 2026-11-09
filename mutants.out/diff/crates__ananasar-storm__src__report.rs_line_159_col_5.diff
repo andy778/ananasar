@@ -1,0 +1,46 @@
+--- crates/ananasar-storm/src/report.rs
++++ replace json_object -> String with String::new()
+@@ -151,42 +151,17 @@
+ }
+ 
+ fn round3(f: f64) -> f64 {
+     (f * 1000.0).round() / 1000.0
+ }
+ 
+ /// Render `items` as a JSON object; a dotted key `a.b` becomes `"a": {"b": ..}`.
+ fn json_object(items: &[(String, Value)], indent: usize) -> String {
+-    let pad = "  ".repeat(indent.saturating_add(1));
+-    let mut groups: Vec<(String, Vec<(String, Value)>)> = Vec::new();
+-    let mut lines: Vec<String> = Vec::new();
+-    for (k, v) in items {
+-        match k.split_once('.') {
+-            Some((head, rest)) => match groups.iter_mut().find(|(g, _)| g == head) {
+-                Some((_, inner)) => inner.push((rest.to_owned(), v.clone())),
+-                None => {
+-                    groups.push((head.to_owned(), vec![(rest.to_owned(), v.clone())]));
+-                    lines.push(format!("\u{0}{head}"));
+-                }
+-            },
+-            None => lines.push(format!("{pad}{}: {}", json_string(k), v.json())),
+-        }
+-    }
+-    let rendered: Vec<String> = lines
+-        .into_iter()
+-        .map(|l| match l.strip_prefix('\u{0}') {
+-            Some(head) => {
+-                let inner = groups.iter().find(|(g, _)| g == head).map(|(_, i)| i.as_slice()).unwrap_or_default();
+-                format!("{pad}{}: {}", json_string(head), json_object(inner, indent.saturating_add(1)))
+-            }
+-            None => l,
+-        })
+-        .collect();
+-    format!("{{\n{}\n{}}}", rendered.join(",\n"), "  ".repeat(indent))
++    String::new() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ impl Report {
+     /// Seconds of measured run time.
+     pub fn elapsed_s(&self) -> f64 {
+         self.elapsed.as_secs_f64()
+     }
+ 

@@ -1,0 +1,123 @@
+
+*** crates/ananasar-storm/src/report.rs:461:27: replace == with != in Report::write_to
+
+*** mutation diff:
+--- crates/ananasar-storm/src/report.rs
++++ replace == with != in Report::write_to
+@@ -453,17 +453,17 @@
+ 
+     /// Write the JSON, CSV and timeline files into `dir` (created if needed)
+     /// under a timestamped name. Returns the paths written.
+     pub fn write_to(&self, dir: &Path) -> io::Result<Vec<PathBuf>> {
+         std::fs::create_dir_all(dir)?;
+         let base = self.file_stem();
+         // Two runs in the same second get -2, -3, ... instead of overwriting.
+         let stem = (1..100)
+-            .map(|n| if n == 1 { base.clone() } else { format!("{base}-{n}") })
++            .map(|n| if n != /* ~ changed by cargo-mutants ~ */ 1 { base.clone() } else { format!("{base}-{n}") })
+             .find(|s| ["json", "csv", "timeline.csv"].iter().all(|ext| !dir.join(format!("{s}.{ext}")).exists()))
+             .ok_or_else(|| io::Error::new(io::ErrorKind::AlreadyExists, "too many report files with this timestamp"))?;
+         let files = [("json", self.json()), ("csv", self.csv()), ("timeline.csv", self.timeline_csv())];
+         let mut written = Vec::new();
+         for (ext, body) in files {
+             let path = dir.join(format!("{stem}.{ext}"));
+             OpenOptions::new().write(true).create_new(true).open(&path)?.write_all(body.as_bytes())?;
+             written.push(path);
+
+
+*** /usr/bin/cargo test --no-run --verbose --package=ananasar-storm@0.1.0
+       Fresh libc v0.2.190
+       Fresh socket2 v0.6.5
+       Fresh ananasar-core v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-core)
+       Fresh ananasar-net v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-net)
+       Dirty ananasar-storm v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-storm): the file `crates/ananasar-storm/src/report.rs` has changed (1794202479.344428142s, 1s after last build at 1794202478.177431650s)
+   Compiling ananasar-storm v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-storm)
+     Running `rustc --crate-name ananasar_storm --edition=2024 crates/ananasar-storm/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=46e0d62554e1e8ce -C extra-filename=-7098e05498bcede1 --out-dir /tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rlib --extern ananasar_net=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_net-3dcf11e648e70e2b.rlib`
+     Running `rustc --crate-name ananasar_storm --edition=2024 crates/ananasar-storm/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=7f3a44e9f92c59d9 -C extra-filename=-042479ff3e63d07e --out-dir /tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rmeta --extern ananasar_net=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_net-3dcf11e648e70e2b.rmeta`
+     Running `rustc --crate-name against_server --edition=2024 crates/ananasar-storm/tests/against_server.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=f22170746b19b864 -C extra-filename=-bfd18acc92b1ac21 --out-dir /tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rlib --extern ananasar_net=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_net-3dcf11e648e70e2b.rlib --extern ananasar_storm=/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/libananasar_storm-042479ff3e63d07e.rlib`
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.61s
+  Executable `/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/ananasar_storm-7098e05498bcede1`
+  Executable `/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/against_server-bfd18acc92b1ac21`
+
+*** result: Success
+
+*** /usr/bin/cargo test --verbose --package=ananasar-storm@0.1.0
+       Fresh libc v0.2.190
+       Fresh socket2 v0.6.5
+       Fresh ananasar-core v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-core)
+       Fresh ananasar-net v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-net)
+       Fresh ananasar-storm v0.1.0 (/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/crates/ananasar-storm)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running `/tmp/cargo-mutants-mut-224-report-015723-joMor6.tmp/target/debug/deps/ananasar_storm-7098e05498bcede1`
+
+running 52 tests
+test config::tests::a_ramp_counts_its_peak ... ok
+test config::tests::fixed_rate_is_constant ... ok
+test config::tests::high_rate_many_connections_and_faults_need_the_flag ... ok
+test config::tests::defaults_are_modest_and_pass_without_authorisation ... ok
+test config::tests::ramp_is_linear_and_then_holds ... ok
+test config::tests::mix_weights_select_functions ... ok
+test config::tests::rejects_bad_arguments ... ok
+test config::tests::reproduce_args_names_the_seed_and_parameters ... ok
+test fault::tests::faults_are_deterministic_for_a_seed ... ok
+test fault::tests::names_are_unique ... ok
+test fault::tests::short_header_is_shorter_than_an_mbap_header ... ok
+test fault::tests::truncated_pdu_keeps_the_header_but_loses_bytes ... ok
+test fault::tests::valid_baseline_frames_correctly ... ok
+test fault::tests::oversized_pdu_exceeds_253_bytes_with_a_consistent_header ... ok
+test fault::tests::wrong_protocol_id_is_rejected_by_the_header_check ... ok
+test fault::tests::wrong_length_disagrees_with_the_bytes_sent ... ok
+test hist::tests::bucket_upper_edge_covers_its_values ... ok
+test hist::tests::atomic_snapshot_matches_the_plain_histogram ... ok
+test hist::tests::empty_has_no_statistics ... ok
+test hist::tests::exact_for_small_values ... ok
+test hist::tests::merge_adds_up ... ok
+test hist::tests::single_sample_percentiles_equal_the_sample ... ok
+test report::tests::churn_lines_appear_only_in_churn_mode ... ok
+test config::tests::fault_picks_follow_percentages ... ok
+test hist::tests::large_values_are_within_three_percent ... ok
+test report::tests::csv_has_parameters_and_results ... ok
+test report::tests::fault_lines_appear_only_when_faults_were_injected ... ok
+test report::tests::dotted_keys_group_into_one_nested_object ... ok
+test report::tests::half_open_line_appears_only_when_connections_were_held ... ok
+test report::tests::json_strings_are_escaped ... ok
+test report::tests::json_is_well_formed_enough_and_complete ... ok
+test report::tests::round3_rounds_to_three_decimals ... ok
+test report::tests::json_and_csv_carry_the_rounded_float_results ... ok
+test report::tests::text_summary_has_the_key_numbers ... ok
+test report::tests::tick_line_shows_a_dash_without_latency ... ok
+test report::tests::timeline_csv_has_a_row_per_tick ... ok
+test report::tests::worker_panics_raise_a_warning_only_when_there_were_some ... ok
+test request::tests::same_seed_gives_the_same_request_sequence ... ok
+test report::tests::writes_three_timestamped_files_without_overwriting ... FAILED
+test report::tests::zero_elapsed_time_gives_a_zero_rate ... ok
+test request::tests::detects_each_kind_of_mismatch ... ok
+test request::tests::exceptions_are_recognised_and_kept_apart_from_mismatches ... ok
+test worker::tests::late_wake_ups_are_made_up ... ok
+test report::tests::non_finite_floats_are_null_in_json_and_empty_in_csv ... ok
+test request::tests::narrow_ranges_clamp_the_quantity ... ok
+test request::tests::write_replies_must_echo ... ok
+test rng::tests::ranges_stay_inside ... ok
+test rng::tests::same_seed_same_sequence_and_streams_differ ... ok
+test stats::tests::recorder_keeps_stats_and_live_in_step_and_merges ... ok
+test worker::tests::a_long_stall_does_not_burst ... ok
+test request::tests::real_server_replies_to_every_function_validate_ok ... ok
+test request::tests::mix_follows_weights_and_stays_in_range ... ok
+
+failures:
+
+---- report::tests::writes_three_timestamped_files_without_overwriting stdout ----
+
+thread 'report::tests::writes_three_timestamped_files_without_overwriting' (2022684) panicked at crates/ananasar-storm/src/report.rs:646:9:
+assertion failed: second[0].to_string_lossy().ends_with("-2.json")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    report::tests::writes_three_timestamped_files_without_overwriting
+
+test result: FAILED. 51 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p ananasar-storm --lib`
+
+*** result: Failure(101)

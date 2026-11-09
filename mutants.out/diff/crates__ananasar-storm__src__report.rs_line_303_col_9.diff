@@ -1,0 +1,101 @@
+--- crates/ananasar-storm/src/report.rs
++++ replace Report::text -> String with String::new()
+@@ -295,97 +295,17 @@
+         opt(items, &format!("{name}.p50"), h.percentile(50.0));
+         opt(items, &format!("{name}.p95"), h.percentile(95.0));
+         opt(items, &format!("{name}.p99"), h.percentile(99.0));
+         opt(items, &format!("{name}.max"), h.max());
+     }
+ 
+     /// The summary for the terminal.
+     pub fn text(&self) -> String {
+-        let (c, s) = (&self.config, &self.stats);
+-        let mut o = String::new();
+-        let _ = writeln!(o, "Ananasar storm summary (ananasar-storm {})", self.version);
+-        let _ = writeln!(o, "  target        {}:{} (unit {})", c.host, c.port, c.unit_id);
+-        let _ = writeln!(
+-            o,
+-            "  run           {} connections, {:.1} s measured, started {}, seed {}",
+-            c.connections,
+-            self.elapsed_s(),
+-            self.started_utc(),
+-            c.seed
+-        );
+-        let _ = writeln!(o, "  requests      {} sent, {:.1}/s over all connections", s.sent, self.achieved_rate());
+-        let exc: Vec<String> = s.exceptions.iter().map(|(code, n)| format!("code {code}: {n}")).collect();
+-        let exc = if exc.is_empty() { String::new() } else { format!(" ({})", exc.join(", ")) };
+-        let _ = writeln!(o, "  ok replies    {}", s.ok);
+-        let _ = writeln!(o, "  exceptions    {}{exc}", s.exception_total());
+-        let _ = writeln!(o, "  timeouts      {}", s.timeouts);
+-        let _ = writeln!(
+-            o,
+-            "  connections   {} opened, {} reconnects, {} connect errors, {} resets, {} other I/O errors",
+-            s.connects, s.reconnects, s.connect_errors, s.resets, s.io_errors
+-        );
+-        let mism: Vec<String> = MismatchKind::ALL
+-            .iter()
+-            .filter_map(|k| s.mismatches.get(k).map(|n| format!("{}: {n}", k.name())))
+-            .collect();
+-        let mism = if mism.is_empty() { String::new() } else { format!(" ({})", mism.join(", ")) };
+-        let _ = writeln!(o, "  mismatches    {}{mism}", s.mismatch_total());
+-        if s.fault_total() > 0 {
+-            let kinds: Vec<String> =
+-                FaultKind::ALL.iter().filter_map(|k| s.faults.get(k).map(|n| format!("{}: {n}", k.name()))).collect();
+-            let _ = writeln!(o, "  faults        {} injected ({})", s.fault_total(), kinds.join(", "));
+-            let _ = writeln!(
+-                o,
+-                "                malformed frames: {} answered, {} closed the connection, {} ignored",
+-                s.fault_replied, s.fault_closed, s.fault_silent
+-            );
+-        }
+-        if c.churn {
+-            let _ = writeln!(o, "  churn         {} connect/disconnect cycles", s.churn_cycles);
+-        }
+-        if c.half_open > 0 {
+-            let _ = writeln!(
+-                o,
+-                "  half-open     {} idle connections held, {} failed",
+-                s.half_open_held, s.half_open_failed
+-            );
+-        }
+-        if s.worker_panics > 0 {
+-            let _ = writeln!(o, "  WARNING       {} worker thread(s) panicked", s.worker_panics);
+-        }
+-        let fmt = |v: Option<u64>| v.map_or_else(|| "-".to_owned(), |u| format!("{:.3}", us_to_ms(u)));
+-        let h = &s.latency;
+-        let _ = writeln!(
+-            o,
+-            "  latency (ms)  min {}  mean {}  p50 {}  p95 {}  p99 {}  max {}  (n={})",
+-            fmt(h.min()),
+-            fmt(h.mean()),
+-            fmt(h.percentile(50.0)),
+-            fmt(h.percentile(95.0)),
+-            fmt(h.percentile(99.0)),
+-            fmt(h.max()),
+-            h.count()
+-        );
+-        if c.churn {
+-            let h = &s.connect_latency;
+-            let _ = writeln!(
+-                o,
+-                "  connect (ms)  min {}  mean {}  p50 {}  p95 {}  p99 {}  max {}  (n={})",
+-                fmt(h.min()),
+-                fmt(h.mean()),
+-                fmt(h.percentile(50.0)),
+-                fmt(h.percentile(95.0)),
+-                fmt(h.percentile(99.0)),
+-                fmt(h.max()),
+-                h.count()
+-            );
+-        }
+-        let _ = writeln!(o, "  reproduce     ananasar {}", c.reproduce_args());
+-        o
++        String::new() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// The full report as JSON.
+     pub fn json(&self) -> String {
+         let ticks: Vec<String> = self
+             .timeline
+             .iter()
+             .map(|t| {

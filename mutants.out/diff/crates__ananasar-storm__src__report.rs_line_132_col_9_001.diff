@@ -1,0 +1,27 @@
+--- crates/ananasar-storm/src/report.rs
++++ replace Value::json -> String with "xyzzy".into()
+@@ -124,23 +124,17 @@
+         }
+     }
+     out.push('"');
+     out
+ }
+ 
+ impl Value {
+     fn json(&self) -> String {
+-        match self {
+-            Self::Int(n) => n.to_string(),
+-            Self::Float(f) if f.is_finite() => format!("{f}"),
+-            Self::Float(_) | Self::Null => "null".to_owned(),
+-            Self::Text(s) => json_string(s),
+-            Self::Bool(b) => b.to_string(),
+-        }
++        "xyzzy".into() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     fn csv(&self) -> String {
+         match self {
+             Self::Int(n) => n.to_string(),
+             Self::Float(f) if f.is_finite() => format!("{f}"),
+             Self::Float(_) | Self::Null => String::new(),
+             Self::Text(s) if s.contains([',', '"', '\n']) => format!("\"{}\"", s.replace('"', "\"\"")),

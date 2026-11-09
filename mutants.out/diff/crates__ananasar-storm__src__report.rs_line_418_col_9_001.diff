@@ -1,0 +1,27 @@
+--- crates/ananasar-storm/src/report.rs
++++ replace Report::csv -> String with "xyzzy".into()
+@@ -410,23 +410,17 @@
+             json_object(&self.parameters(), 1),
+             json_object(&self.results(), 1),
+             ticks.join(",\n")
+         )
+     }
+ 
+     /// The parameters and results as `section,key,value` rows.
+     pub fn csv(&self) -> String {
+-        let mut o = String::from("section,key,value\n");
+-        for (section, items) in [("parameter", self.parameters()), ("result", self.results())] {
+-            for (k, v) in items {
+-                let _ = writeln!(o, "{section},{k},{}", v.csv());
+-            }
+-        }
+-        o
++        "xyzzy".into() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// One row per progress interval, with wall-clock timestamps, for lining
+     /// the run up against an external event such as a link-level flood.
+     pub fn timeline_csv(&self) -> String {
+         let mut o = String::from(
+             "second,unix_ms,elapsed_s,sent,replies,exceptions,timeouts,errors,mismatches,faults,churn_cycles,mean_latency_us\n",
+         );

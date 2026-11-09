@@ -1,0 +1,28 @@
+--- crates/ananasar-storm/src/report.rs
++++ replace Value::csv -> String with String::new()
+@@ -134,24 +134,17 @@
+             Self::Float(f) if f.is_finite() => format!("{f}"),
+             Self::Float(_) | Self::Null => "null".to_owned(),
+             Self::Text(s) => json_string(s),
+             Self::Bool(b) => b.to_string(),
+         }
+     }
+ 
+     fn csv(&self) -> String {
+-        match self {
+-            Self::Int(n) => n.to_string(),
+-            Self::Float(f) if f.is_finite() => format!("{f}"),
+-            Self::Float(_) | Self::Null => String::new(),
+-            Self::Text(s) if s.contains([',', '"', '\n']) => format!("\"{}\"", s.replace('"', "\"\"")),
+-            Self::Text(s) => s.clone(),
+-            Self::Bool(b) => b.to_string(),
+-        }
++        String::new() /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ fn round3(f: f64) -> f64 {
+     (f * 1000.0).round() / 1000.0
+ }
+ 
+ /// Render `items` as a JSON object; a dotted key `a.b` becomes `"a": {"b": ..}`.

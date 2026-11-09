@@ -1,0 +1,21 @@
+--- crates/ananasar-storm/src/report.rs
++++ replace == with != in json_object
+@@ -170,17 +170,17 @@
+             },
+             None => lines.push(format!("{pad}{}: {}", json_string(k), v.json())),
+         }
+     }
+     let rendered: Vec<String> = lines
+         .into_iter()
+         .map(|l| match l.strip_prefix('\u{0}') {
+             Some(head) => {
+-                let inner = groups.iter().find(|(g, _)| g == head).map(|(_, i)| i.as_slice()).unwrap_or_default();
++                let inner = groups.iter().find(|(g, _)| g != /* ~ changed by cargo-mutants ~ */ head).map(|(_, i)| i.as_slice()).unwrap_or_default();
+                 format!("{pad}{}: {}", json_string(head), json_object(inner, indent.saturating_add(1)))
+             }
+             None => l,
+         })
+         .collect();
+     format!("{{\n{}\n{}}}", rendered.join(",\n"), "  ".repeat(indent))
+ }
+ 

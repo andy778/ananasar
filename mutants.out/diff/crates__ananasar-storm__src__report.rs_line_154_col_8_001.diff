@@ -1,0 +1,21 @@
+--- crates/ananasar-storm/src/report.rs
++++ replace * with / in round3
+@@ -146,17 +146,17 @@
+             Self::Text(s) if s.contains([',', '"', '\n']) => format!("\"{}\"", s.replace('"', "\"\"")),
+             Self::Text(s) => s.clone(),
+             Self::Bool(b) => b.to_string(),
+         }
+     }
+ }
+ 
+ fn round3(f: f64) -> f64 {
+-    (f * 1000.0).round() / 1000.0
++    (f / /* ~ changed by cargo-mutants ~ */ 1000.0).round() / 1000.0
+ }
+ 
+ /// Render `items` as a JSON object; a dotted key `a.b` becomes `"a": {"b": ..}`.
+ fn json_object(items: &[(String, Value)], indent: usize) -> String {
+     let pad = "  ".repeat(indent.saturating_add(1));
+     let mut groups: Vec<(String, Vec<(String, Value)>)> = Vec::new();
+     let mut lines: Vec<String> = Vec::new();
+     for (k, v) in items {

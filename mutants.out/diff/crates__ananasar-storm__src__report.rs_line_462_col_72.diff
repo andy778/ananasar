@@ -1,0 +1,21 @@
+--- crates/ananasar-storm/src/report.rs
++++ delete ! in Report::write_to
+@@ -454,17 +454,17 @@
+     /// Write the JSON, CSV and timeline files into `dir` (created if needed)
+     /// under a timestamped name. Returns the paths written.
+     pub fn write_to(&self, dir: &Path) -> io::Result<Vec<PathBuf>> {
+         std::fs::create_dir_all(dir)?;
+         let base = self.file_stem();
+         // Two runs in the same second get -2, -3, ... instead of overwriting.
+         let stem = (1..100)
+             .map(|n| if n == 1 { base.clone() } else { format!("{base}-{n}") })
+-            .find(|s| ["json", "csv", "timeline.csv"].iter().all(|ext| !dir.join(format!("{s}.{ext}")).exists()))
++            .find(|s| ["json", "csv", "timeline.csv"].iter().all(|ext|  /* ~ changed by cargo-mutants ~ */dir.join(format!("{s}.{ext}")).exists()))
+             .ok_or_else(|| io::Error::new(io::ErrorKind::AlreadyExists, "too many report files with this timestamp"))?;
+         let files = [("json", self.json()), ("csv", self.csv()), ("timeline.csv", self.timeline_csv())];
+         let mut written = Vec::new();
+         for (ext, body) in files {
+             let path = dir.join(format!("{stem}.{ext}"));
+             OpenOptions::new().write(true).create_new(true).open(&path)?.write_all(body.as_bytes())?;
+             written.push(path);
+         }

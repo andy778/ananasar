@@ -1,0 +1,21 @@
+--- crates/ananasar-storm/src/report.rs
++++ replace Report::elapsed_s -> f64 with 0.0
+@@ -182,17 +182,17 @@
+         })
+         .collect();
+     format!("{{\n{}\n{}}}", rendered.join(",\n"), "  ".repeat(indent))
+ }
+ 
+ impl Report {
+     /// Seconds of measured run time.
+     pub fn elapsed_s(&self) -> f64 {
+-        self.elapsed.as_secs_f64()
++        0.0 /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Requests per second actually sent, over all connections.
+     pub fn achieved_rate(&self) -> f64 {
+         let s = self.elapsed_s();
+         if s > 0.0 { self.stats.sent as f64 / s } else { 0.0 }
+     }
+ 

@@ -1,0 +1,27 @@
+--- crates/ananasar-storm/src/report.rs
++++ replace Report::latency_items with ()
+@@ -284,23 +284,17 @@
+         int(&mut r, "half_open_failed", s.half_open_failed);
+         int(&mut r, "worker_panics", s.worker_panics);
+         Self::latency_items(&mut r, "latency_us", &s.latency);
+         Self::latency_items(&mut r, "connect_latency_us", &s.connect_latency);
+         r
+     }
+ 
+     fn latency_items(items: &mut Items, name: &str, h: &crate::hist::Histogram) {
+-        int(items, &format!("{name}.count"), h.count());
+-        opt(items, &format!("{name}.min"), h.min());
+-        opt(items, &format!("{name}.mean"), h.mean());
+-        opt(items, &format!("{name}.p50"), h.percentile(50.0));
+-        opt(items, &format!("{name}.p95"), h.percentile(95.0));
+-        opt(items, &format!("{name}.p99"), h.percentile(99.0));
+-        opt(items, &format!("{name}.max"), h.max());
++        () /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// The summary for the terminal.
+     pub fn text(&self) -> String {
+         let (c, s) = (&self.config, &self.stats);
+         let mut o = String::new();
+         let _ = writeln!(o, "Ananasar storm summary (ananasar-storm {})", self.version);
+         let _ = writeln!(o, "  target        {}:{} (unit {})", c.host, c.port, c.unit_id);

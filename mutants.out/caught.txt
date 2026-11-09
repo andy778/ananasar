@@ -1,0 +1,80 @@
+crates/ananasar-storm/src/report.rs:46:9: replace Tick::line -> String with String::new()
+crates/ananasar-storm/src/report.rs:46:9: replace Tick::line -> String with "xyzzy".into()
+crates/ananasar-storm/src/report.rs:63:5: replace us_to_ms -> f64 with 0.0
+crates/ananasar-storm/src/report.rs:63:5: replace us_to_ms -> f64 with 1.0
+crates/ananasar-storm/src/report.rs:63:5: replace us_to_ms -> f64 with -1.0
+crates/ananasar-storm/src/report.rs:63:15: replace / with % in us_to_ms
+crates/ananasar-storm/src/report.rs:63:15: replace / with * in us_to_ms
+crates/ananasar-storm/src/report.rs:95:5: replace int with ()
+crates/ananasar-storm/src/report.rs:99:5: replace opt with ()
+crates/ananasar-storm/src/report.rs:103:5: replace text with ()
+crates/ananasar-storm/src/report.rs:107:5: replace float with ()
+crates/ananasar-storm/src/report.rs:111:5: replace json_string -> String with String::new()
+crates/ananasar-storm/src/report.rs:111:5: replace json_string -> String with "xyzzy".into()
+crates/ananasar-storm/src/report.rs:120:18: replace match guard u32::from(c) < 0x20 with true in json_string
+crates/ananasar-storm/src/report.rs:120:18: replace match guard u32::from(c) < 0x20 with false in json_string
+crates/ananasar-storm/src/report.rs:120:31: replace < with == in json_string
+crates/ananasar-storm/src/report.rs:120:31: replace < with > in json_string
+crates/ananasar-storm/src/report.rs:120:31: replace < with <= in json_string
+crates/ananasar-storm/src/report.rs:132:9: replace Value::json -> String with String::new()
+crates/ananasar-storm/src/report.rs:132:9: replace Value::json -> String with "xyzzy".into()
+crates/ananasar-storm/src/report.rs:134:31: replace match guard f.is_finite() with true in Value::json
+crates/ananasar-storm/src/report.rs:134:31: replace match guard f.is_finite() with false in Value::json
+crates/ananasar-storm/src/report.rs:142:9: replace Value::csv -> String with String::new()
+crates/ananasar-storm/src/report.rs:142:9: replace Value::csv -> String with "xyzzy".into()
+crates/ananasar-storm/src/report.rs:144:31: replace match guard f.is_finite() with true in Value::csv
+crates/ananasar-storm/src/report.rs:144:31: replace match guard f.is_finite() with false in Value::csv
+crates/ananasar-storm/src/report.rs:146:30: replace match guard s.contains([',', '"', '\n']) with true in Value::csv
+crates/ananasar-storm/src/report.rs:146:30: replace match guard s.contains([',', '"', '\n']) with false in Value::csv
+crates/ananasar-storm/src/report.rs:154:5: replace round3 -> f64 with 0.0
+crates/ananasar-storm/src/report.rs:154:5: replace round3 -> f64 with 1.0
+crates/ananasar-storm/src/report.rs:154:5: replace round3 -> f64 with -1.0
+crates/ananasar-storm/src/report.rs:154:26: replace / with % in round3
+crates/ananasar-storm/src/report.rs:154:26: replace / with * in round3
+crates/ananasar-storm/src/report.rs:154:8: replace * with + in round3
+crates/ananasar-storm/src/report.rs:154:8: replace * with / in round3
+crates/ananasar-storm/src/report.rs:159:5: replace json_object -> String with String::new()
+crates/ananasar-storm/src/report.rs:159:5: replace json_object -> String with "xyzzy".into()
+crates/ananasar-storm/src/report.rs:164:75: replace == with != in json_object
+crates/ananasar-storm/src/report.rs:178:59: replace == with != in json_object
+crates/ananasar-storm/src/report.rs:190:9: replace Report::elapsed_s -> f64 with 0.0
+crates/ananasar-storm/src/report.rs:190:9: replace Report::elapsed_s -> f64 with 1.0
+crates/ananasar-storm/src/report.rs:190:9: replace Report::elapsed_s -> f64 with -1.0
+crates/ananasar-storm/src/report.rs:195:9: replace Report::achieved_rate -> f64 with 0.0
+crates/ananasar-storm/src/report.rs:195:9: replace Report::achieved_rate -> f64 with 1.0
+crates/ananasar-storm/src/report.rs:195:9: replace Report::achieved_rate -> f64 with -1.0
+crates/ananasar-storm/src/report.rs:196:14: replace > with == in Report::achieved_rate
+crates/ananasar-storm/src/report.rs:196:14: replace > with < in Report::achieved_rate
+crates/ananasar-storm/src/report.rs:196:14: replace > with >= in Report::achieved_rate
+crates/ananasar-storm/src/report.rs:196:45: replace / with % in Report::achieved_rate
+crates/ananasar-storm/src/report.rs:196:45: replace / with * in Report::achieved_rate
+crates/ananasar-storm/src/report.rs:201:9: replace Report::started_utc -> String with String::new()
+crates/ananasar-storm/src/report.rs:201:9: replace Report::started_utc -> String with "xyzzy".into()
+crates/ananasar-storm/src/report.rs:201:59: replace / with % in Report::started_utc
+crates/ananasar-storm/src/report.rs:201:59: replace / with * in Report::started_utc
+crates/ananasar-storm/src/report.rs:209:9: replace Report::file_stem -> String with String::new()
+crates/ananasar-storm/src/report.rs:209:9: replace Report::file_stem -> String with "xyzzy".into()
+crates/ananasar-storm/src/report.rs:213:9: replace Report::parameters -> Items with Default::default()
+crates/ananasar-storm/src/report.rs:252:9: replace Report::results -> Items with Default::default()
+crates/ananasar-storm/src/report.rs:292:9: replace Report::latency_items with ()
+crates/ananasar-storm/src/report.rs:303:9: replace Report::text -> String with String::new()
+crates/ananasar-storm/src/report.rs:303:9: replace Report::text -> String with "xyzzy".into()
+crates/ananasar-storm/src/report.rs:332:28: replace > with == in Report::text
+crates/ananasar-storm/src/report.rs:332:28: replace > with < in Report::text
+crates/ananasar-storm/src/report.rs:332:28: replace > with >= in Report::text
+crates/ananasar-storm/src/report.rs:345:24: replace > with == in Report::text
+crates/ananasar-storm/src/report.rs:345:24: replace > with < in Report::text
+crates/ananasar-storm/src/report.rs:345:24: replace > with >= in Report::text
+crates/ananasar-storm/src/report.rs:352:28: replace > with == in Report::text
+crates/ananasar-storm/src/report.rs:352:28: replace > with < in Report::text
+crates/ananasar-storm/src/report.rs:352:28: replace > with >= in Report::text
+crates/ananasar-storm/src/report.rs:388:9: replace Report::json -> String with String::new()
+crates/ananasar-storm/src/report.rs:388:9: replace Report::json -> String with "xyzzy".into()
+crates/ananasar-storm/src/report.rs:418:9: replace Report::csv -> String with String::new()
+crates/ananasar-storm/src/report.rs:418:9: replace Report::csv -> String with "xyzzy".into()
+crates/ananasar-storm/src/report.rs:430:9: replace Report::timeline_csv -> String with String::new()
+crates/ananasar-storm/src/report.rs:430:9: replace Report::timeline_csv -> String with "xyzzy".into()
+crates/ananasar-storm/src/report.rs:457:9: replace Report::write_to -> io::Result<Vec<PathBuf>> with Ok(vec![])
+crates/ananasar-storm/src/report.rs:457:9: replace Report::write_to -> io::Result<Vec<PathBuf>> with Ok(vec![Default::default()])
+crates/ananasar-storm/src/report.rs:461:27: replace == with != in Report::write_to
+crates/ananasar-storm/src/report.rs:462:72: delete ! in Report::write_to
