@@ -434,6 +434,8 @@ mod tests {
         let port = listener.local_addr().expect("addr").port();
         let fake = std::thread::spawn(move || {
             let (mut s, _) = listener.accept().expect("accept");
+            // Fail instead of hanging when the worker never sends a request.
+            s.set_read_timeout(Some(Duration::from_secs(5))).expect("read timeout");
             let req = read_frame(&mut s).expect("request");
             let reply = [req[0], req[1], 0, 0, 0, 3, 1, 0x83, 2];
             s.write_all(&reply).expect("reply");

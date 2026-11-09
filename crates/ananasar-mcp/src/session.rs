@@ -197,6 +197,8 @@ mod tests {
         let port = listener.local_addr().expect("addr").port();
         let handle = thread::spawn(move || {
             let (mut s, _) = listener.accept().expect("accept");
+            // Fail instead of hanging when the code under test never sends a request.
+            s.set_read_timeout(Some(T)).expect("read timeout");
             let mut req = [0u8; 12];
             s.read_exact(&mut req).expect("request");
             s.write_all(&reply(&req)).expect("reply");
