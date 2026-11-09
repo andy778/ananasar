@@ -198,8 +198,10 @@ mod tests {
         sink.record(1, &[], Response::Error("b"));
         assert!(!sink.is_recording());
         assert_eq!(sink.recordings(), 1);
-        assert!(sink.bytes() > 0);
         let text = String::from_utf8(lock(&buf.0).clone()).unwrap();
+        // Only the one entry written while recording counts, and every byte of it.
+        assert!(text.len() > 1);
+        assert_eq!(sink.bytes(), u64::try_from(text.len()).unwrap());
         assert!(text.contains("Connection: 1\n"));
         assert_eq!(text.matches("#1 ").count(), 1);
         assert!(!text.contains("#2 "));

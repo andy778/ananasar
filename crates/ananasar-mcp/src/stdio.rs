@@ -174,6 +174,61 @@ mod tests {
         assert_eq!(replies[1]["id"], 7);
     }
 
+    /// A valid ping request padded with trailing whitespace to exactly `len` bytes.
+    fn padded_ping(len: usize) -> Vec<u8> {
+        let mut line = PING.as_bytes().to_vec();
+        line.resize(len, b' ');
+        line
+    }
+
+    fn assert_served(replies: &[Value]) {
+        assert_eq!(replies.len(), 1);
+        assert_eq!(replies[0]["id"], 7);
+        assert!(replies[0]["result"].is_object());
+    }
+
+    fn assert_rejected(replies: &[Value]) {
+        assert_eq!(replies.len(), 1);
+        assert_eq!(replies[0]["error"]["code"], INVALID_REQUEST);
+        assert_eq!(replies[0]["error"]["message"], "message too long");
+    }
+
+    #[test]
+    fn a_100_kb_line_is_served() {
+        let mut input = padded_ping(100 * 1024);
+        input.push(b'\n');
+        let (code, replies) = run(&input);
+        assert_eq!(code, 0);
+        assert_served(&replies);
+    }
+
+    #[test]
+    fn a_line_of_exactly_the_limit_is_accepted() {
+        // Without a newline (end of input): MAX_LINE bytes.
+        let (code, replies) = run(&padded_ping(MAX_LINE));
+        assert_eq!(code, 0);
+        assert_served(&replies);
+        // With a newline: the newline counts toward the limit.
+        let mut input = padded_ping(MAX_LINE - 1);
+        input.push(b'\n');
+        assert_eq!(input.len(), MAX_LINE);
+        let (code, replies) = run(&input);
+        assert_eq!(code, 0);
+        assert_served(&replies);
+    }
+
+    #[test]
+    fn a_line_one_byte_over_the_limit_is_rejected() {
+        let (code, replies) = run(&padded_ping(MAX_LINE + 1));
+        assert_eq!(code, 0);
+        assert_rejected(&replies);
+        let mut input = padded_ping(MAX_LINE);
+        input.push(b'\n');
+        let (code, replies) = run(&input);
+        assert_eq!(code, 0);
+        assert_rejected(&replies);
+    }
+
     #[test]
     fn read_error_exits_one() {
         assert_eq!(serve_io(Config::default(), &mut io::BufReader::new(Broken), &mut Vec::new()), 1);

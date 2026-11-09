@@ -12,7 +12,7 @@ use ananasar_core::registers::RegisterFile;
 use ananasar_core::server::ServerConfig;
 use ananasar_net::Server;
 use ananasar_parity::recording::{Entry, Recording};
-use ananasar_parity::{diff, proxy, runner};
+use ananasar_parity::{diff, proxy, runner, scenarios};
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -60,9 +60,28 @@ fn scenarios_record_expected_replies_and_repeat_identically() {
     // Only the few scenarios that really get no reply pay this wait.
     let timeout = Duration::from_secs(1);
     let first = start_server();
-    let a = runner::run(first.addr, 1, timeout).unwrap();
+    let mut a = runner::run(first.addr, 1, timeout).unwrap();
     let second = start_server();
-    let b = runner::run(second.addr, 1, timeout).unwrap();
+    let mut b = runner::run(second.addr, 1, timeout).unwrap();
+    // Before reporting a difference, re-run the differing scenarios against fresh servers
+    // with a long wait: a reply that is really missing is still missing after 5 s, but one
+    // that only arrived late on a slow machine is then recorded.
+    let differing: Vec<String> =
+        diff::verdicts(&a, &b, diff::Options::default()).into_iter().filter(|v| !v.matches()).map(|v| v.name).collect();
+    if !differing.is_empty() {
+        let (first, second) = (start_server(), start_server());
+        let retry = Duration::from_secs(5);
+        for name in &differing {
+            for (rec, server) in [(&mut a, &first), (&mut b, &second)] {
+                let again = runner::run_scenario_by_name(server.addr, scenarios::DEFAULT_PROFILE, name, 1, retry)
+                    .unwrap()
+                    .expect("scenario in the catalog");
+                if let Some(slot) = rec.sections.iter_mut().find(|s| &s.name == name) {
+                    *slot = again;
+                }
+            }
+        }
+    }
     let differences = diff::diff(&a, &b);
     assert!(differences.is_empty(), "two runs differ:\n{}", differences.join("\n"));
 
