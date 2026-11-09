@@ -35,7 +35,7 @@ On Windows, run the commands in this guide in PowerShell or Git Bash.
 
 ## 3. Commit signing is not needed
 
-A signed commit carries proof of who made it. Only the `main` branch requires signatures, and GitHub signs the single commit it creates when your pull request is squash-merged, so you do **not** need to sign your own commits and can skip this step. If you would like your own commits to show as verified, see GitHub's [About commit signature verification](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification).
+A signed commit carries proof of who made it. Commits on `main` are signed because GitHub signs the single commit it creates when your pull request is squash-merged, so you do **not** need to sign your own commits and can skip this step. If you would like your own commits to show as verified, see GitHub's [About commit signature verification](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification).
 
 You do need git to know your name and email, which it writes on your commits (use an email your GitHub account accepts):
 
