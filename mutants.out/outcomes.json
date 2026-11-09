@@ -1,0 +1,3728 @@
+{
+  "outcomes": [
+    {
+      "scenario": "Baseline",
+      "summary": "Success",
+      "log_path": "log/baseline.log",
+      "diff_path": null,
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 4.215335078,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.951997411,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:50:28: replace + with -",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": null,
+          "span": {
+            "start": {
+              "line": 50,
+              "column": 28
+            },
+            "end": {
+              "line": 50,
+              "column": 29
+            }
+          },
+          "replacement": "-",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_50_col_28.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_50_col_28.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.455787015,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:50:28: replace + with *",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": null,
+          "span": {
+            "start": {
+              "line": 50,
+              "column": 28
+            },
+            "end": {
+              "line": 50,
+              "column": 29
+            }
+          },
+          "replacement": "*",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_50_col_28_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_50_col_28_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.058300418,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 1.016951538,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:55:5: replace read_frame -> io::Result<Vec<u8>> with Ok(vec![])",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_frame",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 52,
+                "column": 1
+              },
+              "end": {
+                "line": 56,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 55,
+              "column": 5
+            },
+            "end": {
+              "line": 55,
+              "column": 33
+            }
+          },
+          "replacement": "Ok(vec![])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_55_col_5.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_55_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.552568122,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.151052647,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:55:5: replace read_frame -> io::Result<Vec<u8>> with Ok(vec![0])",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_frame",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 52,
+                "column": 1
+              },
+              "end": {
+                "line": 56,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 55,
+              "column": 5
+            },
+            "end": {
+              "line": 55,
+              "column": 33
+            }
+          },
+          "replacement": "Ok(vec![0])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_55_col_5_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_55_col_5_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.452100304,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.150972277,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:55:5: replace read_frame -> io::Result<Vec<u8>> with Ok(vec![1])",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_frame",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 52,
+                "column": 1
+              },
+              "end": {
+                "line": 56,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 55,
+              "column": 5
+            },
+            "end": {
+              "line": 55,
+              "column": 33
+            }
+          },
+          "replacement": "Ok(vec![1])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_55_col_5_002.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_55_col_5_002.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.402323243,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.150958787,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:63:5: replace read_request -> io::Result<Vec<u8>> with Ok(vec![])",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_request",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 58,
+                "column": 1
+              },
+              "end": {
+                "line": 84,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 63,
+              "column": 5
+            },
+            "end": {
+              "line": 83,
+              "column": 12
+            }
+          },
+          "replacement": "Ok(vec![])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_63_col_5.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_63_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.653913839,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.100979857,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:63:5: replace read_request -> io::Result<Vec<u8>> with Ok(vec![0])",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_request",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 58,
+                "column": 1
+              },
+              "end": {
+                "line": 84,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 63,
+              "column": 5
+            },
+            "end": {
+              "line": 83,
+              "column": 12
+            }
+          },
+          "replacement": "Ok(vec![0])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_63_col_5_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_63_col_5_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.555198556,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.252398864,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:63:5: replace read_request -> io::Result<Vec<u8>> with Ok(vec![1])",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_request",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 58,
+                "column": 1
+              },
+              "end": {
+                "line": 84,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 63,
+              "column": 5
+            },
+            "end": {
+              "line": 83,
+              "column": 12
+            }
+          },
+          "replacement": "Ok(vec![1])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_63_col_5_002.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_63_col_5_002.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.764186116,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.201936065,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:63:38: replace + with - in read_request",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_request",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 58,
+                "column": 1
+              },
+              "end": {
+                "line": 84,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 63,
+              "column": 38
+            },
+            "end": {
+              "line": 63,
+              "column": 39
+            }
+          },
+          "replacement": "-",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_63_col_38.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_63_col_38.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.407808031,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:63:38: replace + with * in read_request",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_request",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 58,
+                "column": 1
+              },
+              "end": {
+                "line": 84,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 63,
+              "column": 38
+            },
+            "end": {
+              "line": 63,
+              "column": 39
+            }
+          },
+          "replacement": "*",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_63_col_38_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_63_col_38_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.351242706,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:65:8: delete ! in read_request",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_request",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 58,
+                "column": 1
+              },
+              "end": {
+                "line": 84,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 65,
+              "column": 8
+            },
+            "end": {
+              "line": 65,
+              "column": 9
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_65_col_8.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_65_col_8.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.857253431,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.152520994,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:69:20: replace == with != in read_request",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_request",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 58,
+                "column": 1
+              },
+              "end": {
+                "line": 84,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 69,
+              "column": 20
+            },
+            "end": {
+              "line": 69,
+              "column": 22
+            }
+          },
+          "replacement": "!=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_69_col_20.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_69_col_20.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.759227376,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.201060938,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:71:18: replace > with == in read_request",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_request",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 58,
+                "column": 1
+              },
+              "end": {
+                "line": 84,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 71,
+              "column": 18
+            },
+            "end": {
+              "line": 71,
+              "column": 19
+            }
+          },
+          "replacement": "==",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_71_col_18.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_71_col_18.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.803786209,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.459633937,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:71:18: replace > with < in read_request",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_request",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 58,
+                "column": 1
+              },
+              "end": {
+                "line": 84,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 71,
+              "column": 18
+            },
+            "end": {
+              "line": 71,
+              "column": 19
+            }
+          },
+          "replacement": "<",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_71_col_18_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_71_col_18_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.409202584,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.251897966,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:71:18: replace > with >= in read_request",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_request",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 58,
+                "column": 1
+              },
+              "end": {
+                "line": 84,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 71,
+              "column": 18
+            },
+            "end": {
+              "line": 71,
+              "column": 19
+            }
+          },
+          "replacement": ">=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_71_col_18_002.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_71_col_18_002.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.112204038,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 1.367170818,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:74:66: delete ! in read_request",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_request",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 58,
+                "column": 1
+              },
+              "end": {
+                "line": 84,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 74,
+              "column": 66
+            },
+            "end": {
+              "line": 74,
+              "column": 67
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_74_col_66.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_74_col_66.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.3118075390000001,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.352504763,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:88:5: replace has_bad_header -> bool with true",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "has_bad_header",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 86,
+                "column": 1
+              },
+              "end": {
+                "line": 89,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 88,
+              "column": 5
+            },
+            "end": {
+              "line": 88,
+              "column": 88
+            }
+          },
+          "replacement": "true",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_88_col_5.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_88_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.306700981,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 1.056725002,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:88:5: replace has_bad_header -> bool with false",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "has_bad_header",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 86,
+                "column": 1
+              },
+              "end": {
+                "line": 89,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 88,
+              "column": 5
+            },
+            "end": {
+              "line": 88,
+              "column": 88
+            }
+          },
+          "replacement": "false",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_88_col_5_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_88_col_5_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.109434546,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.454215279,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:88:62: replace || with && in has_bad_header",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "has_bad_header",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 86,
+                "column": 1
+              },
+              "end": {
+                "line": 89,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 88,
+              "column": 62
+            },
+            "end": {
+              "line": 88,
+              "column": 64
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_88_col_62.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_88_col_62.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.208339259,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.654999176,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:88:31: replace != with == in has_bad_header",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "has_bad_header",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 86,
+                "column": 1
+              },
+              "end": {
+                "line": 89,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 88,
+              "column": 31
+            },
+            "end": {
+              "line": 88,
+              "column": 33
+            }
+          },
+          "replacement": "==",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_88_col_31.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_88_col_31.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.365732282,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.454217249,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:88:77: replace != with == in has_bad_header",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "has_bad_header",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 86,
+                "column": 1
+              },
+              "end": {
+                "line": 89,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 88,
+              "column": 77
+            },
+            "end": {
+              "line": 88,
+              "column": 79
+            }
+          },
+          "replacement": "==",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_88_col_77.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_88_col_77.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.511910549,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.251204507,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:92:5: replace read_frame_max -> io::Result<Vec<u8>> with Ok(vec![])",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_frame_max",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 91,
+                "column": 1
+              },
+              "end": {
+                "line": 95,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 92,
+              "column": 5
+            },
+            "end": {
+              "line": 94,
+              "column": 31
+            }
+          },
+          "replacement": "Ok(vec![])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_92_col_5.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_92_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.209092506,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.204025971,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:92:5: replace read_frame_max -> io::Result<Vec<u8>> with Ok(vec![0])",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_frame_max",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 91,
+                "column": 1
+              },
+              "end": {
+                "line": 95,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 92,
+              "column": 5
+            },
+            "end": {
+              "line": 94,
+              "column": 31
+            }
+          },
+          "replacement": "Ok(vec![0])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_92_col_5_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_92_col_5_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.063559177,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.301980834,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:92:5: replace read_frame_max -> io::Result<Vec<u8>> with Ok(vec![1])",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_frame_max",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 91,
+                "column": 1
+              },
+              "end": {
+                "line": 95,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 92,
+              "column": 5
+            },
+            "end": {
+              "line": 94,
+              "column": 31
+            }
+          },
+          "replacement": "Ok(vec![1])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_92_col_5_002.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_92_col_5_002.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.21223044,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.618962026,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:92:38: replace + with - in read_frame_max",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_frame_max",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 91,
+                "column": 1
+              },
+              "end": {
+                "line": 95,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 92,
+              "column": 38
+            },
+            "end": {
+              "line": 92,
+              "column": 39
+            }
+          },
+          "replacement": "-",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_92_col_38.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_92_col_38.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.508902949,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:92:38: replace + with * in read_frame_max",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "read_frame_max",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 91,
+                "column": 1
+              },
+              "end": {
+                "line": 95,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 92,
+              "column": 38
+            },
+            "end": {
+              "line": 92,
+              "column": 39
+            }
+          },
+          "replacement": "*",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_92_col_38_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_92_col_38_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.753294311,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:98:5: replace finish_frame -> io::Result<Vec<u8>> with Ok(vec![])",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "finish_frame",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 97,
+                "column": 1
+              },
+              "end": {
+                "line": 109,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 98,
+              "column": 5
+            },
+            "end": {
+              "line": 108,
+              "column": 12
+            }
+          },
+          "replacement": "Ok(vec![])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_98_col_5.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_98_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.818452035,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.251193806,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:98:5: replace finish_frame -> io::Result<Vec<u8>> with Ok(vec![0])",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "finish_frame",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 97,
+                "column": 1
+              },
+              "end": {
+                "line": 109,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 98,
+              "column": 5
+            },
+            "end": {
+              "line": 108,
+              "column": 12
+            }
+          },
+          "replacement": "Ok(vec![0])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_98_col_5_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_98_col_5_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.5044884870000002,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.203928171,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:98:5: replace finish_frame -> io::Result<Vec<u8>> with Ok(vec![1])",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "finish_frame",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 97,
+                "column": 1
+              },
+              "end": {
+                "line": 109,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 98,
+              "column": 5
+            },
+            "end": {
+              "line": 108,
+              "column": 12
+            }
+          },
+          "replacement": "Ok(vec![1])",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_98_col_5_002.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_98_col_5_002.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.556177093,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.301850935,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:97:59: replace + with - in finish_frame",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "finish_frame",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 97,
+                "column": 1
+              },
+              "end": {
+                "line": 109,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 97,
+              "column": 59
+            },
+            "end": {
+              "line": 97,
+              "column": 60
+            }
+          },
+          "replacement": "-",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_97_col_59.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_97_col_59.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.654794948,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:97:59: replace + with * in finish_frame",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "finish_frame",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 97,
+                "column": 1
+              },
+              "end": {
+                "line": 109,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 97,
+              "column": 59
+            },
+            "end": {
+              "line": 97,
+              "column": 60
+            }
+          },
+          "replacement": "*",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_97_col_59_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_97_col_59_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.602339184,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:100:8: delete ! in finish_frame",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "finish_frame",
+            "return_type": "-> io::Result<Vec<u8>>",
+            "span": {
+              "start": {
+                "line": 97,
+                "column": 1
+              },
+              "end": {
+                "line": 109,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 100,
+              "column": 8
+            },
+            "end": {
+              "line": 100,
+              "column": 9
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_100_col_8.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_100_col_8.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.5110861519999998,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.563540689,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:146:9: replace <impl Drop for Slot>::drop with ()",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "<impl Drop for Slot>::drop",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 145,
+                "column": 5
+              },
+              "end": {
+                "line": 147,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 146,
+              "column": 9
+            },
+            "end": {
+              "line": 146,
+              "column": 47
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_146_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_146_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.969238085,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.705831696,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:154:9: replace Server::run with ()",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "Server::run",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 151,
+                "column": 5
+              },
+              "end": {
+                "line": 161,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 154,
+              "column": 9
+            },
+            "end": {
+              "line": 160,
+              "column": 10
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_154_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_154_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 2.219070773,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.404785538,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:155:15: delete ! in Server::run",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "Server::run",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 151,
+                "column": 5
+              },
+              "end": {
+                "line": 161,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 155,
+              "column": 15
+            },
+            "end": {
+              "line": 155,
+              "column": 16
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_155_col_15.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_155_col_15.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.8122472699999999,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.25393844,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:164:9: replace Server::spawn_connection with ()",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "Server::spawn_connection",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 163,
+                "column": 5
+              },
+              "end": {
+                "line": 196,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 164,
+              "column": 9
+            },
+            "end": {
+              "line": 195,
+              "column": 12
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_164_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_164_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.210195496,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.451751815,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:164:48: replace >= with < in Server::spawn_connection",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "Server::spawn_connection",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 163,
+                "column": 5
+              },
+              "end": {
+                "line": 196,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 164,
+              "column": 48
+            },
+            "end": {
+              "line": 164,
+              "column": 50
+            }
+          },
+          "replacement": "<",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_164_col_48.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_164_col_48.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.260791974,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.405468137,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:174:25: delete ! in Server::spawn_connection",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "Server::spawn_connection",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 163,
+                "column": 5
+              },
+              "end": {
+                "line": 196,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 174,
+              "column": 25
+            },
+            "end": {
+              "line": 174,
+              "column": 26
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_174_col_25.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_174_col_25.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.753619411,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.953093211,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:199:9: replace Server::serve_connection with ()",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "Server::serve_connection",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 198,
+                "column": 5
+              },
+              "end": {
+                "line": 278,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 199,
+              "column": 9
+            },
+            "end": {
+              "line": 277,
+              "column": 10
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_199_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_199_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.960107836,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.506933724,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/lib.rs:211:33: replace == with != in Server::serve_connection",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/lib.rs",
+          "function": {
+            "function_name": "Server::serve_connection",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 198,
+                "column": 5
+              },
+              "end": {
+                "line": 278,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 211,
+              "column": 33
+            },
+            "end": {
+              "line": 211,
+              "column": 35
+            }
+          },
+          "replacement": "!=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__lib.rs_line_211_col_33.log",
+      "diff_path": "diff/crates__ananasar-net__src__lib.rs_line_211_col_33.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.254794508,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.901959484,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:37:9: replace LogSink::idle -> Self with Default::default()",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::idle",
+            "return_type": "-> Self",
+            "span": {
+              "start": {
+                "line": 35,
+                "column": 5
+              },
+              "end": {
+                "line": 48,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 37,
+              "column": 9
+            },
+            "end": {
+              "line": 47,
+              "column": 10
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_37_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_37_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.451785426,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:53:9: replace LogSink::create -> io::Result<Self> with Ok(Default::default())",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::create",
+            "return_type": "-> io::Result<Self>",
+            "span": {
+              "start": {
+                "line": 50,
+                "column": 5
+              },
+              "end": {
+                "line": 56,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 53,
+              "column": 9
+            },
+            "end": {
+              "line": 55,
+              "column": 17
+            }
+          },
+          "replacement": "Ok(Default::default())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_53_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_53_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.35436413,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:60:9: replace LogSink::from_writer -> Self with Default::default()",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::from_writer",
+            "return_type": "-> Self",
+            "span": {
+              "start": {
+                "line": 58,
+                "column": 5
+              },
+              "end": {
+                "line": 63,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 60,
+              "column": 9
+            },
+            "end": {
+              "line": 62,
+              "column": 13
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_60_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_60_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.40425917,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:68:9: replace LogSink::start -> io::Result<PathBuf> with Ok(Default::default())",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::start",
+            "return_type": "-> io::Result<PathBuf>",
+            "span": {
+              "start": {
+                "line": 65,
+                "column": 5
+              },
+              "end": {
+                "line": 73,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 68,
+              "column": 9
+            },
+            "end": {
+              "line": 72,
+              "column": 17
+            }
+          },
+          "replacement": "Ok(Default::default())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_68_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_68_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.314830985,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.252032405,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:76:9: replace LogSink::start_writer with ()",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::start_writer",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 75,
+                "column": 5
+              },
+              "end": {
+                "line": 83,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 76,
+              "column": 9
+            },
+            "end": {
+              "line": 82,
+              "column": 22
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_76_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_76_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.204882187,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.151415477,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:87:9: replace LogSink::stop with ()",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::stop",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 85,
+                "column": 5
+              },
+              "end": {
+                "line": 88,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 87,
+              "column": 9
+            },
+            "end": {
+              "line": 87,
+              "column": 38
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_87_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_87_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.602990013,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.151112357,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:92:9: replace LogSink::is_recording -> bool with true",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::is_recording",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 90,
+                "column": 5
+              },
+              "end": {
+                "line": 93,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 92,
+              "column": 9
+            },
+            "end": {
+              "line": 92,
+              "column": 40
+            }
+          },
+          "replacement": "true",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_92_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_92_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.702068344,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.301500716,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:92:9: replace LogSink::is_recording -> bool with false",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::is_recording",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 90,
+                "column": 5
+              },
+              "end": {
+                "line": 93,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 92,
+              "column": 9
+            },
+            "end": {
+              "line": 92,
+              "column": 40
+            }
+          },
+          "replacement": "false",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_92_col_9_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_92_col_9_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.86737775,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.251785356,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:97:9: replace LogSink::path -> Option<PathBuf> with None",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::path",
+            "return_type": "-> Option<PathBuf>",
+            "span": {
+              "start": {
+                "line": 95,
+                "column": 5
+              },
+              "end": {
+                "line": 98,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 97,
+              "column": 9
+            },
+            "end": {
+              "line": 97,
+              "column": 39
+            }
+          },
+          "replacement": "None",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_97_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_97_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.415685794,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.402886533,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:97:9: replace LogSink::path -> Option<PathBuf> with Some(Default::default())",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::path",
+            "return_type": "-> Option<PathBuf>",
+            "span": {
+              "start": {
+                "line": 95,
+                "column": 5
+              },
+              "end": {
+                "line": 98,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 97,
+              "column": 9
+            },
+            "end": {
+              "line": 97,
+              "column": 39
+            }
+          },
+          "replacement": "Some(Default::default())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_97_col_9_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_97_col_9_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.879744193,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.251791066,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:102:9: replace LogSink::recordings -> u64 with 0",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::recordings",
+            "return_type": "-> u64",
+            "span": {
+              "start": {
+                "line": 100,
+                "column": 5
+              },
+              "end": {
+                "line": 103,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 102,
+              "column": 9
+            },
+            "end": {
+              "line": 102,
+              "column": 33
+            }
+          },
+          "replacement": "0",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_102_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_102_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.005162837,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.403859981,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:102:9: replace LogSink::recordings -> u64 with 1",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::recordings",
+            "return_type": "-> u64",
+            "span": {
+              "start": {
+                "line": 100,
+                "column": 5
+              },
+              "end": {
+                "line": 103,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 102,
+              "column": 9
+            },
+            "end": {
+              "line": 102,
+              "column": 33
+            }
+          },
+          "replacement": "1",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_102_col_9_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_102_col_9_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.516535722,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.453095832,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:107:9: replace LogSink::bytes -> u64 with 0",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::bytes",
+            "return_type": "-> u64",
+            "span": {
+              "start": {
+                "line": 105,
+                "column": 5
+              },
+              "end": {
+                "line": 108,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 107,
+              "column": 9
+            },
+            "end": {
+              "line": 107,
+              "column": 32
+            }
+          },
+          "replacement": "0",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_107_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_107_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.416777722,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.453437472,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:107:9: replace LogSink::bytes -> u64 with 1",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::bytes",
+            "return_type": "-> u64",
+            "span": {
+              "start": {
+                "line": 105,
+                "column": 5
+              },
+              "end": {
+                "line": 108,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 107,
+              "column": 9
+            },
+            "end": {
+              "line": 107,
+              "column": 32
+            }
+          },
+          "replacement": "1",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_107_col_9_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_107_col_9_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.307390223,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.202072165,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:113:9: replace LogSink::open_connection -> u8 with 0",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::open_connection",
+            "return_type": "-> u8",
+            "span": {
+              "start": {
+                "line": 110,
+                "column": 5
+              },
+              "end": {
+                "line": 123,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 113,
+              "column": 9
+            },
+            "end": {
+              "line": 122,
+              "column": 10
+            }
+          },
+          "replacement": "0",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_113_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_113_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.263625139,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.453050363,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:113:9: replace LogSink::open_connection -> u8 with 1",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::open_connection",
+            "return_type": "-> u8",
+            "span": {
+              "start": {
+                "line": 110,
+                "column": 5
+              },
+              "end": {
+                "line": 123,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 113,
+              "column": 9
+            },
+            "end": {
+              "line": 122,
+              "column": 10
+            }
+          },
+          "replacement": "1",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_113_col_9_001.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_113_col_9_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.106576095,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.455685327,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:114:43: delete ! in LogSink::open_connection",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::open_connection",
+            "return_type": "-> u8",
+            "span": {
+              "start": {
+                "line": 110,
+                "column": 5
+              },
+              "end": {
+                "line": 123,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 114,
+              "column": 43
+            },
+            "end": {
+              "line": 114,
+              "column": 44
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_114_col_43.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_114_col_43.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.908062732,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:127:9: replace LogSink::close_connection with ()",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::close_connection",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 125,
+                "column": 5
+              },
+              "end": {
+                "line": 131,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 127,
+              "column": 9
+            },
+            "end": {
+              "line": 130,
+              "column": 10
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_127_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_127_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.7559197850000001,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.204923749,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/ananasar-net/src/log.rs:136:9: replace LogSink::record with ()",
+          "package": "ananasar-net",
+          "file": "crates/ananasar-net/src/log.rs",
+          "function": {
+            "function_name": "LogSink::record",
+            "return_type": "",
+            "span": {
+              "start": {
+                "line": 133,
+                "column": 5
+              },
+              "end": {
+                "line": 149,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 136,
+              "column": 9
+            },
+            "end": {
+              "line": 148,
+              "column": 10
+            }
+          },
+          "replacement": "()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__ananasar-net__src__log.rs_line_136_col_9.log",
+      "diff_path": "diff/crates__ananasar-net__src__log.rs_line_136_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 1.362991791,
+          "process_status": "Success",
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.402944014,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/usr/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=ananasar-net@0.1.0"
+          ]
+        }
+      ]
+    }
+  ],
+  "total_mutants": 59,
+  "missed": 2,
+  "caught": 46,
+  "timeout": 0,
+  "unviable": 11,
+  "success": 0,
+  "start_time": "2026-11-09T05:30:56.109823034Z",
+  "end_time": "2026-11-09T05:32:22.006201332Z",
+  "cargo_mutants_version": "27.1.0"
+}

@@ -1,0 +1,21 @@
+--- crates/ananasar-net/src/lib.rs
++++ delete ! in finish_frame
+@@ -92,17 +92,17 @@
+     let mut head = [0u8; MBAP_PREFIX + 1];
+     r.read_exact(&mut head)?;
+     finish_frame(r, head, max)
+ }
+ 
+ fn finish_frame(r: &mut impl Read, head: [u8; MBAP_PREFIX + 1], max: usize) -> io::Result<Vec<u8>> {
+     let declared = protocol::be_u16(&head, 4).map_or(0, usize::from);
+     let total = declared.saturating_add(6);
+-    if !(head.len()..=max).contains(&total) {
++    if  /* ~ changed by cargo-mutants ~ */(head.len()..=max).contains(&total) {
+         return Err(io::Error::new(io::ErrorKind::InvalidData, "bad MBAP length"));
+     }
+     let mut out = head.to_vec();
+     out.resize(total, 0);
+     let rest =
+         out.get_mut(head.len()..).ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "bad MBAP length"))?;
+     r.read_exact(rest)?;
+     Ok(out)

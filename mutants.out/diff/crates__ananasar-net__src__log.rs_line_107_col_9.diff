@@ -1,0 +1,21 @@
+--- crates/ananasar-net/src/log.rs
++++ replace LogSink::bytes -> u64 with 0
+@@ -99,17 +99,17 @@
+ 
+     /// Entries written to the current or last recording.
+     pub fn recordings(&self) -> u64 {
+         lock(&self.state).number
+     }
+ 
+     /// Bytes written to the current or last recording.
+     pub fn bytes(&self) -> u64 {
+-        lock(&self.state).bytes
++        0 /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// Claim the lowest free connection number (1 or 2). Returns 0 if both
+     /// are taken, which the server's client limit prevents.
+     pub fn open_connection(&self) -> u8 {
+         let mut st = lock(&self.state);
+         match st.used.iter().position(|u| !u) {
+             Some(i) => {

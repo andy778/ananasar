@@ -1,0 +1,21 @@
+--- crates/ananasar-net/src/log.rs
++++ delete ! in LogSink::open_connection
+@@ -106,17 +106,17 @@
+     pub fn bytes(&self) -> u64 {
+         lock(&self.state).bytes
+     }
+ 
+     /// Claim the lowest free connection number (1 or 2). Returns 0 if both
+     /// are taken, which the server's client limit prevents.
+     pub fn open_connection(&self) -> u8 {
+         let mut st = lock(&self.state);
+-        match st.used.iter().position(|u| !u) {
++        match st.used.iter().position(|u|  /* ~ changed by cargo-mutants ~ */u) {
+             Some(i) => {
+                 if let Some(u) = st.used.get_mut(i) {
+                     *u = true;
+                 }
+                 u8::try_from(i).map_or(0, |n| n.saturating_add(1))
+             }
+             None => 0,
+         }

@@ -1,0 +1,21 @@
+--- crates/ananasar-net/src/lib.rs
++++ delete ! in Server::spawn_connection
+@@ -166,17 +166,17 @@
+         }
+         stream.set_nonblocking(false).ok();
+         self.clients.fetch_add(1, Ordering::SeqCst);
+         let slot = Slot(self.clients.clone());
+         let server = self.clone();
+         std::thread::spawn(move || {
+             let _slot = slot;
+             let peer = stream.peer_addr().map(|a| a.to_string()).unwrap_or_default();
+-            let nagle = !stream.nodelay().unwrap_or(false);
++            let nagle =  /* ~ changed by cargo-mutants ~ */stream.nodelay().unwrap_or(false);
+             let ip = stream.peer_addr().map(|a| a.ip().to_string()).unwrap_or_default();
+             let stream = Arc::new(stream);
+             let stats_slot = {
+                 let mut stats = lock(&server.stats);
+                 let slot = stats.connect(&ip, nagle);
+                 if let Some(slot) = slot {
+                     stats.attach(slot, stream.clone());
+                 }

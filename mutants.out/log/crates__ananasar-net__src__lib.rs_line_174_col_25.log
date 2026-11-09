@@ -1,0 +1,131 @@
+
+*** crates/ananasar-net/src/lib.rs:174:25: delete ! in Server::spawn_connection
+
+*** mutation diff:
+--- crates/ananasar-net/src/lib.rs
++++ delete ! in Server::spawn_connection
+@@ -166,17 +166,17 @@
+         }
+         stream.set_nonblocking(false).ok();
+         self.clients.fetch_add(1, Ordering::SeqCst);
+         let slot = Slot(self.clients.clone());
+         let server = self.clone();
+         std::thread::spawn(move || {
+             let _slot = slot;
+             let peer = stream.peer_addr().map(|a| a.to_string()).unwrap_or_default();
+-            let nagle = !stream.nodelay().unwrap_or(false);
++            let nagle =  /* ~ changed by cargo-mutants ~ */stream.nodelay().unwrap_or(false);
+             let ip = stream.peer_addr().map(|a| a.ip().to_string()).unwrap_or_default();
+             let stream = Arc::new(stream);
+             let stats_slot = {
+                 let mut stats = lock(&server.stats);
+                 let slot = stats.connect(&ip, nagle);
+                 if let Some(slot) = slot {
+                     stats.attach(slot, stream.clone());
+                 }
+
+
+*** /usr/bin/cargo test --no-run --verbose --package=ananasar-net@0.1.0
+       Fresh libc v0.2.190
+       Fresh rand_core v0.10.1
+       Fresh cfg-if v1.0.5
+       Fresh autocfg v1.5.1
+       Fresh getrandom v0.4.3
+       Fresh cpufeatures v0.3.1
+       Fresh chacha20 v0.10.2
+       Fresh num-traits v0.2.19
+       Fresh rand v0.10.3
+       Fresh ananasar-core v0.1.0 (/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/crates/ananasar-core)
+       Fresh rand_xorshift v0.5.0
+       Fresh socket2 v0.6.5
+       Fresh regex-syntax v0.8.11
+       Fresh unarray v0.1.4
+       Fresh bitflags v2.13.2
+       Fresh core_detect v1.0.0
+       Dirty ananasar-net v0.1.0 (/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/crates/ananasar-net): the file `crates/ananasar-net/src/lib.rs` has changed (1794202311.941281940s, 1s after last build at 1794202310.428936453s)
+   Compiling ananasar-net v0.1.0 (/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/crates/ananasar-net)
+       Fresh proptest v1.12.0
+     Running `rustc --crate-name ananasar_net --edition=2024 crates/ananasar-net/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=6f42df309dd810f7 -C extra-filename=-4ac2019a6a139298 --out-dir /tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rlib --extern proptest=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libproptest-aceb842c4289fc43.rlib --extern socket2=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libsocket2-b14077c6dd45d4e7.rlib`
+     Running `rustc --crate-name ananasar_net --edition=2024 crates/ananasar-net/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=514d7f5049d2c387 -C extra-filename=-3dcf11e648e70e2b --out-dir /tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rmeta --extern socket2=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libsocket2-b14077c6dd45d4e7.rmeta`
+     Running `rustc --crate-name properties --edition=2024 crates/ananasar-net/tests/properties.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=d84d9e2c1cf87028 -C extra-filename=-cb9a38fd4aab0d03 --out-dir /tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rlib --extern ananasar_net=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_net-3dcf11e648e70e2b.rlib --extern proptest=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libproptest-aceb842c4289fc43.rlib --extern socket2=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libsocket2-b14077c6dd45d4e7.rlib`
+     Running `rustc --crate-name connections --edition=2024 crates/ananasar-net/tests/connections.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=rust_2018_idioms '--deny=clippy::unwrap_used' --forbid=unsafe_code '--deny=clippy::unreachable' '--warn=clippy::uninlined_format_args' '--warn=clippy::unimplemented' '--warn=clippy::todo' '--warn=clippy::semicolon_if_nothing_returned' '--deny=clippy::panic' '--warn=clippy::manual_let_else' '--deny=clippy::indexing_slicing' '--warn=clippy::explicit_iter_loop' '--deny=clippy::expect_used' '--warn=clippy::dbg_macro' '--deny=clippy::arithmetic_side_effects' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=3692c2fdc96efbfb -C extra-filename=-7f282caacf7bdba8 --out-dir /tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps --extern ananasar_core=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_core-0b52218d93db0f1b.rlib --extern ananasar_net=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libananasar_net-3dcf11e648e70e2b.rlib --extern proptest=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libproptest-aceb842c4289fc43.rlib --extern socket2=/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/libsocket2-b14077c6dd45d4e7.rlib`
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.69s
+  Executable `/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/ananasar_net-4ac2019a6a139298`
+  Executable `/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/connections-7f282caacf7bdba8`
+  Executable `/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/properties-cb9a38fd4aab0d03`
+
+*** result: Success
+
+*** /usr/bin/cargo test --verbose --package=ananasar-net@0.1.0
+    Blocking waiting for file lock on package cache
+       Fresh libc v0.2.190
+       Fresh rand_core v0.10.1
+       Fresh cfg-if v1.0.5
+       Fresh autocfg v1.5.1
+       Fresh cpufeatures v0.3.1
+       Fresh socket2 v0.6.5
+       Fresh core_detect v1.0.0
+       Fresh bitflags v2.13.2
+       Fresh unarray v0.1.4
+       Fresh regex-syntax v0.8.11
+       Fresh chacha20 v0.10.2
+       Fresh rand_xorshift v0.5.0
+       Fresh getrandom v0.4.3
+       Fresh ananasar-core v0.1.0 (/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/crates/ananasar-core)
+       Fresh rand v0.10.3
+       Fresh num-traits v0.2.19
+       Fresh proptest v1.12.0
+       Fresh ananasar-net v0.1.0 (/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/crates/ananasar-net)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.29s
+     Running `/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/ananasar_net-4ac2019a6a139298`
+
+running 15 tests
+test stats::tests::set_nagle_changes_the_socket_option_of_that_slot ... ok
+test stats::tests::exception_replies_are_noted ... ok
+test stats::tests::records_request_fields_and_flags ... ok
+test stats::tests::slots_fill_lowest_first_and_free_again ... ok
+test log::tests::start_fails_in_a_missing_directory_and_stays_idle ... ok
+test tests::reads_a_whole_frame ... ok
+test tests::rejects_bad_or_truncated_frames ... ok
+test tests::requests_with_a_bad_header_are_handed_over_whole ... ok
+test log::tests::can_start_and_stop_while_connections_stay_numbered ... ok
+test log::tests::numbers_entries_and_connections ... ok
+test client::tests::connects_with_and_without_keepalive ... ok
+test client::tests::parses_valid_endpoint ... ok
+test log::tests::start_and_stop_manage_a_log_file ... ok
+test client::tests::rejects_bad_endpoints ... ok
+test client::tests::splits_host_port ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running `/tmp/cargo-mutants-mut-221-net-8cd987-uiPNkS.tmp/target/debug/deps/connections-7f282caacf7bdba8`
+
+running 10 tests
+test a_request_for_another_unit_gets_no_reply_stays_open_and_is_logged ... ok
+test a_bad_protocol_id_is_logged_with_the_request_and_closes_the_connection ... ok
+test a_refused_request_with_a_bad_header_gets_its_exception_before_the_close ... ok
+test a_refused_request_with_a_bad_protocol_id_logs_the_reply_then_the_close ... ok
+test nagle_is_switched_on_a_live_connection_and_only_while_it_exists ... FAILED
+test a_good_frame_after_the_bad_one_is_not_served ... ok
+test an_invalid_frame_length_closes_the_connection_and_is_logged ... ok
+test bad_protocol_id_or_length_high_byte_closes_the_connection ... ok
+test reply_out_of_synch_answers_one_request_late ... ok
+test client_slots_are_released_so_connections_in_sequence_are_never_refused ... ok
+
+failures:
+
+---- nagle_is_switched_on_a_live_connection_and_only_while_it_exists stdout ----
+
+thread 'nagle_is_switched_on_a_live_connection_and_only_while_it_exists' (1961115) panicked at crates/ananasar-net/tests/connections.rs:190:9:
+enabled by default
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    nagle_is_switched_on_a_live_connection_and_only_while_it_exists
+
+test result: FAILED. 9 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+
+error: test failed, to rerun pass `-p ananasar-net --test connections`
+
+*** result: Failure(101)

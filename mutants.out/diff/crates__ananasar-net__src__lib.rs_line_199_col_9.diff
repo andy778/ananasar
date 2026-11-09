@@ -1,0 +1,99 @@
+--- crates/ananasar-net/src/lib.rs
++++ replace Server::serve_connection with ()
+@@ -191,95 +191,17 @@
+             if let Some(slot) = stats_slot {
+                 lock(&server.stats).disconnect(slot);
+             }
+             (server.notify)(Event::Disconnected(peer));
+         });
+     }
+ 
+     fn serve_connection(&self, stream: &TcpStream, conn: u8, stats_slot: Option<usize>) {
+-        stream.set_read_timeout(Some(IDLE_TIMEOUT)).ok();
+-        stream.set_write_timeout(Some(IDLE_TIMEOUT)).ok();
+-        // `&TcpStream` reads and writes too; the stats keep the other handle.
+-        let (mut rd, mut wr) = (stream, stream);
+-        let mut last_request: Option<Instant> = None;
+-        let mut synch = OutOfSynch::default();
+-        loop {
+-            let request = match read_request(&mut rd, MAX_REQUEST) {
+-                Ok(r) => r,
+-                Err(e) => {
+-                    // A bad length field is a detected error; a closed or
+-                    // idle connection is not.
+-                    if e.kind() == io::ErrorKind::InvalidData {
+-                        lock(&self.stats).out_of_sync = true;
+-                        (self.notify)(Event::Activity);
+-                        if let Some(log) = &self.log {
+-                            log.record(conn, &[], Response::Error("invalid frame length, connection closed"));
+-                        }
+-                    }
+-                    return;
+-                }
+-            };
+-            let now = Instant::now();
+-            let interval_ms =
+-                last_request.map(|prev| u64::try_from(now.duration_since(prev).as_millis()).unwrap_or(u64::MAX));
+-            last_request = Some(now);
+-            if let Some(slot) = stats_slot {
+-                lock(&self.stats).record_request(slot, &request, interval_ms);
+-            }
+-            let (outcome, out_of_synch) = {
+-                let cfg = lock(&self.cfg);
+-                (process(&cfg, &mut lock(&self.regs), &request), cfg.out_of_synch)
+-            };
+-            if let (Some(slot), Outcome::Reply(reply) | Outcome::ReplyAndClose(reply)) = (stats_slot, &outcome) {
+-                lock(&self.stats).record_reply(slot, reply);
+-            }
+-            if let Some(log) = &self.log {
+-                match &outcome {
+-                    Outcome::Reply(reply) => log.record(conn, &request, Response::Reply(reply)),
+-                    Outcome::ReplyAndClose(reply) => {
+-                        log.record(conn, &request, Response::Reply(reply));
+-                        log.record(
+-                            conn,
+-                            &[],
+-                            Response::Error("bad protocol id or length high byte, connection closed"),
+-                        );
+-                    }
+-                    Outcome::Close => {
+-                        log.record(
+-                            conn,
+-                            &request,
+-                            Response::Error("bad protocol id or length high byte, connection closed"),
+-                        );
+-                    }
+-                    Outcome::Drop => {
+-                        let why = match protocol::frame(&request) {
+-                            Err(e) => e.to_string(),
+-                            Ok(_) => "request dropped: unit id mismatch".to_owned(),
+-                        };
+-                        log.record(conn, &request, Response::Error(&why));
+-                    }
+-                }
+-            }
+-            let (replies, close) = match outcome {
+-                Outcome::Reply(reply) => (synch.next(out_of_synch, reply), false),
+-                Outcome::ReplyAndClose(reply) => (vec![reply], true),
+-                Outcome::Close => (Vec::new(), true),
+-                Outcome::Drop => (Vec::new(), false),
+-            };
+-            for reply in replies {
+-                if wr.write_all(&reply).is_err() {
+-                    return;
+-                }
+-            }
+-            (self.notify)(Event::Activity);
+-            if close {
+-                return;
+-            }
+-        }
++        () /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+     use ananasar_core::protocol;
+     use std::io::Cursor;
