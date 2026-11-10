@@ -33,7 +33,7 @@ Rust port of Ananas, the free Modbus/TCP tool, taken from http://www.tuomio.fi/a
 ## Releases
 - Releases are automated by `scripts/next-release.py` (run by `.github/workflows/semantic-release.yml`) from the Conventional Commits on `main` (see `docs/releasing.md`). Do not create `v*` tags by hand. `python3 scripts/next-release.py --dry-run` shows the next release; its tests are `python3 -m unittest discover -s scripts`.
 - PRs are squash-merged: the PR title becomes the commit on `main` and decides the version bump, so it must be a Conventional Commit with a deliberately chosen type (the `pr title` check enforces this). One PR is one change with one type.
-- Commits are signed (SSH or GPG); `main` requires signed commits.
+- Commits on `main` are signed: PRs are squash-merged, and GitHub signs each squash commit. Signing commits on your branch is welcome but not required.
 - The tag build in `build.yml` stamps the version from the tag, builds, signs with cosign and attaches the binaries. The script writes the release notes.
 
 ## Working rules
