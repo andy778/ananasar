@@ -541,3 +541,56 @@ fn a_write_address_reaches_the_worker() {
         std::thread::sleep(Duration::from_millis(20));
     }
 }
+
+/// Send one wheel notch of `lines` (positive is wheel up) over the Registers
+/// list, run several frames, and return the start address after each frame.
+fn wheel_over_registers(harness: &mut Harness<'_, App>, lines: f32) -> Vec<u16> {
+    // A point inside the list, a few rows below its header.
+    let over_list = egui::pos2(60.0, 150.0);
+    harness.input_mut().events.push(egui::Event::PointerMoved(over_list));
+    harness.run_steps(2);
+    harness.input_mut().events.push(egui::Event::MouseWheel {
+        unit: egui::MouseWheelUnit::Line,
+        delta: egui::vec2(0.0, lines),
+        phase: egui::TouchPhase::Move,
+        source: egui::MouseWheelSource::Wheel,
+        modifiers: egui::Modifiers::NONE,
+    });
+    let mut seen = Vec::new();
+    for _ in 0..8 {
+        harness.step();
+        seen.push(harness.state().start_address);
+    }
+    seen
+}
+
+#[test]
+fn wheel_down_over_registers_moves_a_few_registers_forward_once() {
+    let mut harness = harness();
+    harness.state_mut().start_address = 10;
+    harness.run_steps(2);
+    let seen = wheel_over_registers(&mut harness, -1.0);
+    let last = *seen.last().expect("frames ran");
+    assert!((11..=16).contains(&last), "one notch moved the list to {last}: {seen:?}");
+    assert_eq!(seen.get(seen.len() - 3..), Some(&[last; 3][..]), "the list keeps moving: {seen:?}");
+}
+
+#[test]
+fn wheel_up_over_registers_moves_a_few_registers_back_once() {
+    let mut harness = harness();
+    harness.state_mut().start_address = 100;
+    harness.run_steps(2);
+    let seen = wheel_over_registers(&mut harness, 1.0);
+    let last = *seen.last().expect("frames ran");
+    assert!((84..=99).contains(&last), "one notch moved the list to {last}: {seen:?}");
+    assert_eq!(seen.get(seen.len() - 3..), Some(&[last; 3][..]), "the list keeps moving: {seen:?}");
+}
+
+#[test]
+fn wheel_up_over_registers_stops_at_address_zero() {
+    let mut harness = harness();
+    harness.state_mut().start_address = 1;
+    harness.run_steps(2);
+    let seen = wheel_over_registers(&mut harness, 5.0);
+    assert_eq!(seen.last(), Some(&0), "{seen:?}");
+}

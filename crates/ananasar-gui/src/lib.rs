@@ -157,6 +157,8 @@ struct App {
     dde: ddeview::DdeView,
     bank: Bank,
     start_address: u16,
+    /// Wheel movement over the Registers list not yet turned into whole registers.
+    wheel_accum: f32,
     tooltips: bool,
     hex: bool,
     selected: Option<u16>,
@@ -241,6 +243,7 @@ impl App {
             dde: ddeview::DdeView::default(),
             bank: Bank::Holding,
             start_address: 0,
+            wheel_accum: 0.0,
             tooltips: true,
             hex: false,
             selected: None,
@@ -480,12 +483,36 @@ impl App {
             painter.line_segment([egui::pos2(x, inner.top()), egui::pos2(x, inner.bottom())], line);
         }
 
-        // Mouse wheel over the list scrolls by ten registers.
-        let scroll = ui.input(|i| i.smooth_scroll_delta.y);
-        if scroll.abs() > 0.0 && ui.rect_contains_pointer(outer) {
-            let step = if scroll > 0.0 { 10i32 } else { -10 };
+        // Mouse wheel over the list scrolls one register per row height of wheel
+        // movement. The wheel events themselves are used because the smoothed delta
+        // spreads a single notch over many frames. Wheel down shows higher addresses.
+        if ui.rect_contains_pointer(outer) {
+            self.wheel_accum += ui.input(|i| {
+                i.raw
+                    .events
+                    .iter()
+                    .map(|e| match e {
+                        // A notch of a physical wheel is a line: three rows.
+                        egui::Event::MouseWheel { unit: egui::MouseWheelUnit::Line, delta, .. } => {
+                            delta.y * ROW_H * 3.0
+                        }
+                        egui::Event::MouseWheel { unit: egui::MouseWheelUnit::Point, delta, .. } => delta.y,
+                        egui::Event::MouseWheel { unit: egui::MouseWheelUnit::Page, delta, .. } => {
+                            delta.y * ROW_H * f32::from(VISIBLE_ROWS)
+                        }
+                        _ => 0.0,
+                    })
+                    .sum::<f32>()
+            });
+            let steps = (self.wheel_accum / ROW_H).trunc();
+            self.wheel_accum -= steps * ROW_H;
+            // `steps` is a small whole number, so the cast is exact.
+            #[allow(clippy::cast_possible_truncation)]
+            let steps = steps as i32;
             self.start_address =
-                u16::try_from((i32::from(self.start_address).saturating_add(step)).clamp(0, 65535)).unwrap_or(0);
+                u16::try_from(i32::from(self.start_address).saturating_sub(steps).clamp(0, 65535)).unwrap_or(0);
+        } else {
+            self.wheel_accum = 0.0;
         }
         let editable = self.bank == Bank::Holding && self.value_list_edit;
         let snapshot: Vec<(u16, u16)> = {
