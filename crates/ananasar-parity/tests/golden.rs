@@ -69,6 +69,9 @@ fn deviations_and_quirks_carry_a_reason() {
     }
 }
 
+/// How long a reply is awaited in the first run, and for the scenarios the retry only replays.
+const SHORT_TIMEOUT: Duration = Duration::from_millis(250);
+
 /// How long the retry of a differing scenario waits for each reply.
 const RETRY_TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -84,21 +87,21 @@ fn ananasar_matches_the_original_except_listed_deviations() {
                 // their golden files say so with a default-deviation.
                 let cfg = ours::server_config(name).unwrap_or_default();
                 let server = ours::start(cfg).unwrap();
-                let mut recorded = runner::run_profile(server.addr, name, &[], 1, Duration::from_millis(250)).unwrap();
+                let mut recorded = runner::run_profile(server.addr, name, &[], 1, SHORT_TIMEOUT).unwrap();
                 let opts = Options { strict_txn: true };
                 let mut report = golden::compare(&golden, &recorded, opts);
                 // A reply that only arrived late on a slow machine is recorded as no reply.
                 // Re-run just the differing scenarios with a long wait before reporting:
-                // a reply that is really missing is still missing after 5 s. A fresh server
-                // keeps the registers as the scenario expects them.
+                // a reply that is really missing is still missing after 5 s. The retry replays the
+                // whole profile on a fresh server, since later scenarios read what earlier ones wrote.
                 if !report.unexpected_sections.is_empty() {
                     let server = ours::start(ours::server_config(name).unwrap_or_default()).unwrap();
-                    for section_name in &report.unexpected_sections {
-                        let again = runner::run_scenario_by_name(server.addr, name, section_name, 1, RETRY_TIMEOUT)
-                            .unwrap()
-                            .expect("scenario in the catalog");
-                        if let Some(slot) = recorded.sections.iter_mut().find(|s| &s.name == section_name) {
-                            *slot = again;
+                    let names = report.unexpected_sections.clone();
+                    let again =
+                        runner::rerun_sections(server.addr, name, &names, 1, SHORT_TIMEOUT, RETRY_TIMEOUT).unwrap();
+                    for section in again {
+                        if let Some(slot) = recorded.sections.iter_mut().find(|s| s.name == section.name) {
+                            *slot = section;
                         }
                     }
                     report = golden::compare(&golden, &recorded, opts);

@@ -36,22 +36,32 @@ pub fn run_profile(
     Ok(rec)
 }
 
-/// Run the one scenario called `name` of `profile` and return its section, or
-/// `None` when the profile has no such scenario. Used to re-run a scenario with
-/// a long `timeout` before reporting a difference: a reply that is really
-/// missing is still missing after the long wait, but one that only arrived late
-/// on a slow machine is then recorded.
-pub fn run_scenario_by_name(
-    addr: impl ToSocketAddrs,
+/// Run `profile` again on a fresh server at `addr` and return the sections
+/// called `names`, in catalog order.
+///
+/// Scenarios depend on the registers earlier ones left behind (the first one
+/// seeds them), so a section can only be reproduced by replaying everything
+/// before it. The scenarios in `names` wait `timeout` for each reply, the rest
+/// only `replay_timeout`: a reply that is really missing is still missing after
+/// a long wait, but one that only arrived late on a slow machine is then
+/// recorded. The caller must pass a server whose registers are still zero.
+pub fn rerun_sections(
+    addr: impl ToSocketAddrs + Copy,
     profile: &str,
-    name: &str,
+    names: &[String],
     unit: u8,
+    replay_timeout: Duration,
     timeout: Duration,
-) -> io::Result<Option<Section>> {
-    match scenarios::for_profile(profile, unit).into_iter().find(|s| s.name == name) {
-        Some(scenario) => run_scenario(addr, &scenario, timeout).map(Some),
-        None => Ok(None),
+) -> io::Result<Vec<Section>> {
+    let mut out = Vec::new();
+    for scenario in scenarios::for_profile(profile, unit) {
+        if names.iter().any(|n| n == scenario.name) {
+            out.push(run_scenario(addr, &scenario, timeout)?);
+        } else {
+            run_scenario(addr, &scenario, replay_timeout)?;
+        }
     }
+    Ok(out)
 }
 
 /// Pause between the TCP segments of a split step.
@@ -166,23 +176,63 @@ mod tests {
     #[test]
     fn a_long_timeout_records_a_late_reply_a_short_one_misses() {
         let addr = slow_server();
-        let name = scenarios::for_profile(scenarios::DEFAULT_PROFILE, 1)[0].name;
-        let short = run_scenario_by_name(addr, scenarios::DEFAULT_PROFILE, name, 1, Duration::from_millis(250))
-            .unwrap()
-            .unwrap();
-        assert_eq!(short.entries[1], Entry::NoReply);
-        let long =
-            run_scenario_by_name(addr, scenarios::DEFAULT_PROFILE, name, 1, Duration::from_secs(5)).unwrap().unwrap();
-        assert!(matches!(long.entries[1], Entry::Received(_)));
+        let name = scenarios::for_profile(scenarios::DEFAULT_PROFILE, 1)[0].name.to_owned();
+        let names = [name];
+        let short = rerun_sections(
+            addr,
+            scenarios::DEFAULT_PROFILE,
+            &names,
+            1,
+            Duration::from_millis(1),
+            Duration::from_millis(250),
+        )
+        .unwrap();
+        assert_eq!(short[0].entries[1], Entry::NoReply);
+        let long = rerun_sections(
+            addr,
+            scenarios::DEFAULT_PROFILE,
+            &names,
+            1,
+            Duration::from_millis(1),
+            Duration::from_secs(5),
+        )
+        .unwrap();
+        assert!(matches!(long[0].entries[1], Entry::Received(_)));
     }
 
     #[test]
-    fn unknown_scenario_names_give_none() {
+    fn unknown_scenario_names_give_nothing() {
         let addr = slow_server();
-        assert!(
-            run_scenario_by_name(addr, scenarios::DEFAULT_PROFILE, "nope", 1, Duration::from_millis(10))
-                .unwrap()
-                .is_none()
+        let names = ["nope".to_owned()];
+        let none = rerun_sections(
+            addr,
+            scenarios::DEFAULT_PROFILE,
+            &names,
+            1,
+            Duration::from_millis(1),
+            Duration::from_millis(10),
         );
+        assert!(none.unwrap().is_empty());
+    }
+
+    /// Regression: a section that reads registers an earlier scenario wrote must
+    /// come out the same when re-run, not as if the server had just started.
+    #[test]
+    fn a_rerun_section_sees_the_registers_earlier_scenarios_wrote() {
+        let name = "split_two_requests_mid_frame".to_owned();
+        let first = crate::ours::start(Default::default()).unwrap();
+        let full = run(first.addr, 1, Duration::from_millis(500)).unwrap();
+        let expected = full.sections.iter().find(|s| s.name == name).unwrap();
+        let second = crate::ours::start(Default::default()).unwrap();
+        let again = rerun_sections(
+            second.addr,
+            scenarios::DEFAULT_PROFILE,
+            std::slice::from_ref(&name),
+            1,
+            Duration::from_millis(500),
+            Duration::from_secs(2),
+        )
+        .unwrap();
+        assert_eq!(&again[0], expected);
     }
 }
