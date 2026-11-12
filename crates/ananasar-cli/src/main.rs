@@ -314,7 +314,7 @@ fn run_client(args: ClientArgs) -> i32 {
             return 1;
         }
         match read_frame(&mut stream) {
-            Ok(resp) => print_response(&resp),
+            Ok(resp) => print_response(&query, &resp),
             Err(e) => {
                 eprintln!("no/invalid response: {e}");
                 return 1;
@@ -325,21 +325,64 @@ fn run_client(args: ClientArgs) -> i32 {
     0
 }
 
-fn print_response(resp: &[u8]) {
-    match protocol::frame(resp) {
-        Ok((hdr, func, pdu)) => {
-            if func & 0x80 != 0 {
-                println!(
-                    "TI {}: exception on FC 0x{:02X}, code {}",
-                    hdr.transaction_id,
-                    func & 0x7F,
-                    pdu.first().copied().unwrap_or(0)
-                );
-            } else {
-                println!("TI {}: FC 0x{func:02X} ok, {} data bytes", hdr.transaction_id, pdu.len());
+fn print_response(query: &[u8], resp: &[u8]) {
+    for line in format_response(query, resp) {
+        println!("{line}");
+    }
+}
+
+fn be16(d: &[u8], at: usize) -> Option<u16> {
+    let end = at.checked_add(2)?;
+    d.get(at..end)?.first_chunk::<2>().map(|b| u16::from_be_bytes(*b))
+}
+
+/// The output lines for one reply. `query` is the request frame that was sent:
+/// a read reply carries no addresses, so they come from the request's start
+/// address. Bad or short replies never panic; they yield what can be decoded
+/// plus a warning line.
+fn format_response(query: &[u8], resp: &[u8]) -> Vec<String> {
+    let (hdr, func, pdu) = match protocol::frame(resp) {
+        Ok(f) => f,
+        Err(e) => return vec![format!("unframeable response: {e}")],
+    };
+    let ti = hdr.transaction_id;
+    if func & 0x80 != 0 {
+        let code = pdu.first().copied().unwrap_or(0);
+        return vec![format!("TI {ti}: exception on FC 0x{:02X}, code {code}", func & 0x7F)];
+    }
+    // The request PDU: start address and count are its first four bytes.
+    let qpdu = protocol::frame(query).map_or(&[][..], |(_, _, d)| d);
+    let (start, count) = (be16(qpdu, 0), be16(qpdu, 2));
+    match (func, start, count) {
+        (0x03 | 0x04, Some(start), Some(count)) => {
+            let data = pdu.get(1..).unwrap_or(&[]);
+            let mut lines: Vec<String> = data
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .take(usize::from(count))
+                .enumerate()
+                .map(|(i, w)| {
+                    let addr = u32::from(start).saturating_add(u32::try_from(i).unwrap_or(u32::MAX));
+                    format!("TI {ti}: FC 0x{func:02X} register {addr} = {}", u16::from_be_bytes(*w))
+                })
+                .collect();
+            let declared = usize::from(pdu.first().copied().unwrap_or(0));
+            let wanted = usize::from(count).saturating_mul(2);
+            if declared != wanted || data.len() != declared {
+                lines.push(format!(
+                    "TI {ti}: warning: requested {count} registers ({} bytes), reply has byte count {declared} and {} data bytes",
+                    wanted,
+                    data.len()
+                ));
             }
+            lines
         }
-        Err(e) => println!("unframeable response: {e}"),
+        (0x10, _, _) => match (be16(pdu, 0), be16(pdu, 2)) {
+            (Some(addr), Some(n)) => vec![format!("TI {ti}: FC 0x10 ok, wrote {n} registers at {addr}")],
+            _ => vec![format!("TI {ti}: FC 0x10 ok, truncated reply ({} data bytes)", pdu.len())],
+        },
+        _ => vec![format!("TI {ti}: FC 0x{func:02X} ok, {} data bytes", pdu.len())],
     }
 }
 
@@ -395,6 +438,61 @@ mod tests {
 
     fn rejected(line: &str) -> clap::error::ErrorKind {
         parse(line).err().unwrap_or_else(|| panic!("`{line}` should not parse")).kind()
+    }
+
+    fn req(func: u8, start: u16, count: u16) -> Vec<u8> {
+        let mut v = vec![0, 7, 0, 0, 0, 6, 1, func];
+        v.extend(start.to_be_bytes());
+        v.extend(count.to_be_bytes());
+        v
+    }
+
+    fn reply(func: u8, pdu: &[u8]) -> Vec<u8> {
+        let mut v = vec![0, 7, 0, 0];
+        v.extend(u16::try_from(pdu.len().saturating_add(2)).unwrap().to_be_bytes());
+        v.extend([1, func]);
+        v.extend(pdu);
+        v
+    }
+
+    #[test]
+    fn read_reply_prints_one_line_per_register() {
+        let r = reply(3, &[4, 0xFF, 0xF9, 0x00, 0x01]);
+        assert_eq!(
+            format_response(&req(3, 6, 2), &r),
+            ["TI 7: FC 0x03 register 6 = 65529", "TI 7: FC 0x03 register 7 = 1"]
+        );
+        let r = reply(4, &[2, 0x12, 0x34]);
+        assert_eq!(format_response(&req(4, 100, 1), &r), ["TI 7: FC 0x04 register 100 = 4660"]);
+    }
+
+    #[test]
+    fn write_reply_stays_one_line() {
+        let r = reply(0x10, &[0, 5, 0, 2]);
+        assert_eq!(format_response(&req(0x10, 5, 2), &r), ["TI 7: FC 0x10 ok, wrote 2 registers at 5"]);
+    }
+
+    #[test]
+    fn exception_reply_keeps_its_line() {
+        let r = reply(0x83, &[2]);
+        assert_eq!(format_response(&req(3, 0, 1), &r), ["TI 7: exception on FC 0x03, code 2"]);
+    }
+
+    #[test]
+    fn short_or_mismatched_reply_warns_without_panicking() {
+        // Two registers requested, one returned.
+        let lines = format_response(&req(3, 0, 2), &reply(3, &[2, 0, 9]));
+        assert_eq!(lines[0], "TI 7: FC 0x03 register 0 = 9");
+        assert!(lines[1].contains("warning"), "{lines:?}");
+        // Byte count claims more than is present.
+        let lines = format_response(&req(3, 0, 1), &reply(3, &[4, 0, 9]));
+        assert!(lines.last().unwrap().contains("warning"), "{lines:?}");
+        // Empty PDU and truncated write reply.
+        assert!(format_response(&req(3, 0, 1), &reply(3, &[])).last().unwrap().contains("warning"));
+        assert!(format_response(&req(0x10, 0, 1), &reply(0x10, &[0])).last().unwrap().contains("truncated"));
+        // Unusable request: falls back to the byte count line.
+        assert_eq!(format_response(&[], &reply(3, &[2, 0, 9])), ["TI 7: FC 0x03 ok, 3 data bytes"]);
+        assert!(format_response(&req(3, 0, 1), &[1, 2])[0].starts_with("unframeable"));
     }
 
     #[test]
