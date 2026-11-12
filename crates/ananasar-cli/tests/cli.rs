@@ -116,7 +116,22 @@ fn client_polls_a_running_server() {
     assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
     let text = stdout(&o);
     assert!(text.contains(&format!("connected to {target}")));
-    assert_eq!(text.matches("ok,").count(), 3, "{text}");
+    assert_eq!(text.matches("TI ").count(), 5, "{text}");
+    assert!(text.contains("TI 1: FC 0x10 ok, wrote 1 registers at 2"), "{text}");
+    assert!(text.contains("TI 0: FC 0x03 register 0 = 0\nTI 0: FC 0x03 register 1 = 0"), "{text}");
+}
+
+#[test]
+fn client_prints_each_register_with_its_address() {
+    let s = start_server(&[]);
+    let target = format!("127.0.0.1:{}", s.port);
+    let o = run(&["client", &target, "--read-holding", "6,7,8,9,10,11", "-n", "1"]);
+    assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
+    let text = stdout(&o);
+    for addr in 6..=11 {
+        assert!(text.contains(&format!("TI 0: FC 0x03 register {addr} = ")), "{text}");
+    }
+    assert_eq!(text.matches("register").count(), 6, "{text}");
 }
 
 #[test]

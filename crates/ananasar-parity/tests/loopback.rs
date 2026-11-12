@@ -71,13 +71,12 @@ fn scenarios_record_expected_replies_and_repeat_identically() {
     if !differing.is_empty() {
         let (first, second) = (start_server(), start_server());
         let retry = Duration::from_secs(5);
-        for name in &differing {
-            for (rec, server) in [(&mut a, &first), (&mut b, &second)] {
-                let again = runner::run_scenario_by_name(server.addr, scenarios::DEFAULT_PROFILE, name, 1, retry)
-                    .unwrap()
-                    .expect("scenario in the catalog");
-                if let Some(slot) = rec.sections.iter_mut().find(|s| &s.name == name) {
-                    *slot = again;
+        for (rec, server) in [(&mut a, &first), (&mut b, &second)] {
+            let again =
+                runner::rerun_sections(server.addr, scenarios::DEFAULT_PROFILE, &differing, 1, timeout, retry).unwrap();
+            for section in again {
+                if let Some(slot) = rec.sections.iter_mut().find(|s| s.name == section.name) {
+                    *slot = section;
                 }
             }
         }
