@@ -12,7 +12,7 @@ use ananasar_core::registers::RegisterFile;
 use ananasar_core::server::ServerConfig;
 use ananasar_net::Server;
 use ananasar_parity::recording::{Entry, Recording};
-use ananasar_parity::{diff, proxy, runner};
+use ananasar_parity::{diff, proxy, runner, scenarios};
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -54,12 +54,35 @@ fn section<'a>(rec: &'a Recording, name: &str) -> &'a [Entry] {
 
 #[test]
 fn scenarios_record_expected_replies_and_repeat_identically() {
-    let timeout = Duration::from_millis(200);
+    // Generous, because a close or reply that arrives after the timeout is
+    // recorded as no reply: at 200 ms a slow macOS runner sometimes recorded
+    // `bad_length_high_byte` as closed in one run and silent in the other.
+    // Only the few scenarios that really get no reply pay this wait.
+    let timeout = Duration::from_secs(1);
     let first = start_server();
-    let a = runner::run(first.addr, 1, timeout).unwrap();
+    let mut a = runner::run(first.addr, 1, timeout).unwrap();
     let second = start_server();
-    let b = runner::run(second.addr, 1, timeout).unwrap();
-    assert!(diff::diff(&a, &b).is_empty());
+    let mut b = runner::run(second.addr, 1, timeout).unwrap();
+    // Before reporting a difference, re-run the differing scenarios against fresh servers
+    // with a long wait: a reply that is really missing is still missing after 5 s, but one
+    // that only arrived late on a slow machine is then recorded.
+    let differing: Vec<String> =
+        diff::verdicts(&a, &b, diff::Options::default()).into_iter().filter(|v| !v.matches()).map(|v| v.name).collect();
+    if !differing.is_empty() {
+        let (first, second) = (start_server(), start_server());
+        let retry = Duration::from_secs(5);
+        for (rec, server) in [(&mut a, &first), (&mut b, &second)] {
+            let again =
+                runner::rerun_sections(server.addr, scenarios::DEFAULT_PROFILE, &differing, 1, timeout, retry).unwrap();
+            for section in again {
+                if let Some(slot) = rec.sections.iter_mut().find(|s| s.name == section.name) {
+                    *slot = section;
+                }
+            }
+        }
+    }
+    let differences = diff::diff(&a, &b);
+    assert!(differences.is_empty(), "two runs differ:\n{}", differences.join("\n"));
 
     // 125 registers: byte count 250, MBAP length 253.
     let Entry::Received(limit) = &section(&a, "read_holding_limit")[1] else { panic!("no reply") };

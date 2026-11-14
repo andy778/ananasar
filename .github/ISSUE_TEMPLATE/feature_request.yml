@@ -1,0 +1,55 @@
+name: Feature request
+description: Suggest something Ananasar should do.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to do
+      description: The task or situation, not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: How anyone can check that this is finished, such as a command and its output, or a behaviour in the GUI. A pull request is done when it meets this. For `agent-ready`, checks that can be run as commands.
+      placeholder: The new option is in the GUI and the CLI, and a test covers it.
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where
+      description: Optional. The files or crates the change touches. Required before the issue can be labelled `agent-ready` (see CONTRIBUTING.md).
+  - type: textarea
+    id: tests
+    attributes:
+      label: Tests
+      description: Optional. The tests to add, and what each one checks. Required for `agent-ready`.
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: Optional. What not to change, including tempting nearby fixes. Required for `agent-ready`.
+  - type: dropdown
+    id: original
+    attributes:
+      label: Does the original Ananas do this?
+      options:
+        - "Yes"
+        - "No"
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Alternatives you considered, related Modbus function codes, links to the Modbus specification.

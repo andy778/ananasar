@@ -79,7 +79,11 @@ impl Stats {
     /// the live connection in `slot` and record the new state. Fails with
     /// `NotConnected` when the slot is free.
     pub fn set_nagle(&mut self, slot: usize, enabled: bool) -> io::Result<()> {
-        let stream = self.streams.get(slot).and_then(Option::as_ref).ok_or_else(|| io::Error::from(io::ErrorKind::NotConnected))?;
+        let stream = self
+            .streams
+            .get(slot)
+            .and_then(Option::as_ref)
+            .ok_or_else(|| io::Error::from(io::ErrorKind::NotConnected))?;
         stream.set_nodelay(!enabled)?;
         if let Some(Some(c)) = self.slots.get_mut(slot) {
             c.nagle = enabled;

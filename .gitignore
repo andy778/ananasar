@@ -4,4 +4,7 @@
 # source and intentionally kept out of the repository.
 *.exe
 *.pdf
-node_modules/
+
+# cargo-mutants output (the current run and the previous one).
+mutants.out/
+mutants.out.old/

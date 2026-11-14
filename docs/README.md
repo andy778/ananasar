@@ -22,6 +22,7 @@ Manuals for using Ananasar, and notes on how it is tested and released.
 | [Differences from the original](differences.md) | Where Ananasar deliberately differs from the original Ananas, with the reason and the Modbus specification reference. |
 | [README screenshot](screenshots.md) | How the README screenshot is rendered headlessly and regenerated. |
 | [Releasing](releasing.md) | How releases are cut from Conventional Commits and how the artifacts are built and signed. |
+| [Contributing with an AI agent](contributing-with-ai.md) | A guide for non-developers: installing the tools, picking an issue and opening a pull request. |
 
 ## See also
 

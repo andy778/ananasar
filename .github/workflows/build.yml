@@ -48,7 +48,12 @@ jobs:
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo test --workspace --locked
-      - run: cargo clippy --workspace -- -D warnings
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      # Keeps the crate dependency graph the same as the one in ARCHITECTURE.md.
+      - name: Check the crate layers
+        run: cargo xtask layers
+      - name: Test the release script
+        run: python3 -m unittest discover -s scripts
       # The tag build stamps the version with this script and then builds with
       # --locked, so check in a throwaway copy that the two still agree.
       - name: Check version stamping keeps Cargo.lock in sync
@@ -58,6 +63,42 @@ jobs:
           cd "$tmp"
           GITHUB_REF=refs/tags/v9.9.9 GITHUB_REF_NAME=v9.9.9 ./scripts/stamp-version.sh
           cargo metadata --locked --format-version 1 > /dev/null
+
+  # The tests again on the other release platforms: the networking code and the
+  # DDE server are where they differ. Linux, with clippy and the script checks,
+  # is `test (linux)` above.
+  test-os:
+    name: test (${{ matrix.name }})
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest
+          - name: macos
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: cargo test --workspace --locked
+
+  fmt:
+    name: rustfmt
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all --check
 
   msrv:
     name: msrv (rust 1.92)
@@ -99,7 +140,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
-      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2
+      - uses: taiki-e/install-action@b80e2bb2635f28eb98b9fce1e2f0887e1535c6b2 # v2
         with:
           tool: cargo-about,cargo-audit,cargo-cyclonedx
       - name: Stamp version from tag
@@ -115,8 +156,7 @@ jobs:
   # The pull request and main build: it must still compile on Windows, but it
   # does not wait for the notices job and it skips link-time optimisation, which
   # is most of the release build's time. The release build below embeds the
-  # notices and keeps the release profile; both jobs carry the name the
-  # `protect-main` ruleset requires.
+  # notices and keeps the release profile; both jobs carry the same name.
   windows-check:
     name: build windows x64 exes
     needs: changes
@@ -127,13 +167,36 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2
+      - uses: taiki-e/install-action@b80e2bb2635f28eb98b9fce1e2f0887e1535c6b2 # v2
         with:
           tool: cargo-auditable
       - run: cargo auditable build --release --workspace --locked
+
+  # The one check the `protect-main` ruleset requires from this workflow, so a
+  # new job only has to be added to `needs` here. Jobs skipped by their `if:`
+  # (docs-only PRs, tag builds) count as passing; failed or cancelled ones do
+  # not. `always()` makes it run, and fail, when a needed job failed: without
+  # it, it would be skipped, and a skipped required check counts as passing.
+  ci-passed:
+    name: ci passed
+    needs: [changes, test, test-os, fmt, msrv, deny, windows-check]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fail if a needed job failed or was cancelled
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "::error::a required job ended with: $r"; exit 1 ;;
+            esac
+          done
 
   windows:
     name: build windows x64 exes
@@ -146,7 +209,7 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2
+      - uses: taiki-e/install-action@b80e2bb2635f28eb98b9fce1e2f0887e1535c6b2 # v2
         with:
           tool: cargo-auditable
       - name: Stamp version from tag
@@ -186,7 +249,7 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           save-if: false
-      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2
+      - uses: taiki-e/install-action@b80e2bb2635f28eb98b9fce1e2f0887e1535c6b2 # v2
         with:
           tool: cargo-auditable
       - name: Stamp version from tag
@@ -232,7 +295,7 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           save-if: false
-      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2
+      - uses: taiki-e/install-action@b80e2bb2635f28eb98b9fce1e2f0887e1535c6b2 # v2
         with:
           tool: cargo-auditable
       - name: Stamp version from tag
@@ -305,6 +368,6 @@ jobs:
             release/ananasar-*-notices.zip
             release/SHA256SUMS
             release/SHA256SUMS.sigstore.json
-          # semantic-release writes the release notes; this job only attaches files.
+          # scripts/next-release.py writes the release notes; this job only attaches files.
           generate_release_notes: false
           fail_on_unmatched_files: true

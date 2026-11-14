@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting
+    url: https://github.com/andy778/ananasar/blob/main/docs/troubleshooting.md
+    about: Ports, firewalls, no reply and exceptions; check here first.
+  - name: Security policy
+    url: https://github.com/andy778/ananasar/blob/main/SECURITY.md
+    about: Security issues are reported in a public bug report; there is no private channel.

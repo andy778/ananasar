@@ -22,7 +22,7 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2
+      - uses: taiki-e/install-action@b80e2bb2635f28eb98b9fce1e2f0887e1535c6b2 # v2
         with:
           tool: cargo-audit
       - name: Run cargo-audit and convert to SARIF
@@ -30,7 +30,7 @@ jobs:
           # A finding makes cargo-audit exit non-zero; the SARIF carries it.
           cargo audit --json --color never > audit.json || true
           python3 scripts/audit-sarif.py deny.toml < audit.json > audit.sarif
-      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+      - uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
         with:
           sarif_file: audit.sarif
           category: cargo-audit

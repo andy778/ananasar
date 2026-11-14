@@ -38,7 +38,7 @@ jobs:
           major="${PREVIOUS_VERSION%%.*}"
           if [ "$UPDATE_TYPE" = "version-update:semver-patch" ] \
             || { [ "$UPDATE_TYPE" = "version-update:semver-minor" ] && [ "$major" != "0" ]; }; then
-            gh pr merge --auto --rebase "$PR_URL"
+            gh pr merge --auto --squash "$PR_URL"
           else
             echo "Not auto-merging: $UPDATE_TYPE from $PREVIOUS_VERSION needs a review."
           fi

@@ -471,7 +471,8 @@ mod tests {
         let mut c = Config { seed: 77, ramp_to: Some(40.0), churn: true, ..cfg() };
         c.faults.set(FaultKind::Split, 5.0);
         let s = c.reproduce_args();
-        for want in ["--seed 77", "--ramp-to 40", "--fault-split 5", "--churn", "127.0.0.1:502", "--mix 3=70,4=30,6=0"] {
+        for want in ["--seed 77", "--ramp-to 40", "--fault-split 5", "--churn", "127.0.0.1:502", "--mix 3=70,4=30,6=0"]
+        {
             assert!(s.contains(want), "{s} lacks {want}");
         }
     }

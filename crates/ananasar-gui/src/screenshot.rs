@@ -88,7 +88,11 @@ fn render_readme_screenshot() {
     let deadline = Instant::now() + Duration::from_secs(20);
     loop {
         harness.step();
-        let ready = lock(&harness.state().server.stats).slots.first().and_then(Option::as_ref).is_some_and(|c| c.poll_interval_ms.is_some() && c.bytes_sent > 100);
+        let ready = lock(&harness.state().server.stats)
+            .slots
+            .first()
+            .and_then(Option::as_ref)
+            .is_some_and(|c| c.poll_interval_ms.is_some() && c.bytes_sent > 100);
         if ready {
             break;
         }

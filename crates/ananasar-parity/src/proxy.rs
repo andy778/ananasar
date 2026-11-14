@@ -19,7 +19,11 @@ type Chunks = Arc<Mutex<Vec<(bool, Vec<u8>)>>>;
 
 /// Accept connections on `listener` and forward each to `target`, appending
 /// one section per finished connection to the file at `out`. Runs forever.
-pub fn serve(listener: &TcpListener, target: impl ToSocketAddrs + Clone + Send + 'static, out: &Path) -> io::Result<()> {
+pub fn serve(
+    listener: &TcpListener,
+    target: impl ToSocketAddrs + Clone + Send + 'static,
+    out: &Path,
+) -> io::Result<()> {
     let file = Arc::new(Mutex::new(File::create(out)?));
     for (n, client) in listener.incoming().enumerate() {
         let Ok(client) = client else { continue };

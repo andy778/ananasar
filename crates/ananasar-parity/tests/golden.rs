@@ -69,6 +69,12 @@ fn deviations_and_quirks_carry_a_reason() {
     }
 }
 
+/// How long a reply is awaited in the first run, and for the scenarios the retry only replays.
+const SHORT_TIMEOUT: Duration = Duration::from_millis(250);
+
+/// How long the retry of a differing scenario waits for each reply.
+const RETRY_TIMEOUT: Duration = Duration::from_secs(5);
+
 #[test]
 fn ananasar_matches_the_original_except_listed_deviations() {
     let handles: Vec<_> = PROFILES
@@ -81,8 +87,25 @@ fn ananasar_matches_the_original_except_listed_deviations() {
                 // their golden files say so with a default-deviation.
                 let cfg = ours::server_config(name).unwrap_or_default();
                 let server = ours::start(cfg).unwrap();
-                let recorded = runner::run_profile(server.addr, name, &[], 1, Duration::from_millis(250)).unwrap();
-                let report = golden::compare(&golden, &recorded, Options { strict_txn: true });
+                let mut recorded = runner::run_profile(server.addr, name, &[], 1, SHORT_TIMEOUT).unwrap();
+                let opts = Options { strict_txn: true };
+                let mut report = golden::compare(&golden, &recorded, opts);
+                // A reply that only arrived late on a slow machine is recorded as no reply.
+                // Re-run just the differing scenarios with a long wait before reporting:
+                // a reply that is really missing is still missing after 5 s. The retry replays the
+                // whole profile on a fresh server, since later scenarios read what earlier ones wrote.
+                if !report.unexpected_sections.is_empty() {
+                    let server = ours::start(ours::server_config(name).unwrap_or_default()).unwrap();
+                    let names = report.unexpected_sections.clone();
+                    let again =
+                        runner::rerun_sections(server.addr, name, &names, 1, SHORT_TIMEOUT, RETRY_TIMEOUT).unwrap();
+                    for section in again {
+                        if let Some(slot) = recorded.sections.iter_mut().find(|s| s.name == section.name) {
+                            *slot = section;
+                        }
+                    }
+                    report = golden::compare(&golden, &recorded, opts);
+                }
                 (name, report)
             })
         })
@@ -102,8 +125,11 @@ fn unimplemented_options_are_declared_in_their_golden() {
     for p in PROFILES {
         if ours::server_config(p.name).is_none() {
             let g = load(p.name);
-            assert!(g.default_deviation.is_some(), "{}: Ananasar lacks this option, so the golden must say why it differs", p.name);
+            assert!(
+                g.default_deviation.is_some(),
+                "{}: Ananasar lacks this option, so the golden must say why it differs",
+                p.name
+            );
         }
     }
 }
-

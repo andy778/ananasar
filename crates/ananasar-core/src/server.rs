@@ -11,7 +11,7 @@
 //! global, so quantities of 253-255 overflowed it. Enforcing the Modbus limits
 //! closes that hole.
 
-use crate::protocol::{be_u16, build, Exception, Function};
+use crate::protocol::{Exception, Function, be_u16, build};
 use crate::registers::{Bank, RegisterFile};
 use std::collections::BTreeSet;
 
@@ -166,18 +166,18 @@ fn refusal(cfg: &ServerConfig, func_byte: u8, pdu: &[u8]) -> Option<Exception> {
     let Some(func) = Function::from_u8(func_byte).filter(|_| cfg.supported.contains(&func_byte)) else {
         return Some(Exception::IllegalFunction);
     };
-    cfg.forced_exception.map(|forced| {
-        if address_fault(cfg, func, pdu) { Exception::IllegalDataAddress } else { forced }
-    })
+    cfg.forced_exception.map(
+        |forced| {
+            if address_fault(cfg, func, pdu) { Exception::IllegalDataAddress } else { forced }
+        },
+    )
 }
 
 /// A request whose protocol id or length high byte is wrong: the original
 /// closes the connection, first sending the exception (with the bad protocol
 /// id echoed) when the request would be refused. Nothing is executed.
 fn bad_header(cfg: &ServerConfig, buf: &[u8]) -> Outcome {
-    let (Some(&[t0, t1, p0, p1, _, _, unit_id, func_byte]), Some(pdu)) =
-        (buf.first_chunk::<8>(), buf.get(8..))
-    else {
+    let (Some(&[t0, t1, p0, p1, _, _, unit_id, func_byte]), Some(pdu)) = (buf.first_chunk::<8>(), buf.get(8..)) else {
         return Outcome::Close;
     };
     if !cfg.uid_ok(unit_id) {
@@ -208,14 +208,7 @@ fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome 
     }
     regs.diagnostics.messages = regs.diagnostics.messages.saturating_add(1);
 
-    let exc = |e: Exception| {
-        Outcome::Reply(build(
-            hdr.transaction_id,
-            hdr.unit_id,
-            func_byte | 0x80,
-            &[e as u8],
-        ))
-    };
+    let exc = |e: Exception| Outcome::Reply(build(hdr.transaction_id, hdr.unit_id, func_byte | 0x80, &[e as u8]));
 
     if let Some(e) = refusal(cfg, func_byte, pdu) {
         return exc(e);
@@ -253,9 +246,7 @@ fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome 
         }
 
         Function::WriteMultiple => {
-            let (Some(addr), Some(count), Some(&byte_count)) =
-                (be_u16(pdu, 0), be_u16(pdu, 2), pdu.get(4))
-            else {
+            let (Some(addr), Some(count), Some(&byte_count)) = (be_u16(pdu, 0), be_u16(pdu, 2), pdu.get(4)) else {
                 return exc(Exception::IllegalDataValue);
             };
             let byte_count = usize::from(byte_count);
@@ -272,9 +263,7 @@ fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome 
         }
 
         Function::MaskWrite => {
-            let (Some(addr), Some(and_mask), Some(or_mask)) =
-                (be_u16(pdu, 0), be_u16(pdu, 2), be_u16(pdu, 4))
-            else {
+            let (Some(addr), Some(and_mask), Some(or_mask)) = (be_u16(pdu, 0), be_u16(pdu, 2), be_u16(pdu, 4)) else {
                 return exc(Exception::IllegalDataValue);
             };
             let Some(target) = cfg.map(addr) else {
@@ -288,20 +277,19 @@ fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome 
 
         Function::ReadWriteMultiple => {
             // Write is performed before the read (FC23).
-            let (Some(r_addr), Some(r_count), Some(w_addr), Some(w_count), Some(&w_bytes)) = (
-                be_u16(pdu, 0),
-                be_u16(pdu, 2),
-                be_u16(pdu, 4),
-                be_u16(pdu, 6),
-                pdu.get(8),
-            ) else {
+            let (Some(r_addr), Some(r_count), Some(w_addr), Some(w_count), Some(&w_bytes)) =
+                (be_u16(pdu, 0), be_u16(pdu, 2), be_u16(pdu, 4), be_u16(pdu, 6), pdu.get(8))
+            else {
                 return exc(Exception::IllegalDataValue);
             };
             let w_bytes = usize::from(w_bytes);
             let Some(data) = pdu.get(9..).and_then(|d| d.get(..w_bytes)) else {
                 return exc(Exception::IllegalDataValue);
             };
-            if r_count == 0 || r_count > MAX_READ || w_count == 0 || w_count > 121
+            if r_count == 0
+                || r_count > MAX_READ
+                || w_count == 0
+                || w_count > 121
                 || w_bytes != usize::from(w_count).saturating_mul(2)
             {
                 return exc(Exception::IllegalDataValue);
@@ -321,7 +309,9 @@ fn dispatch(cfg: &ServerConfig, regs: &mut RegisterFile, buf: &[u8]) -> Outcome 
         }
 
         // The status byte is the low byte of holding register 65535, as in the original.
-        Function::ReadExceptionStatus => reply(vec![regs.get(Bank::Holding, 0xFFFF).to_le_bytes().first().copied().unwrap_or(0)]),
+        Function::ReadExceptionStatus => {
+            reply(vec![regs.get(Bank::Holding, 0xFFFF).to_le_bytes().first().copied().unwrap_or(0)])
+        }
         Function::Diagnostics => {
             let Some(&[s0, s1, d0, d1]) = pdu.first_chunk::<4>() else {
                 return exc(Exception::IllegalDataValue);

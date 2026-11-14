@@ -79,13 +79,17 @@ ananasar client 127.0.0.1:15020 --read-holding 10,11,12,100 -n 4 --interval-ms 5
 
 ```text
 connected to 127.0.0.1:15020
-TI 0: FC 0x03 ok, 7 data bytes
-TI 1: FC 0x03 ok, 3 data bytes
-TI 2: FC 0x03 ok, 7 data bytes
-TI 3: FC 0x03 ok, 3 data bytes
+TI 0: FC 0x03 register 10 = 0
+TI 0: FC 0x03 register 11 = 0
+TI 0: FC 0x03 register 12 = 0
+TI 1: FC 0x03 register 100 = 0
+TI 2: FC 0x03 register 10 = 0
+TI 2: FC 0x03 register 11 = 0
+TI 2: FC 0x03 register 12 = 0
+TI 3: FC 0x03 register 100 = 0
 ```
 
-A successful reply is reported as its function code and the length of the reply data (the byte count byte plus the register bytes), not the register values; to see values, use [`ananasar scan`](#ananasar-scan) or the GUI. An exception reply is shown as `TI n: exception on FC 0x03, code 2`. Exit status is 0 after all polls, 1 if the connection, a send or a reply fails (the first failure ends the run), and 2 for no poll lists.
+A successful FC3 or FC4 reply prints one line per register, with the address taken from the request and the value as an unsigned decimal (`TI n: FC 0x03 register 6 = 65529`). An FC16 reply prints one line, `TI n: FC 0x10 ok, wrote 2 registers at 5`. If the byte count of a read reply disagrees with the request, or the reply is cut short, the registers that can be decoded are printed followed by a `warning` line. An exception reply is shown as `TI n: exception on FC 0x03, code 2`. Exit status is 0 after all polls, 1 if the connection, a send or a reply fails (the first failure ends the run), and 2 for no poll lists.
 
 `--write` sends the value held in the command's own register file, which starts as 0 and is never changed, so `--write` writes zeros. To write a chosen value use the GUI client, or the MCP tools with `--allow-write`.
 

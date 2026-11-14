@@ -11,6 +11,7 @@ A port of Ananas, the free Modbus/TCP test tool from http://www.tuomio.fi/ananas
 [![Release](https://img.shields.io/github/v/release/andy778/ananasar?logo=github&cacheSeconds=300)](https://github.com/andy778/ananasar/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/andy778/ananasar/total?logo=github&cacheSeconds=300)](https://github.com/andy778/ananasar/releases)
 [![License](https://img.shields.io/github/license/andy778/ananasar?cacheSeconds=300)](LICENSE)
+[![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/andy778/ananasar/badges/coverage.json)](https://github.com/andy778/ananasar/actions/workflows/coverage.yml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/andy778/ananasar/badge)](https://securityscorecards.dev/viewer/?uri=github.com/andy778/ananasar)
 
 [Download](#download) · [Quick start](#quick-start) · [Documentation](#documentation) · [Build](#build-from-source)
@@ -131,6 +132,7 @@ Then ask, for example: *"Start a simulated Modbus server on port 15021, set hold
 | [Parity testing](docs/parity-testing.md) | Comparing Ananasar with the original at wire level |
 | [Differences](docs/differences.md) | Where Ananasar deliberately differs from the original, and why |
 | [Releasing](docs/releasing.md) | How releases are made |
+| [Contributing with an AI agent](docs/contributing-with-ai.md) | A guide for non-developers: from setup to a pull request |
 
 The full index is [docs/README.md](docs/README.md).
 
@@ -164,7 +166,7 @@ sudo apt install libxkbcommon-x11-0 libwayland-client0 libx11-6 libxcursor1 libx
 
 To skip building, download the `ananasar-linux-x86_64.tar.gz` release; it is built on Ubuntu 24.04, so it needs a comparably recent glibc.
 
-The parsers that read network input are also fuzzed (`cargo +nightly fuzz run frame` from the repository root, using [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz)). CI builds and releases the Windows, macOS and Linux binaries.
+The parsers that read network input are also fuzzed (`cargo +nightly fuzz run frame` from the repository root, using [cargo-fuzz](https://github.com/rust-fuzz/cargo-fuzz)). CI fuzzes each target for a minute on every pull request, and for 30 minutes on a weekly schedule that keeps its corpus between runs and uploads any crashing input as an artifact. CI builds and releases the Windows, macOS and Linux binaries.
 
 The README screenshot is rendered headlessly from the real window; see [docs/screenshots.md](docs/screenshots.md) to regenerate it.
 
@@ -183,6 +185,8 @@ The README screenshot is rendered headlessly from the real window; see [docs/scr
 - [`crates/ananasar-gui`](crates/ananasar-gui): the egui application library behind `ananasar gui`
 - [`crates/ananasar-parity`](crates/ananasar-parity): wire-level scenario runner, recording proxy and diff for comparing servers, see [docs/parity-testing.md](docs/parity-testing.md)
 - [`fuzz`](fuzz): cargo-fuzz targets for the frame parser and the server handler
+
+How the crates depend on each other and the invariants they keep are in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Design notes
 

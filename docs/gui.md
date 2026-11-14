@@ -34,7 +34,7 @@ The window title shows the machine's outgoing IP address (or the port, if none c
 
 The list shows the registers of the server the GUI runs, the values that clients connected to it read and write. The [client window](#client-window) shares this register file: the holding registers it reads from another server are stored here, so they show in the list (set the Type Shown to Holding and the Start Address to the registers polled), and the values it writes are the ones in this list. External clients connected to the GUI's server see those values too. Hover the **Registers** caption for a reminder (with tooltips on).
 
-- The mouse wheel over the list scrolls by ten registers.
+- The mouse wheel over the list scrolls one register per row height of wheel movement (wheel down shows higher addresses), and the Start Address box follows.
 - Click a value to select it. The R/W column always reads `-/-`.
 - **Monitor** mode (the default) is read-only. Switch to **Edit** with Edit > Value List > Edit (Ctrl+E), then double-click a **holding** register value to type a new one and press Enter. Input registers cannot be edited here; use [Set Register Value](#set-register-value).
 - Registers as Hex (View, Ctrl+Shift+H) shows addresses in hex, and Values as Hex (View, Ctrl+H) shows values in hex. Typing a value while Values as Hex is on expects hex.

@@ -46,7 +46,15 @@ impl Tick {
         let mean = self.mean_latency_us.map_or_else(|| "-".to_owned(), |u| format!("{:.2} ms", us_to_ms(u)));
         format!(
             "[{:>4.0}s] sent {:>6}  replies {:>6}  exc {:>4}  timeout {:>4}  err {:>4}  mismatch {:>3}  fault {:>4}  cycles {:>5}  mean {mean}",
-            self.elapsed_s, self.sent, self.replies, self.exceptions, self.timeouts, self.errors, self.mismatches, self.faults, self.cycles
+            self.elapsed_s,
+            self.sent,
+            self.replies,
+            self.exceptions,
+            self.timeouts,
+            self.errors,
+            self.mismatches,
+            self.faults,
+            self.cycles
         )
     }
 }
@@ -322,10 +330,8 @@ impl Report {
         let mism = if mism.is_empty() { String::new() } else { format!(" ({})", mism.join(", ")) };
         let _ = writeln!(o, "  mismatches    {}{mism}", s.mismatch_total());
         if s.fault_total() > 0 {
-            let kinds: Vec<String> = FaultKind::ALL
-                .iter()
-                .filter_map(|k| s.faults.get(k).map(|n| format!("{}: {n}", k.name())))
-                .collect();
+            let kinds: Vec<String> =
+                FaultKind::ALL.iter().filter_map(|k| s.faults.get(k).map(|n| format!("{}: {n}", k.name()))).collect();
             let _ = writeln!(o, "  faults        {} injected ({})", s.fault_total(), kinds.join(", "));
             let _ = writeln!(
                 o,
@@ -337,7 +343,11 @@ impl Report {
             let _ = writeln!(o, "  churn         {} connect/disconnect cycles", s.churn_cycles);
         }
         if c.half_open > 0 {
-            let _ = writeln!(o, "  half-open     {} idle connections held, {} failed", s.half_open_held, s.half_open_failed);
+            let _ = writeln!(
+                o,
+                "  half-open     {} idle connections held, {} failed",
+                s.half_open_held, s.half_open_failed
+            );
         }
         if s.worker_panics > 0 {
             let _ = writeln!(o, "  WARNING       {} worker thread(s) panicked", s.worker_panics);
@@ -417,7 +427,9 @@ impl Report {
     /// One row per progress interval, with wall-clock timestamps, for lining
     /// the run up against an external event such as a link-level flood.
     pub fn timeline_csv(&self) -> String {
-        let mut o = String::from("second,unix_ms,elapsed_s,sent,replies,exceptions,timeouts,errors,mismatches,faults,churn_cycles,mean_latency_us\n");
+        let mut o = String::from(
+            "second,unix_ms,elapsed_s,sent,replies,exceptions,timeouts,errors,mismatches,faults,churn_cycles,mean_latency_us\n",
+        );
         for t in &self.timeline {
             let _ = writeln!(
                 o,
@@ -497,9 +509,79 @@ mod tests {
     #[test]
     fn text_summary_has_the_key_numbers() {
         let t = report().text();
-        for want in ["10 sent", "5.0/s", "ok replies    8", "code 2: 1", "timeouts      1", "seed 99", "p99", "ananasar storm 10.0.0.5:502"] {
+        for want in [
+            "10 sent",
+            "5.0/s",
+            "ok replies    8",
+            "code 2: 1",
+            "timeouts      1",
+            "seed 99",
+            "p99",
+            "ananasar storm 10.0.0.5:502",
+        ] {
             assert!(t.contains(want), "{t}\nlacks {want}");
         }
+    }
+
+    /// Whether a line of the text summary starts with `label`.
+    fn has_line(text: &str, label: &str) -> bool {
+        text.lines().any(|l| l.trim_start().starts_with(label))
+    }
+
+    #[test]
+    fn fault_lines_appear_only_when_faults_were_injected() {
+        assert!(!has_line(&report().text(), "faults"));
+        assert!(!report().text().contains("malformed frames:"));
+        let mut r = report();
+        r.stats.faults.insert(FaultKind::BadLength, 3);
+        r.stats.faults.insert(FaultKind::Split, 2);
+        r.stats.fault_replied = 1;
+        r.stats.fault_closed = 2;
+        r.stats.fault_silent = 3;
+        let t = r.text();
+        assert!(t.contains("faults        5 injected (bad-length: 3"), "{t}");
+        assert!(t.contains("malformed frames: 1 answered, 2 closed the connection, 3 ignored"), "{t}");
+    }
+
+    #[test]
+    fn churn_lines_appear_only_in_churn_mode() {
+        let t = report().text();
+        assert!(!has_line(&t, "churn") && !t.contains("connect (ms)"), "{t}");
+        let mut r = report();
+        r.config.churn = true;
+        r.stats.churn_cycles = 7;
+        r.stats.connect_latency.record(800);
+        let t = r.text();
+        assert!(t.contains("churn         7 connect/disconnect cycles"), "{t}");
+        assert!(has_line(&t, "connect (ms)") && t.contains("(n=1)"), "{t}");
+    }
+
+    #[test]
+    fn half_open_line_appears_only_when_connections_were_held() {
+        assert!(!has_line(&report().text(), "half-open"));
+        let mut r = report();
+        r.config.half_open = 3;
+        r.stats.half_open_held = 2;
+        r.stats.half_open_failed = 1;
+        let t = r.text();
+        assert!(t.contains("half-open     2 idle connections held, 1 failed"), "{t}");
+    }
+
+    #[test]
+    fn worker_panics_raise_a_warning_only_when_there_were_some() {
+        assert!(!report().text().contains("WARNING"));
+        let mut r = report();
+        r.stats.worker_panics = 2;
+        let t = r.text();
+        assert!(t.contains("WARNING       2 worker thread(s) panicked"), "{t}");
+    }
+
+    #[test]
+    fn tick_line_shows_a_dash_without_latency() {
+        let mut tick = report().timeline.remove(0);
+        assert!(tick.line().ends_with("mean 2.00 ms"), "{}", tick.line());
+        tick.mean_latency_us = None;
+        assert!(tick.line().ends_with("mean -"), "{}", tick.line());
     }
 
     #[test]
@@ -533,7 +615,13 @@ mod tests {
     fn csv_has_parameters_and_results() {
         let c = report().csv();
         assert!(c.starts_with("section,key,value\n"));
-        for want in ["parameter,seed,99", "parameter,host,10.0.0.5", "result,requests_sent,10", "result,exceptions.code_2,1", "result,latency_us.max,2500"] {
+        for want in [
+            "parameter,seed,99",
+            "parameter,host,10.0.0.5",
+            "result,requests_sent,10",
+            "result,exceptions.code_2,1",
+            "result,latency_us.max,2500",
+        ] {
             assert!(c.contains(want), "{c}\nlacks {want}");
         }
         // The reproduce line contains no comma, so it is not quoted; a text with one is.
@@ -558,5 +646,76 @@ mod tests {
         assert!(second[0].to_string_lossy().ends_with("-2.json"));
         assert!(first.iter().chain(&second).all(|p| p.exists()));
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn round3_rounds_to_three_decimals() {
+        assert_eq!(round3(1.23456), 1.235);
+        assert_eq!(round3(2.0004), 2.0);
+        assert_eq!(round3(-1.23456), -1.235);
+        assert_eq!(round3(1234.5678), 1234.568);
+        assert_eq!(round3(0.0), 0.0);
+    }
+
+    #[test]
+    fn json_and_csv_carry_the_rounded_float_results() {
+        let mut r = report();
+        r.elapsed = Duration::from_secs_f64(1.23456);
+        r.stats.sent = 10;
+        // 10 / 1.23456 = 8.0999..., rounded to 8.1.
+        let j = r.json();
+        assert!(j.contains("\"elapsed_seconds\": 1.235"), "{j}");
+        assert!(j.contains("\"achieved_rate_total\": 8.1,") || j.contains("\"achieved_rate_total\": 8.1\n"), "{j}");
+        let c = r.csv();
+        assert!(c.contains("result,elapsed_seconds,1.235\n"), "{c}");
+        assert!(c.contains("result,achieved_rate_total,8.1\n"), "{c}");
+        let t = report().json();
+        assert!(t.contains("\"elapsed_seconds\": 2,"), "{t}");
+        assert!(t.contains("\"achieved_rate_total\": 5,"), "{t}");
+    }
+
+    #[test]
+    fn non_finite_floats_are_null_in_json_and_empty_in_csv() {
+        for f in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(Value::Float(f).json(), "null");
+            assert_eq!(Value::Float(f).csv(), "");
+        }
+        assert_eq!(Value::Float(1.5).json(), "1.5");
+        assert_eq!(Value::Float(1.5).csv(), "1.5");
+        let mut r = report();
+        r.config.rate = f64::NAN;
+        r.config.ramp_to = Some(f64::INFINITY);
+        let j = r.json();
+        assert!(j.contains("\"rate_per_connection\": null"), "{j}");
+        assert!(j.contains("\"ramp_to_rate_per_connection\": null"), "{j}");
+        let c = r.csv();
+        assert!(c.contains("parameter,rate_per_connection,\n"), "{c}");
+        assert!(c.contains("parameter,ramp_to_rate_per_connection,\n"), "{c}");
+        // The reproduce command line may spell the value out; no numeric field does.
+        let numeric =
+            |t: &str| t.lines().filter(|l| !l.contains("reproduce")).any(|l| l.contains("inf") || l.contains("NaN"));
+        assert!(!numeric(&j) && !numeric(&c));
+    }
+
+    #[test]
+    fn dotted_keys_group_into_one_nested_object() {
+        let items: Items =
+            vec![("a.x".to_owned(), Value::Int(1)), ("b".to_owned(), Value::Int(2)), ("a.y".to_owned(), Value::Int(3))];
+        assert_eq!(json_object(&items, 0), "{\n  \"a\": {\n    \"x\": 1,\n    \"y\": 3\n  },\n  \"b\": 2\n}");
+        let j = report().json();
+        assert_eq!(j.matches("\"mix_weight\":").count(), 1, "{j}");
+        assert_eq!(j.matches("\"fc3\":").count(), 1, "{j}");
+    }
+
+    #[test]
+    fn zero_elapsed_time_gives_a_zero_rate() {
+        let mut r = report();
+        r.elapsed = Duration::ZERO;
+        assert_eq!(r.achieved_rate(), 0.0);
+        let j = r.json();
+        assert!(j.contains("\"achieved_rate_total\": 0,"), "{j}");
+        assert!(j.contains("\"elapsed_seconds\": 0,"), "{j}");
+        assert!(r.csv().contains("result,achieved_rate_total,0\n"));
+        assert!(r.text().contains("0.0/s"));
     }
 }

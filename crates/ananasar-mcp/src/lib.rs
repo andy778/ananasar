@@ -4,9 +4,19 @@
 //! The protocol layer ([`rpc`]) is a small hand-written JSON-RPC 2.0 handler
 //! for the stdio transport; [`Mcp`] holds the tool state and implements the
 //! tools on top of `ananasar-core` and `ananasar-net`.
-#![cfg_attr(
-    test,
-    allow(clippy::arithmetic_side_effects, reason = "test code: a panic is a failed test")
+#![cfg_attr(test, allow(clippy::arithmetic_side_effects, reason = "test code: a panic is a failed test"))]
+// Network input is hostile (AGENTS.md, rule 6): no construct that can panic
+// on it. The workspace already denies most of these; listing them here keeps
+// the rule with the crate and raises `todo`/`unimplemented` from warn to deny.
+// Tests may still unwrap, index and panic (see clippy.toml).
+#![deny(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::unreachable,
+    clippy::todo,
+    clippy::unimplemented
 )]
 
 pub mod rpc;
@@ -60,9 +70,7 @@ fn int(a: &Args, key: &str) -> Option<i64> {
 }
 
 fn req_u16(a: &Args, key: &str) -> Result<u16, String> {
-    int(a, key)
-        .and_then(|n| u16::try_from(n).ok())
-        .ok_or_else(|| format!("missing or invalid '{key}'"))
+    int(a, key).and_then(|n| u16::try_from(n).ok()).ok_or_else(|| format!("missing or invalid '{key}'"))
 }
 
 fn opt_u8(a: &Args, key: &str, default: u8) -> u8 {
@@ -354,7 +362,10 @@ impl Mcp {
             cfg.forced_exception = if code == 0 {
                 None
             } else {
-                Some(exception_from_code(code).ok_or_else(|| format!("exception code {code} cannot be forced; use 1-8, 10 or 11"))?)
+                Some(
+                    exception_from_code(code)
+                        .ok_or_else(|| format!("exception code {code} cannot be forced; use 1-8, 10 or 11"))?,
+                )
             };
         }
         if a.contains_key("unit_id") {
