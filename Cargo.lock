@@ -194,6 +194,7 @@ dependencies = [
  "egui_extras",
  "egui_kittest",
  "rfd",
+ "serde_json",
 ]
 
 [[package]]

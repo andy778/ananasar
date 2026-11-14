@@ -28,6 +28,7 @@ pub mod protocol;
 pub mod registers;
 pub mod scanner;
 pub mod server;
+pub mod sunspec;
 pub mod sync;
 pub mod typed;
 

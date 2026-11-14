@@ -184,6 +184,32 @@ fn decode_window_shows_the_float_in_the_right_order() {
 }
 
 #[test]
+fn sunspec_window_decodes_a_device_in_the_register_file() {
+    const TITLE: &str = "SunSpec Device";
+    let mut harness = harness();
+    {
+        let state = harness.state_mut();
+        *ananasar_core::sync::lock(&state.regs) = crate::sunspecview::tests::device();
+        let model = crate::sunspecview::parse_model(crate::sunspecview::tests::TEST_MODEL).unwrap();
+        state.sunspec.models.insert(model.id, model);
+        state.show_sunspec = true;
+    }
+    harness.run();
+
+    let win = window(&harness, TITLE);
+    for label in ["Models folder", "Browse…", "Load", "Holding", "Input"] {
+        win.get_by_label(label);
+    }
+    win.get_by_label("SunS at 40000 (register 40001), 2 models");
+    // The common model has no file loaded here; the test model is decoded.
+    win.get_by_label("Model 1 at 40002, L=66: no model file loaded");
+    win.get_by_label("Model 64900 · Test Model · at 40070, L=15");
+    for value in ["452.0", "50.03", "MPPT (4)", "GROUND_FAULT, OVER_TEMP (0x9)", "ABC", "12.3"] {
+        win.get_by_label(value);
+    }
+}
+
+#[test]
 fn scanner_connects_to_the_embedded_server() {
     let mut harness = harness();
     harness.state_mut().show_scanner = true;
