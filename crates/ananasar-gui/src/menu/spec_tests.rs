@@ -143,6 +143,7 @@ fn menus_with_nagle(nagle: [Option<bool>; 2]) -> Vec<MenuItem> {
         value_list_edit: false,
         addr_hex: false,
         hex: false,
+        signed: false,
         listening: true,
         port: TEST_PORT,
         tooltips: true,
