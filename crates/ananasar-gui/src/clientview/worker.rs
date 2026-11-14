@@ -43,6 +43,8 @@ pub(super) struct Shared {
     /// The GUI server's register file, shared with the main window.
     pub(super) regs: SharedRegs,
     pub(super) connected: AtomicBool,
+    /// View > Values as Signed: read values are logged as signed 16-bit.
+    pub(super) signed: AtomicBool,
     pub(super) status: Mutex<String>,
     /// Peer of the live connection, shown in the partner line.
     pub(super) partner: Mutex<Option<std::net::SocketAddr>>,
@@ -190,13 +192,14 @@ fn poll_once(stream: &mut TcpStream, query: &[u8], shared: &Shared) -> std::io::
             ));
         } else if matches!(Function::from_u8(f), Some(Function::ReadHolding) | Some(Function::ReadInput)) {
             store_read(shared, func, start, pdu);
+            let signed = shared.signed.load(Ordering::Relaxed);
             let shown: Vec<String> = pdu
                 .get(1..)
                 .unwrap_or(&[])
                 .as_chunks::<2>()
                 .0
                 .iter()
-                .map(|&c| u16::from_be_bytes(c).to_string())
+                .map(|&c| crate::value::fmt(u16::from_be_bytes(c), false, signed))
                 .collect();
             shared.log_line(format!("TI {}: read @{start} x{count} = [{}]", hdr.transaction_id, shown.join(", ")));
         } else {
@@ -305,6 +308,7 @@ mod tests {
                 log: Mutex::new(VecDeque::new()),
                 regs: Arc::new(Mutex::new(RegisterFile::new())),
                 connected: AtomicBool::new(false),
+                signed: AtomicBool::new(false),
                 status: Mutex::new(String::new()),
                 partner: Mutex::new(None),
                 ctx: egui::Context::default(),
@@ -388,6 +392,26 @@ mod tests {
             [111, 222, 333].iter().zip(10u16..).all(|(&v, a)| regs.get(Bank::Holding, a) == v)
         });
         w.wait_log("read @10 x3 = [111, 222, 333]");
+    }
+
+    #[test]
+    fn signed_values_are_logged_signed() {
+        let server = TestServer::start();
+        {
+            let mut regs = lock(&server.regs);
+            regs.set_holding(20, 65531);
+            regs.set_holding(21, 7);
+        }
+        let w = Fixture::new();
+        w.shared.signed.store(true, Ordering::Relaxed);
+        w.connect(server.port);
+        wait_for("the connection", || w.connected());
+        w.send(Cmd::SetInterval(10));
+        w.send(Cmd::SetLists { rh: vec![20, 21], ri: vec![], w: vec![] });
+        w.send(Cmd::SetMode(Mode::Cycle));
+        w.wait_log("read @20 x2 = [-5, 7]");
+        // The register file keeps the raw 16 bits.
+        assert_eq!(lock(&w.shared.regs).get(Bank::Holding, 20), 65531);
     }
 
     #[test]

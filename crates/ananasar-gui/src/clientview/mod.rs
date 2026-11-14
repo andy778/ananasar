@@ -74,6 +74,7 @@ impl ClientView {
             log: Mutex::new(VecDeque::new()),
             regs,
             connected: AtomicBool::new(false),
+            signed: AtomicBool::new(false),
             status: Mutex::new(String::new()),
             partner: Mutex::new(None),
             ctx,
@@ -119,6 +120,11 @@ impl ClientView {
             ri: self.read_input.clone(),
             w: self.write.clone(),
         });
+    }
+
+    /// Log read values as signed 16-bit (View > Values as Signed).
+    pub fn set_signed(&self, signed: bool) {
+        self.shared.signed.store(signed, Ordering::Relaxed);
     }
 
     /// True while the client is connected to a server.
