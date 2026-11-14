@@ -9,7 +9,7 @@ use ananasar_core::typed::WordOrder;
 use eframe::egui::{self, RichText};
 use std::fmt::{Display, LowerExp};
 
-const SIZE: [f32; 2] = [660.0, 330.0];
+const SIZE: [f32; 2] = [660.0, 370.0];
 
 pub struct DecodeView {
     addr_text: String,
