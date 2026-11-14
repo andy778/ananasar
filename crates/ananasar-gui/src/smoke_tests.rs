@@ -158,6 +158,32 @@ fn set_value_window_sets_a_register() {
 }
 
 #[test]
+fn decode_window_shows_the_float_in_the_right_order() {
+    const TITLE: &str = "Decode Registers";
+    let mut harness = harness();
+    {
+        let mut regs = ananasar_core::sync::lock(&harness.state().regs);
+        // 1.5f32 as ABCD at 0–1 and as CDAB at 10–11.
+        regs.set_holding(0, 0x3FC0);
+        regs.set_holding(11, 0x3FC0);
+    }
+    harness.state_mut().show_decode = true;
+    harness.run();
+
+    let decode = window(&harness, TITLE);
+    for label in ["Input", "Holding", "Start address", "ABCD", "CDAB", "BADC", "DCBA"] {
+        decode.query_all_by_label(label).next().unwrap_or_else(|| panic!("{label} is missing"));
+    }
+    // Only one cell reads 1.5: the ABCD f32 at 0–1, then the CDAB f32 at 10–11.
+    decode.get_by_label("1.5");
+    decode.get_by_label("Register 0: u16 16320   i16 16320   hex 0x3FC0");
+
+    replace_text(&mut harness, TITLE, "Start address", "10");
+    window(&harness, TITLE).get_by_label("1.5");
+    window(&harness, TITLE).get_by_label("Register 10: u16 0   i16 0   hex 0x0000");
+}
+
+#[test]
 fn scanner_connects_to_the_embedded_server() {
     let mut harness = harness();
     harness.state_mut().show_scanner = true;

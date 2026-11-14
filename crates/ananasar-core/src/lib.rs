@@ -29,6 +29,7 @@ pub mod registers;
 pub mod scanner;
 pub mod server;
 pub mod sync;
+pub mod typed;
 
 #[cfg(test)]
 mod tests {
