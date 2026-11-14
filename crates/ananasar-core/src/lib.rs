@@ -215,6 +215,14 @@ mod tests {
     }
 
     #[test]
+    fn limit_of_one_sends_every_address_as_its_own_read() {
+        let mut list = PollList::new(vec![6, 7, 8, 9]);
+        for addr in 6..=9 {
+            assert_eq!(list.next_run(1), Some((addr, 1)));
+        }
+    }
+
+    #[test]
     fn engine_round_robins_and_builds_valid_reads() {
         let regs = RegisterFile::new();
         let mut eng = PollEngine::new(1);

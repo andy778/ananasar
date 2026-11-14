@@ -180,7 +180,7 @@ The client keeps three sorted address lists:
 
 Edit > Add Serie > Holding Registers > Write / Read, or Input Registers, opens the **Series** dialog: enter **From** and **To** (From must not exceed To) and press OK to add the range to that list, or tick **Remove** to take it out. Edit > Clear empties a list.
 
-On each poll the client takes the lists in turn (holding read, input read, write) and sends one query for the longest run of consecutive addresses, capped by the transaction limit. Edit > Transaction limiter sets the registers per transaction: **Registers to Read** 5, 50, 100 or 125 (default 125) and **Registers to Write** 50, 100 or 123 (default 100).
+On each poll the client takes the lists in turn (holding read, input read, write) and sends one query for the longest run of consecutive addresses, capped by the transaction limit. Edit > Transaction limiter sets the registers per transaction: **Registers to Read** 1, 5, 50, 100 or 125 (default 125; 1 is not in the original and turns the merging off, so every address goes out as its own read and gets its own log line) and **Registers to Write** 50, 100 or 123 (default 100).
 
 ### Polling
 
