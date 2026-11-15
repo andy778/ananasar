@@ -9,7 +9,7 @@ use ananasar_core::typed::WordOrder;
 use eframe::egui::{self, RichText};
 use std::fmt::{Display, LowerExp};
 
-const SIZE: [f32; 2] = [660.0, 370.0];
+const SIZE: [f32; 2] = [820.0, 370.0];
 
 pub struct DecodeView {
     addr_text: String,
@@ -54,12 +54,13 @@ fn read<const N: usize>(regs: &SharedRegs, bank: Bank, addr: u16) -> Option<[u16
     Some(out)
 }
 
+/// The two cells naming an order: its letters, and the endian name tools such
+/// as Modbus Poll use. Both are shown because "little-endian" alone is read by
+/// many device manuals as the word swap (CDAB), not the full reverse (DCBA).
 fn order_label(ui: &mut egui::Ui, order: WordOrder) {
-    ui.label(RichText::new(order.letters()).monospace().strong()).on_hover_text(format!(
-        "{} ({})",
-        order.endian_name(),
-        digits(order)
-    ));
+    let hover = format!("Wire bytes {} as the value, most significant first", digits(order));
+    ui.label(RichText::new(order.letters()).monospace().strong()).on_hover_text(&hover);
+    ui.label(order.endian_name()).on_hover_text(hover);
 }
 
 fn cell(ui: &mut egui::Ui, text: String) {
@@ -102,8 +103,8 @@ impl DecodeView {
         ui.add_space(8.0);
         ui.strong("32-bit (2 registers)");
         let pair = read::<2>(regs, self.bank, addr);
-        egui::Grid::new("decode32").striped(true).num_columns(4).min_col_width(70.0).show(ui, |ui| {
-            for h in ["Order", "u32", "i32", "f32"] {
+        egui::Grid::new("decode32").striped(true).num_columns(5).min_col_width(70.0).show(ui, |ui| {
+            for h in ["Order", "", "u32", "i32", "f32"] {
                 ui.strong(h);
             }
             ui.end_row();
@@ -129,8 +130,8 @@ impl DecodeView {
         ui.add_space(8.0);
         ui.strong("64-bit (4 registers)");
         let quad = read::<4>(regs, self.bank, addr);
-        egui::Grid::new("decode64").striped(true).num_columns(4).min_col_width(70.0).show(ui, |ui| {
-            for h in ["Order", "u64", "i64", "f64"] {
+        egui::Grid::new("decode64").striped(true).num_columns(5).min_col_width(70.0).show(ui, |ui| {
+            for h in ["Order", "", "u64", "i64", "f64"] {
                 ui.strong(h);
             }
             ui.end_row();
