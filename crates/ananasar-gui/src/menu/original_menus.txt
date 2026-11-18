@@ -44,6 +44,7 @@ View
   Values as Hex  @ Ctrl+H  [check]
   + ---
   + Decode Registers…
+  + SunSpec Device…
 
 Options
   Modbus
