@@ -138,6 +138,22 @@ fn client_connects_to_the_embedded_server() {
 }
 
 #[test]
+fn set_value_window_stores_a_negative_value_as_twos_complement() {
+    const TITLE: &str = "Set Register Value";
+    let mut harness = harness();
+    harness.state_mut().show_setval = true;
+    harness.run();
+    replace_text(&mut harness, TITLE, "Edit value", "-5");
+    window(&harness, TITLE).get_by_label("Set").click();
+    harness.run();
+    assert_eq!(ananasar_core::sync::lock(&harness.state().regs).get(Bank::Holding, 0), 65531);
+    // Shown as signed only when View > Values as Signed is on.
+    assert_eq!(harness.state().fmt(65531), "65531");
+    harness.state_mut().signed = true;
+    assert_eq!(harness.state().fmt(65531), "-5");
+}
+
+#[test]
 fn set_value_window_sets_a_register() {
     const TITLE: &str = "Set Register Value";
     let mut harness = harness();

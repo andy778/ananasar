@@ -21,6 +21,7 @@ mod setvalview;
 mod smoke_tests;
 mod stormview;
 mod theme;
+mod value;
 
 use ananasar_core::log::LogMode;
 use ananasar_core::protocol::Exception;
@@ -161,6 +162,8 @@ struct App {
     wheel_accum: f32,
     tooltips: bool,
     hex: bool,
+    /// View > Values as Signed: values shown as signed 16-bit decimal.
+    signed: bool,
     selected: Option<u16>,
     addr_hex: bool,
     classic: bool,
@@ -246,6 +249,7 @@ impl App {
             wheel_accum: 0.0,
             tooltips: true,
             hex: false,
+            signed: false,
             selected: None,
             addr_hex: false,
             classic: true,
@@ -760,14 +764,14 @@ impl App {
     }
 
     fn fmt(&self, v: u16) -> String {
-        if self.hex { format!("{v:04X}") } else { v.to_string() }
+        value::fmt(v, self.hex, self.signed)
     }
     fn parse(&self, s: &str) -> Option<u16> {
         let s = s.trim();
         if self.hex {
             u16::from_str_radix(s.trim_start_matches("0x").trim_start_matches("0X"), 16).ok()
         } else {
-            s.parse().ok()
+            value::parse_decimal(s)
         }
     }
 }
@@ -836,6 +840,7 @@ impl eframe::App for App {
                 value_list_edit: self.value_list_edit,
                 addr_hex: self.addr_hex,
                 hex: self.hex,
+                signed: self.signed,
                 listening: self.server.listening.load(Ordering::SeqCst),
                 port: self.server_port,
                 tooltips: self.tooltips,
@@ -866,6 +871,7 @@ impl eframe::App for App {
             Some(Action::Initialize(bank, mode)) => lock(&self.regs).initialize(bank, mode),
             Some(Action::AddrHex) => self.addr_hex = !self.addr_hex,
             Some(Action::Hex) => self.hex = !self.hex,
+            Some(Action::Signed) => self.signed = !self.signed,
             Some(Action::ToggleFunction(fc)) => {
                 let mut cfg = lock(&self.server.cfg);
                 if !cfg.supported.remove(&fc) {
@@ -902,7 +908,7 @@ impl eframe::App for App {
                     .map(|addr| (addr, regs.get(self.bank, addr)))
                     .collect()
             };
-            ctx.copy_text(list_text(&rows, self.addr_hex, self.hex));
+            ctx.copy_text(list_text(&rows, self.addr_hex, self.hex, self.signed));
         }
         if toggle_listen {
             self.toggle_listening(&ctx);
@@ -951,6 +957,9 @@ impl eframe::App for App {
             self.controls_ui(ui, shifted);
             self.server_ui(ui, shifted);
         });
+
+        // The client logs from its own thread, so it keeps its own copy of the setting.
+        self.client.set_signed(self.signed);
 
         // ---- floating windows (the original's separate windows) ----
         // The client is a window of its own, like in the original, not a panel inside this one.
@@ -1022,11 +1031,11 @@ fn next_forced_exception(current: Option<Exception>, chosen: Exception) -> Optio
 }
 
 /// The register list as tab-separated `address<TAB>value` lines.
-fn list_text(rows: &[(u16, u16)], addr_hex: bool, hex: bool) -> String {
+fn list_text(rows: &[(u16, u16)], addr_hex: bool, hex: bool, signed: bool) -> String {
     let mut out = String::new();
     for &(addr, v) in rows {
         let a = if addr_hex { format!("{addr:04X}") } else { addr.to_string() };
-        let v = if hex { format!("{v:04X}") } else { v.to_string() };
+        let v = value::fmt(v, hex, signed);
         out.push_str(&format!("{a}\t{v}\n"));
     }
     out
@@ -1064,8 +1073,16 @@ mod tests {
     #[test]
     fn list_text_is_tab_separated_and_honours_hex() {
         let rows = [(10, 255), (11, 0)];
-        assert_eq!(list_text(&rows, false, false), "10\t255\n11\t0\n");
-        assert_eq!(list_text(&rows, true, true), "000A\t00FF\n000B\t0000\n");
+        assert_eq!(list_text(&rows, false, false, false), "10\t255\n11\t0\n");
+        assert_eq!(list_text(&rows, true, true, false), "000A\t00FF\n000B\t0000\n");
+    }
+
+    #[test]
+    fn list_text_honours_signed() {
+        let rows = [(1, 65531), (2, 7)];
+        assert_eq!(list_text(&rows, false, false, true), "1\t-5\n2\t7\n");
+        // Hex takes precedence over signed.
+        assert_eq!(list_text(&rows, false, true, true), "1\tFFFB\n2\t0007\n");
     }
 
     fn in_use() -> std::io::Error {

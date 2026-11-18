@@ -42,6 +42,7 @@ Edit
 View
   Registers as Hex  @ Ctrl+Shift+H  [check]
   Values as Hex  @ Ctrl+H  [check]
+  + Values as Signed  [check]
 
 Options
   Modbus

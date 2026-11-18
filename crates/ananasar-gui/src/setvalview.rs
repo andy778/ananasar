@@ -81,13 +81,14 @@ fn bit_of(v: u16, bit: u8) -> bool {
     v.checked_shr(u32::from(bit)).is_some_and(|s| s & 1 == 1)
 }
 
-/// Parse the Edit value field: decimal, or hexadecimal with a `0x`/`$` prefix.
+/// Parse the Edit value field: decimal (a negative number is stored as its
+/// two's-complement bits, -5 as 65531), or hexadecimal with a `0x`/`$` prefix.
 fn parse_value(s: &str) -> Option<u16> {
     let s = s.trim();
     if let Some(h) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")).or_else(|| s.strip_prefix('$')) {
         u16::from_str_radix(h, 16).ok()
     } else {
-        s.parse().ok()
+        crate::value::parse_decimal(s)
     }
 }
 
@@ -312,6 +313,9 @@ mod tests {
         assert_eq!(parse_value("0xFF"), Some(255));
         assert_eq!(parse_value("$10"), Some(16));
         assert_eq!(parse_value("65536"), None);
+        assert_eq!(parse_value("-5"), Some(65531));
+        assert_eq!(parse_value("-32768"), Some(0x8000));
+        assert_eq!(parse_value("-32769"), None);
         assert_eq!(parse_value(""), None);
     }
 
