@@ -14,7 +14,7 @@ ananasar-storm = { path = "../ananasar-storm" }
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
 eframe = "0.37"
 egui_extras = "0.37"
-rfd = "0.17.2"
+rfd = "0.18.0"
 
 [target.'cfg(windows)'.dependencies]
 ananasar-dde = { path = "../ananasar-dde" }
