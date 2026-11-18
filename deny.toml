@@ -11,6 +11,10 @@ ignore = [
   "RUSTSEC-2026-0370",
   "RUSTSEC-2026-0371",
   "RUSTSEC-2026-0372",
+  # chrono is unmaintained (informational, no exploit, no patched version).
+  # A direct dependency of ananasar-gui, used only to draw the local clock in
+  # the status bar; it never touches network input. Tracked in #262.
+  "RUSTSEC-2026-0543",
 ]
 
 [licenses]
