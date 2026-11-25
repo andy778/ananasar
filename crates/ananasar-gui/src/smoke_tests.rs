@@ -158,6 +158,58 @@ fn set_value_window_sets_a_register() {
 }
 
 #[test]
+fn decode_window_shows_the_float_in_the_right_order() {
+    const TITLE: &str = "Decode Registers";
+    let mut harness = harness();
+    {
+        let mut regs = ananasar_core::sync::lock(&harness.state().regs);
+        // 1.5f32 as ABCD at 0–1 and as CDAB at 10–11.
+        regs.set_holding(0, 0x3FC0);
+        regs.set_holding(11, 0x3FC0);
+    }
+    harness.state_mut().show_decode = true;
+    harness.run();
+
+    let decode = window(&harness, TITLE);
+    for label in ["Input", "Holding", "Start address", "ABCD", "CDAB", "BADC", "DCBA"] {
+        decode.query_all_by_label(label).next().unwrap_or_else(|| panic!("{label} is missing"));
+    }
+    // Only one cell reads 1.5: the ABCD f32 at 0–1, then the CDAB f32 at 10–11.
+    decode.get_by_label("1.5");
+    decode.get_by_label("Register 0: u16 16320   i16 16320   hex 0x3FC0");
+
+    replace_text(&mut harness, TITLE, "Start address", "10");
+    window(&harness, TITLE).get_by_label("1.5");
+    window(&harness, TITLE).get_by_label("Register 10: u16 0   i16 0   hex 0x0000");
+}
+
+#[test]
+fn sunspec_window_decodes_a_device_in_the_register_file() {
+    const TITLE: &str = "SunSpec Device";
+    let mut harness = harness();
+    {
+        let state = harness.state_mut();
+        *ananasar_core::sync::lock(&state.regs) = crate::sunspecview::tests::device();
+        let model = crate::sunspecview::parse_model(crate::sunspecview::tests::TEST_MODEL).unwrap();
+        state.sunspec.models.insert(model.id, model);
+        state.show_sunspec = true;
+    }
+    harness.run();
+
+    let win = window(&harness, TITLE);
+    for label in ["Models folder", "Browse…", "Load", "Holding", "Input"] {
+        win.get_by_label(label);
+    }
+    win.get_by_label("SunS at 40000 (register 40001), 2 models");
+    // The common model has no file loaded here; the test model is decoded.
+    win.get_by_label("Model 1 at 40002, L=66: no model file loaded");
+    win.get_by_label("Model 64900 · Test Model · at 40070, L=15");
+    for value in ["452.0", "50.03", "MPPT (4)", "GROUND_FAULT, OVER_TEMP (0x9)", "ABC", "12.3"] {
+        win.get_by_label(value);
+    }
+}
+
+#[test]
 fn scanner_connects_to_the_embedded_server() {
     let mut harness = harness();
     harness.state_mut().show_scanner = true;
