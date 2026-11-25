@@ -10,6 +10,9 @@ use eframe::egui::{self, RichText};
 use std::fmt::{Display, LowerExp};
 
 const SIZE: [f32; 2] = [820.0, 370.0];
+/// Gap between grid columns: wider than egui's default so that numbers in
+/// neighbouring columns (u32 next to i32) do not read as one.
+const COLUMN_GAP: [f32; 2] = [20.0, 4.0];
 
 pub struct DecodeView {
     addr_text: String,
@@ -63,6 +66,11 @@ fn order_label(ui: &mut egui::Ui, order: WordOrder) {
     ui.label(order.endian_name()).on_hover_text(hover);
 }
 
+/// The value grid: the order's letters and name, then three value columns.
+fn grid(id: &str) -> egui::Grid {
+    egui::Grid::new(id).striped(true).num_columns(5).min_col_width(70.0).spacing(COLUMN_GAP)
+}
+
 fn cell(ui: &mut egui::Ui, text: String) {
     ui.label(RichText::new(text).monospace());
 }
@@ -103,7 +111,7 @@ impl DecodeView {
         ui.add_space(8.0);
         ui.strong("32-bit (2 registers)");
         let pair = read::<2>(regs, self.bank, addr);
-        egui::Grid::new("decode32").striped(true).num_columns(5).min_col_width(70.0).show(ui, |ui| {
+        grid("decode32").show(ui, |ui| {
             for h in ["Order", "", "u32", "i32", "f32"] {
                 ui.strong(h);
             }
@@ -130,7 +138,7 @@ impl DecodeView {
         ui.add_space(8.0);
         ui.strong("64-bit (4 registers)");
         let quad = read::<4>(regs, self.bank, addr);
-        egui::Grid::new("decode64").striped(true).num_columns(5).min_col_width(70.0).show(ui, |ui| {
+        grid("decode64").show(ui, |ui| {
             for h in ["Order", "", "u64", "i64", "f64"] {
                 ui.strong(h);
             }
