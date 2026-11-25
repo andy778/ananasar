@@ -389,4 +389,54 @@ pub(crate) mod tests {
             ]
         );
     }
+
+    /// The fixture in `tests/fixtures/sunspec`: a synthetic heat pump with the
+    /// common model and a vendor model, loaded the way a user would load it.
+    #[test]
+    fn the_heat_pump_fixture_decodes() {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sunspec");
+        let (models, status) = load_dir(&dir.join("models"));
+        assert_eq!(status, "2 models loaded");
+        let mut r = RegisterFile::new();
+        let text = std::fs::read_to_string(dir.join("nibe-f470.ananas")).unwrap();
+        ananasar_core::ananas_file::load(&text, &mut r).unwrap();
+
+        let dev = sunspec::discover(|a| r.get(Bank::Holding, a)).unwrap();
+        assert!(dev.complete);
+        let ids: Vec<_> = dev.models.iter().map(|m| (m.id, m.addr, m.len)).collect();
+        assert_eq!(ids, [(1, 40002, 66), (64470, 40070, 20)]);
+
+        let decoded = |i: usize| -> Vec<String> {
+            let at = dev.models[i];
+            rows(&r, Bank::Holding, &models[&at.id], at).into_iter().map(|(p, _, v, u)| format!("{p}={v}{u}")).collect()
+        };
+        assert_eq!(
+            decoded(0),
+            ["ID=1", "L=66", "Mn=NIBE", "Md=F470", "Opt=SYNTHETIC", "Vr=1.0", "SN=TEST0001", "DA=1"]
+        );
+        assert_eq!(
+            decoded(1),
+            [
+                "ID=64470",
+                "L=20",
+                "Tmp_SF=-1",
+                "OutTmp=-5.2C",
+                "SupTmp=35.2C",
+                "RetTmp=29.8C",
+                "HWTmp=48.5C",
+                "ExhTmp=21.5C",
+                "ExtTmp=3.8C",
+                "DegMin=-120DM",
+                "CompHz=52Hz",
+                "FanPct=65Pct",
+                "St=HEATING (2)",
+                "Alm=SENSOR_FAULT (0x4)",
+                "HtWh=12345kWh",
+                "zone[1].SetTmp=34.2C",
+                "zone[1].RoomTmp=21.4C",
+                "zone[2].SetTmp=n/a",
+                "zone[2].RoomTmp=n/a",
+            ]
+        );
+    }
 }

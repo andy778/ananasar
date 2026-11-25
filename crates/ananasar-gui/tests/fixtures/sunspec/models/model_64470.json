@@ -1,0 +1,45 @@
+{
+    "id": 64470,
+    "comments": ["Synthetic test model styled after a Nibe F470 exhaust-air heat pump. Not Nibe's register map: a real F470 does not speak SunSpec."],
+    "group": {
+        "name": "f470", "label": "Heat Pump (synthetic F470)", "type": "group",
+        "points": [
+            {"name": "ID", "type": "uint16", "size": 1, "value": 64470},
+            {"name": "L", "type": "uint16", "size": 1},
+            {"name": "Tmp_SF", "type": "sunssf", "size": 1},
+            {"name": "OutTmp", "label": "BT1 outdoor", "type": "int16", "size": 1, "sf": "Tmp_SF", "units": "C"},
+            {"name": "SupTmp", "label": "BT2 supply", "type": "int16", "size": 1, "sf": "Tmp_SF", "units": "C"},
+            {"name": "RetTmp", "label": "BT3 return", "type": "int16", "size": 1, "sf": "Tmp_SF", "units": "C"},
+            {"name": "HWTmp", "label": "BT7 hot water top", "type": "int16", "size": 1, "sf": "Tmp_SF", "units": "C"},
+            {"name": "ExhTmp", "label": "BT20 exhaust air", "type": "int16", "size": 1, "sf": "Tmp_SF", "units": "C"},
+            {"name": "ExtTmp", "label": "BT21 vented air", "type": "int16", "size": 1, "sf": "Tmp_SF", "units": "C"},
+            {"name": "DegMin", "label": "Degree minutes", "type": "int16", "size": 1, "units": "DM"},
+            {"name": "CompHz", "label": "Compressor frequency", "type": "uint16", "size": 1, "units": "Hz"},
+            {"name": "FanPct", "label": "Exhaust fan speed", "type": "uint16", "size": 1, "units": "Pct"},
+            {"name": "St", "label": "Operating state", "type": "enum16", "size": 1,
+             "symbols": [
+                 {"name": "OFF", "value": 1},
+                 {"name": "HEATING", "value": 2},
+                 {"name": "HOT_WATER", "value": 3},
+                 {"name": "DEFROST", "value": 4},
+                 {"name": "ALARM", "value": 5}
+             ]},
+            {"name": "Alm", "label": "Alarms", "type": "bitfield32", "size": 2,
+             "symbols": [
+                 {"name": "HIGH_PRESSURE", "value": 0},
+                 {"name": "LOW_PRESSURE", "value": 1},
+                 {"name": "SENSOR_FAULT", "value": 2},
+                 {"name": "LOW_FLOW", "value": 3}
+             ]},
+            {"name": "HtWh", "label": "Heat produced", "type": "acc32", "size": 2, "units": "kWh"},
+            {"name": "Pad", "type": "pad", "size": 1}
+        ],
+        "groups": [{
+            "name": "zone", "label": "Heating zone", "type": "group", "count": 0,
+            "points": [
+                {"name": "SetTmp", "label": "Calculated supply", "type": "int16", "size": 1, "sf": "Tmp_SF", "units": "C"},
+                {"name": "RoomTmp", "label": "BT50 room", "type": "int16", "size": 1, "sf": "Tmp_SF", "units": "C"}
+            ]
+        }]
+    }
+}
