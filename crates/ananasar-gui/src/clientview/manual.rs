@@ -12,12 +12,13 @@ const SHORTCUT_MASK: egui::KeyboardShortcut = egui::KeyboardShortcut::new(CTRL_A
 const SHORTCUT_EXCEPTION: egui::KeyboardShortcut = egui::KeyboardShortcut::new(CTRL_ALT, egui::Key::R);
 const SHORTCUT_SCANNER: egui::KeyboardShortcut = egui::KeyboardShortcut::new(CTRL_ALT, egui::Key::C);
 
-/// A plain value: decimal, or hex with a `0x` prefix.
+/// A plain value: decimal (a negative number is stored as its
+/// two's-complement bits, -5 as 65531), or hex with a `0x` prefix.
 fn parse_value(text: &str) -> Option<u16> {
     let t = text.trim();
     match t.strip_prefix("0x").or_else(|| t.strip_prefix("0X")) {
         Some(hex) => u16::from_str_radix(hex, 16).ok(),
-        None => t.parse().ok(),
+        None => crate::value::parse_decimal(t),
     }
 }
 
@@ -177,6 +178,10 @@ mod tests {
             Some(ManualCommand::WriteSingleMultiple { addr: 5, value: 16 })
         ));
         assert!(build_command("5", "70000", "", "", false, false).is_none());
+        assert!(matches!(
+            build_command("5", "-5", "", "", false, false),
+            Some(ManualCommand::WriteSingle { addr: 5, value: 65531 })
+        ));
         assert!(build_command("x", "1", "", "", false, false).is_none());
     }
 
