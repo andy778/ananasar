@@ -25,16 +25,16 @@ impl Default for DecodeView {
     }
 }
 
-/// The digit form the Set Register Value window uses for the same order:
-/// which wire byte (0 = high byte of the first register) lands in each
-/// position of the 32-bit value, most significant first.
-fn digits(order: WordOrder) -> &'static str {
-    match order {
-        WordOrder::Abcd => "0-1-2-3",
-        WordOrder::Cdab => "2-3-0-1",
-        WordOrder::Badc => "1-0-3-2",
-        WordOrder::Dcba => "3-2-1-0",
-    }
+/// The digit form of an order's `letters` (as the Set Register Value window
+/// writes it for 32-bit values): which wire byte (0 = high byte of the first
+/// register) lands in each position of the value, most significant first.
+fn digits(letters: &str) -> String {
+    ('A'..='H')
+        .take(letters.len())
+        .filter_map(|c| letters.find(c))
+        .map(|wire| wire.to_string())
+        .collect::<Vec<_>>()
+        .join("-")
 }
 
 /// A float in plain notation, or in exponent notation when plain would be
@@ -60,9 +60,10 @@ fn read<const N: usize>(regs: &SharedRegs, bank: Bank, addr: u16) -> Option<[u16
 /// The two cells naming an order: its letters, and the endian name tools such
 /// as Modbus Poll use. Both are shown because "little-endian" alone is read by
 /// many device manuals as the word swap (CDAB), not the full reverse (DCBA).
-fn order_label(ui: &mut egui::Ui, order: WordOrder) {
-    let hover = format!("Wire bytes {} as the value, most significant first", digits(order));
-    ui.label(RichText::new(order.letters()).monospace().strong()).on_hover_text(&hover);
+/// `letters` is the order's 4- or 8-letter form, matching the grid's width.
+fn order_label(ui: &mut egui::Ui, order: WordOrder, letters: &str) {
+    let hover = format!("Wire bytes {} as the value, most significant first", digits(letters));
+    ui.label(RichText::new(letters).monospace().strong()).on_hover_text(&hover);
     ui.label(order.endian_name()).on_hover_text(hover);
 }
 
@@ -117,7 +118,7 @@ impl DecodeView {
             }
             ui.end_row();
             for order in WordOrder::ALL {
-                order_label(ui, order);
+                order_label(ui, order, order.letters());
                 match pair {
                     Some(p) => {
                         let v = order.decode32(p);
@@ -144,7 +145,7 @@ impl DecodeView {
             }
             ui.end_row();
             for order in WordOrder::ALL {
-                order_label(ui, order);
+                order_label(ui, order, order.letters64());
                 match quad {
                     Some(q) => {
                         let v = order.decode64(q);
@@ -188,8 +189,20 @@ mod tests {
         for order in WordOrder::ALL {
             let v = order.decode32([0x0001, 0x0203]).u.to_be_bytes();
             let spelled = v.iter().map(u8::to_string).collect::<Vec<_>>().join("-");
-            assert_eq!(spelled, digits(order), "{}", order.letters());
+            assert_eq!(spelled, digits(order.letters()), "{}", order.letters());
         }
+        assert_eq!(digits("CDAB"), "2-3-0-1");
+    }
+
+    #[test]
+    fn digit_forms_match_the_64_bit_decoding() {
+        // Bytes 00 01 … 07 on the wire, decoded in each order, spell out the digit form.
+        for order in WordOrder::ALL {
+            let v = order.decode64([0x0001, 0x0203, 0x0405, 0x0607]).u.to_be_bytes();
+            let spelled = v.iter().map(u8::to_string).collect::<Vec<_>>().join("-");
+            assert_eq!(spelled, digits(order.letters64()), "{}", order.letters64());
+        }
+        assert_eq!(digits("GHEFCDAB"), "6-7-4-5-2-3-0-1");
     }
 
     #[test]
