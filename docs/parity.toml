@@ -100,7 +100,8 @@ id = "client-transaction-limits"
 area = "client"
 feature = "Separate read and write transaction limit presets within the protocol maximums"
 status = "shipped"
-tests = ["crates/ananasar-gui/src/clientview/polling.rs::clamps_to_protocol_maximums", "crates/ananasar-gui/src/clientview/polling.rs::presets_fit_their_maximum"]
+tests = ["crates/ananasar-gui/src/clientview/polling.rs::clamps_to_protocol_maximums", "crates/ananasar-gui/src/clientview/polling.rs::presets_fit_their_maximum", "crates/ananasar-core/src/lib.rs::limit_of_one_sends_every_address_as_its_own_read"]
+note = "the read presets also offer 1, which the original does not: it turns the merging off"
 
 [[feature]]
 id = "client-register-series"

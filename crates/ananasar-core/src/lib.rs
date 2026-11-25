@@ -28,7 +28,9 @@ pub mod protocol;
 pub mod registers;
 pub mod scanner;
 pub mod server;
+pub mod sunspec;
 pub mod sync;
+pub mod typed;
 
 #[cfg(test)]
 mod tests {
@@ -212,6 +214,14 @@ mod tests {
         assert_eq!(list.next_run(2), Some((0, 2)));
         assert_eq!(list.next_run(2), Some((2, 2)));
         assert_eq!(list.next_run(2), Some((4, 1)));
+    }
+
+    #[test]
+    fn limit_of_one_sends_every_address_as_its_own_read() {
+        let mut list = PollList::new(vec![6, 7, 8, 9]);
+        for addr in 6..=9 {
+            assert_eq!(list.next_run(1), Some((addr, 1)));
+        }
     }
 
     #[test]
