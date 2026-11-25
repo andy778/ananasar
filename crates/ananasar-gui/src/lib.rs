@@ -8,6 +8,7 @@
 mod clientview;
 #[cfg(windows)]
 mod ddeview;
+mod decodeview;
 mod dialog;
 mod embed;
 mod filewindow;
@@ -20,6 +21,7 @@ mod setvalview;
 #[cfg(test)]
 mod smoke_tests;
 mod stormview;
+mod sunspecview;
 mod theme;
 mod value;
 
@@ -180,6 +182,10 @@ struct App {
     show_setval: bool,
     show_scanner: bool,
     show_storm: bool,
+    show_decode: bool,
+    decode: decodeview::DecodeView,
+    show_sunspec: bool,
+    sunspec: sunspecview::SunSpecView,
     log_interpretive: bool,
     /// An error to show the user in a message box.
     message: Option<String>,
@@ -264,6 +270,10 @@ impl App {
             show_client: false,
             show_setval: false,
             show_scanner: false,
+            show_decode: false,
+            decode: decodeview::DecodeView::default(),
+            show_sunspec: false,
+            sunspec: sunspecview::SunSpecView::default(),
             show_storm: false,
             log_interpretive: true,
             message: startup_error,
@@ -872,6 +882,8 @@ impl eframe::App for App {
             Some(Action::AddrHex) => self.addr_hex = !self.addr_hex,
             Some(Action::Hex) => self.hex = !self.hex,
             Some(Action::Signed) => self.signed = !self.signed,
+            Some(Action::DecodeRegisters) => self.show_decode = true,
+            Some(Action::SunSpecDevice) => self.show_sunspec = true,
             Some(Action::ToggleFunction(fc)) => {
                 let mut cfg = lock(&self.server.cfg);
                 if !cfg.supported.remove(&fc) {
@@ -1001,6 +1013,14 @@ impl eframe::App for App {
         let mut show_scanner = self.show_scanner;
         self.scanner.show(&ctx, &mut show_scanner, &self.regs, self.tooltips);
         self.show_scanner = show_scanner;
+
+        let mut show_decode = self.show_decode;
+        self.decode.show(&ctx, &mut show_decode, &self.regs);
+        self.show_decode = show_decode;
+
+        let mut show_sunspec = self.show_sunspec;
+        self.sunspec.show(&ctx, &mut show_sunspec, &self.regs);
+        self.show_sunspec = show_sunspec;
 
         let mut show_storm = self.show_storm;
         self.storm.show(&ctx, &mut show_storm);

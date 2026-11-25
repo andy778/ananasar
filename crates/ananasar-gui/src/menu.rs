@@ -75,6 +75,10 @@ pub enum Action {
     Hex,
     /// View > Values as Signed, an Ananasar addition.
     Signed,
+    /// View > Decode Registers…, an Ananasar addition.
+    DecodeRegisters,
+    /// View > SunSpec Device…, an Ananasar addition.
+    SunSpecDevice,
     ToggleFunction(u8),
     ForceException(Exception),
     ToggleFault(Fault),
@@ -259,6 +263,9 @@ pub fn build(s: &MenuState<'_>) -> Vec<MenuItem> {
         M::check("Registers as Hex", s.addr_hex, Action::AddrHex).key(sc::ADDR_HEX),
         M::check("Values as Hex", s.hex, Action::Hex).key(sc::HEX),
         M::check("Values as Signed", s.signed, Action::Signed),
+        M::separator(),
+        M::action("Decode Registers…", Action::DecodeRegisters),
+        M::action("SunSpec Device…", Action::SunSpecDevice),
     ];
     let functions = FUNCTION_TOGGLES
         .iter()

@@ -43,6 +43,9 @@ View
   Registers as Hex  @ Ctrl+Shift+H  [check]
   Values as Hex  @ Ctrl+H  [check]
   + Values as Signed  [check]
+  + ---
+  + Decode Registers…
+  + SunSpec Device…
 
 Options
   Modbus
