@@ -11,7 +11,8 @@ pub(super) const MAX_READ: u16 = 125;
 pub(super) const MAX_WRITE: u16 = 123;
 /// The original starts with 100 registers per write transaction.
 pub(super) const DEFAULT_WRITE: u16 = 100;
-const READ_PRESETS: &[u16] = &[5, 50, 100, 125];
+/// 1 is not in the original: it turns merging off, so each address is its own read and log line.
+const READ_PRESETS: &[u16] = &[1, 5, 50, 100, 125];
 const WRITE_PRESETS: &[u16] = &[50, 100, 123];
 
 /// Clamps a transaction limit to `1..=max`.
