@@ -40,6 +40,18 @@ impl WordOrder {
         }
     }
 
+    /// The byte letters of a 64-bit value in this order, `A` (most
+    /// significant) to `H`, as they arrive on the wire: `"GHEFCDAB"` for
+    /// [`WordOrder::Cdab`], since a reversed order reverses all four registers.
+    pub fn letters64(self) -> &'static str {
+        match self {
+            WordOrder::Abcd => "ABCDEFGH",
+            WordOrder::Cdab => "GHEFCDAB",
+            WordOrder::Badc => "BADCFEHG",
+            WordOrder::Dcba => "HGFEDCBA",
+        }
+    }
+
     /// The endian name many Modbus tools use for this order.
     pub fn endian_name(self) -> &'static str {
         match self {
@@ -196,5 +208,27 @@ mod tests {
         assert_eq!(letters, ["ABCD", "CDAB", "BADC", "DCBA"]);
         assert_eq!(Cdab.endian_name(), "Little-endian byte swap");
         assert_eq!(Badc.endian_name(), "Big-endian byte swap");
+    }
+
+    /// The letters of each value byte, spelled in the order the bytes arrive
+    /// on the wire, worked out from what the decoder does.
+    fn spelled_on_the_wire<const N: usize>(value: [u8; N]) -> String {
+        // Wire byte k carries the number k + 1; value byte p is letter 'A' + p.
+        (1..=N)
+            .map(|wire| {
+                let p = value.iter().position(|&b| usize::from(b) == wire).expect("every wire byte is in the value");
+                char::from(b'A' + u8::try_from(p).expect("at most 8 bytes"))
+            })
+            .collect()
+    }
+
+    #[test]
+    fn letters_match_the_decoding() {
+        for order in WordOrder::ALL {
+            let v32 = order.decode32([0x0102, 0x0304]).u.to_be_bytes();
+            assert_eq!(spelled_on_the_wire(v32), order.letters());
+            let v64 = order.decode64([0x0102, 0x0304, 0x0506, 0x0708]).u.to_be_bytes();
+            assert_eq!(spelled_on_the_wire(v64), order.letters64());
+        }
     }
 }
