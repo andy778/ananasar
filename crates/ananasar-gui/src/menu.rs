@@ -73,6 +73,8 @@ pub enum Action {
     Initialize(Bank, InitMode),
     AddrHex,
     Hex,
+    /// View > Values as Signed, an Ananasar addition.
+    Signed,
     /// View > Decode Registers…, an Ananasar addition.
     DecodeRegisters,
     /// View > SunSpec Device…, an Ananasar addition.
@@ -102,6 +104,7 @@ impl Action {
             Self::Exit
                 | Self::AddrHex
                 | Self::Hex
+                | Self::Signed
                 | Self::ToggleFunction(_)
                 | Self::ForceException(_)
                 | Self::ToggleFault(_)
@@ -209,6 +212,7 @@ pub struct MenuState<'a> {
     pub value_list_edit: bool,
     pub addr_hex: bool,
     pub hex: bool,
+    pub signed: bool,
     pub listening: bool,
     pub port: u16,
     pub tooltips: bool,
@@ -258,6 +262,7 @@ pub fn build(s: &MenuState<'_>) -> Vec<MenuItem> {
     let view = vec![
         M::check("Registers as Hex", s.addr_hex, Action::AddrHex).key(sc::ADDR_HEX),
         M::check("Values as Hex", s.hex, Action::Hex).key(sc::HEX),
+        M::check("Values as Signed", s.signed, Action::Signed),
         M::separator(),
         M::action("Decode Registers…", Action::DecodeRegisters),
         M::action("SunSpec Device…", Action::SunSpecDevice),
