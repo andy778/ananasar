@@ -331,6 +331,10 @@ jobs:
       contents: write
       id-token: write # keyless cosign signing
     steps:
+      # For the upload script. First, because checkout clears the workspace.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: artifacts
@@ -358,16 +362,18 @@ jobs:
           sha256sum -- * > SHA256SUMS
           cat SHA256SUMS
           cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
+      # scripts/next-release.py creates the release and writes its notes; this
+      # only attaches files, and retries because a failure leaves it empty.
       - name: Attach files to release
-        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
-        with:
-          files: |
-            release/ananasar.exe
-            release/ananasar-macos-universal.tar.gz
-            release/ananasar-linux-x86_64.tar.gz
-            release/ananasar-*-notices.zip
-            release/SHA256SUMS
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          python3 scripts/upload-release-assets.py "$GITHUB_REF_NAME" \
+            release/ananasar.exe \
+            release/ananasar-macos-universal.tar.gz \
+            release/ananasar-linux-x86_64.tar.gz \
+            release/ananasar-*-notices.zip \
+            release/SHA256SUMS \
             release/SHA256SUMS.sigstore.json
-          # scripts/next-release.py writes the release notes; this job only attaches files.
-          generate_release_notes: false
-          fail_on_unmatched_files: true
